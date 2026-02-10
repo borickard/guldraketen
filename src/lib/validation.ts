@@ -20,6 +20,7 @@ export function isWorkEmail(email: string): boolean {
     "proton.me",
     "protonmail.com",
   ];
+
   const domain = e.split("@")[1] || "";
-  return domain && !blocked.includes(domain);
+  return Boolean(domain) && !blocked.includes(domain);
 }
