@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { normalizeHandle, isPlausibleHandle, isWorkEmail } from "@/lib/validation";
+import { normalizeHandle, isPlausibleHandle, isEmail } from "@/lib/validation";
 
-type Platform = "tiktok" | "instagram" | "linkedin";
+type Platform = "tiktok" | "instagram" ;
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const rawHandle = String(body.handle || "");
     const email = String(body.email || "").trim().toLowerCase();
 
-    if (!["tiktok", "instagram", "linkedin"].includes(platform)) {
+    if (!["tiktok", "instagram"].includes(platform)) {
       return NextResponse.json({ ok: false, error: "Ogiltig plattform." }, { status: 400 });
     }
 
@@ -21,8 +21,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Ogiltigt användarnamn." }, { status: 400 });
     }
 
-    if (!email || !isWorkEmail(email)) {
-      return NextResponse.json({ ok: false, error: "Ange en jobbmail." }, { status: 400 });
+    if (!email || !isEmail(email)) {
+      return NextResponse.json({ ok: false, error: "Ange en giltig e-postadress." }, { status: 400 });
     }
 
     // En snabb env-check så vi får tydligt fel om det är där det brister

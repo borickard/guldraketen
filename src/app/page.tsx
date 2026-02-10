@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
-type Platform = "tiktok" | "instagram" | "linkedin";
+type Platform = "tiktok" | "instagram" ;
 
 export default function HomePage() {
   const [platform, setPlatform] = useState<Platform>("tiktok");
@@ -90,7 +90,6 @@ export default function HomePage() {
               >
                 <option value="tiktok">TikTok</option>
                 <option value="instagram">Instagram</option>
-                <option value="linkedin">LinkedIn</option>
               </select>
             </label>
 
