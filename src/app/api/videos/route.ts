@@ -5,20 +5,21 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("videos")
         .select(`
-      id,
-      handle,
-      video_url,
-      published_at,
-      views,
-      likes,
-      comments,
-      shares,
-      engagement_rate,
-      last_updated,
-      accounts (
-        followers
-      )
-    `)
+          id,
+          handle,
+          video_url,
+          published_at,
+          views,
+          likes,
+          comments,
+          shares,
+          engagement_rate,
+          thumbnail_url,
+          last_updated,
+          accounts (
+            followers
+          )
+       `)
         .order("engagement_rate", { ascending: false })
         .limit(50);
 
