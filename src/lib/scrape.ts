@@ -25,25 +25,31 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
     cutoff.setDate(cutoff.getDate() - DAYS_BACK);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    // Starta körning asynkront – /runs väntar inte på resultat
-    const res = await fetch(
-        `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apifyToken}`,
-            },
-            body: JSON.stringify({
-                profiles: handles,
-                profileScrapeSections: ["videos"],
-                profileSorting: "latest",
-                resultsPerPage: RESULTS_PER_PROFILE,
-                excludePinnedPosts: true,
-                oldestPostDateUnified: cutoffStr,
-            }),
-        }
-    );
+    // Starta körning med webhook definierad som query-parameter
+    const url = `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs` +
+        `?webhooks=${encodeURIComponent(btoa(JSON.stringify([
+            {
+                eventTypes: ["ACTOR.RUN.SUCCEEDED"],
+                requestUrl: webhookUrl,
+                payloadTemplate: `{"runId":"{{resource.id}}","datasetId":"{{resource.defaultDatasetId}}"}`,
+            }
+        ])))}`;
+
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apifyToken}`,
+        },
+        body: JSON.stringify({
+            profiles: handles,
+            profileScrapeSections: ["videos"],
+            profileSorting: "latest",
+            resultsPerPage: RESULTS_PER_PROFILE,
+            excludePinnedPosts: true,
+            oldestPostDateUnified: cutoffStr,
+        }),
+    });
 
     if (!res.ok) {
         const text = await res.text();
@@ -51,24 +57,6 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
     }
 
     const { data: run } = await res.json();
-
-    // Registrera webhook på körningen
-    await fetch(
-        `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs/${run.id}/webhooks`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apifyToken}`,
-            },
-            body: JSON.stringify({
-                eventTypes: ["ACTOR.RUN.SUCCEEDED"],
-                requestUrl: webhookUrl,
-                payloadTemplate: `{"runId":"{{resource.id}}","datasetId":"{{resource.defaultDatasetId}}"}`,
-            }),
-        }
-    );
-
     return { runId: run.id, handles: handles.length };
 }
 
