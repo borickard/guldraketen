@@ -96,6 +96,13 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         const comments = firstNumber(stats.commentCount, it.commentCount);
         const shares = firstNumber(stats.shareCount, it.shareCount);
 
+        const thumbnailUrl =
+            it?.videoMeta?.coverUrl ||
+            it?.covers?.default ||
+            it?.cover ||
+            it?.thumbnail ||
+            null;
+
         videoRows.push({
             handle,
             video_url: videoUrl,
@@ -104,6 +111,7 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             likes: likes ?? 0,
             comments: comments ?? 0,
             shares: shares ?? 0,
+            thumbnail_url: thumbnailUrl,
             last_updated: new Date().toISOString(),
         });
 
@@ -157,6 +165,7 @@ interface VideoRow {
     likes: number;
     comments: number;
     shares: number;
+    thumbnail_url: string | null;
     last_updated: string;
 }
 
@@ -178,6 +187,10 @@ interface ApifyItem {
     likeCount?: number;
     commentCount?: number;
     shareCount?: number;
+    videoMeta?: { coverUrl?: string };
+    covers?: { default?: string };
+    cover?: string;
+    thumbnail?: string;
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
