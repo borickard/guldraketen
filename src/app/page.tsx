@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,11 +22,19 @@ interface Video {
 
 type SortKey = "engagement_rate" | "likes" | "comments" | "shares" | "views";
 type SizeFilter = "all" | "small" | "medium" | "large";
+type ViewsFilter = "all" | "under10k" | "10k100k" | "100k1m" | "over1m";
 
 function accountSize(followers: number): SizeFilter {
   if (followers < 10_000) return "small";
   if (followers < 100_000) return "medium";
   return "large";
+}
+
+function viewsRange(views: number): ViewsFilter {
+  if (views < 10_000) return "under10k";
+  if (views < 100_000) return "10k100k";
+  if (views < 1_000_000) return "100k1m";
+  return "over1m";
 }
 
 function fmt(n: number): string {
@@ -40,11 +48,92 @@ function tiktokEmbedId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+// ─── SlidingTabs ─────────────────────────────────────────────────────────────
+
+function SlidingTabs<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: T; label: string }[];
+  value: T;
+  onChange: (key: T) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+  const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    if (activeRef.current && containerRef.current) {
+      const container = containerRef.current.getBoundingClientRect();
+      const active = activeRef.current.getBoundingClientRect();
+      setPillStyle({ left: active.left - container.left, width: active.width });
+    }
+  }, [value]);
+
+  return (
+    <div className="sliding-tabs" ref={containerRef}>
+      <div className="sliding-pill" style={{ left: pillStyle.left, width: pillStyle.width }} />
+      {options.map((o) => (
+        <button
+          key={o.key}
+          ref={value === o.key ? activeRef : undefined}
+          className={`sliding-tab ${value === o.key ? "sliding-tab--on" : ""}`}
+          onClick={() => onChange(o.key)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── VideoModal ───────────────────────────────────────────────────────────────
+
+function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
+  const embedId = tiktokEmbedId(video.video_url);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-handle">@{video.handle}</span>
+          <button className="modal-close" onClick={onClose} aria-label="Stäng">✕</button>
+        </div>
+        {embedId ? (
+          <iframe
+            src={`https://www.tiktok.com/embed/v2/${embedId}`}
+            className="modal-iframe"
+            allowFullScreen
+            allow="autoplay"
+            scrolling="no"
+          />
+        ) : (
+          <div className="modal-fallback">
+            <a href={video.video_url} target="_blank" rel="noopener noreferrer">
+              Öppna på TikTok →
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── VideoCard ────────────────────────────────────────────────────────────────
 
 function VideoCard({ video, rank, highlight }: { video: Video; rank: number; highlight: SortKey }) {
-  const [expanded, setExpanded] = useState(false);
-  const embedId = tiktokEmbedId(video.video_url);
+  const [showModal, setShowModal] = useState(false);
   const followers = video.accounts?.followers ?? 0;
 
   const medalColors = ["#C8962A", "#8C9198", "#A0623A"];
@@ -61,71 +150,88 @@ function VideoCard({ video, rank, highlight }: { video: Video; rank: number; hig
   ];
 
   return (
-    <article className="card">
-      {/* Rank */}
-      <div className="rank-stripe" style={{ background: rankBg, border: rankBorder }}>
-        <span className="rank-num" style={{ color: rankColor }}>{rank}</span>
-      </div>
+    <>
+      {showModal && <VideoModal video={video} onClose={() => setShowModal(false)} />}
+      <article className="card">
+        {/* Rank */}
+        <div className="rank-stripe" style={{ background: rankBg, border: rankBorder }}>
+          <span className="rank-num" style={{ color: rankColor }}>{rank}</span>
+        </div>
 
-      {/* Thumbnail */}
-      <button className="thumb-btn" onClick={() => setExpanded(!expanded)} aria-label={expanded ? "Stäng video" : "Visa video"}>
-        {expanded && embedId ? (
-          <div className="embed-wrap">
-            <iframe src={`https://www.tiktok.com/embed/v2/${embedId}`} className="embed-iframe" allowFullScreen allow="autoplay" scrolling="no" />
-          </div>
-        ) : (
+        {/* Thumbnail */}
+        <button className="thumb-btn" onClick={() => setShowModal(true)} aria-label="Visa video">
           <div className="thumb">
             {video.thumbnail_url ? (
-                <Image
-                  src={video.thumbnail_url}
-                  alt={`@${video.handle}`}
-                  fill
-                  sizes="72px"
-                  style={{ objectFit: "cover" }}
-                />
+              <Image
+                src={video.thumbnail_url}
+                alt={`@${video.handle}`}
+                fill
+                sizes="72px"
+                style={{ objectFit: "cover" }}
+              />
             ) : (
-              <span className="thumb-placeholder">▶</span>
+                <span className="thumb-placeholder">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <polygon points="4,2 14,8 4,14" fill="#c8b89a" />
+                  </svg>
+                </span>
             )}
             <div className="thumb-overlay">
-              <span className="thumb-play">▶</span>
+              <span className="thumb-play">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <polygon points="5,2 18,10 5,18" fill="white" />
+                </svg>
+              </span>
             </div>
           </div>
-        )}
-      </button>
+        </button>
 
-      {/* Content */}
-      <div className="card-content">
-        <div className="card-top">
-          <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-            @{video.handle}
-          </a>
-          <div className="card-meta">
-            {followers > 0 && <span className="meta-tag">{fmt(followers)} följare</span>}
-            <span className="meta-tag">{new Date(video.published_at).toLocaleDateString("sv-SE")}</span>
+        {/* Content */}
+        <div className="card-content">
+          <div className="card-top">
+            <a
+              className="handle"
+              href={`https://www.tiktok.com/@${video.handle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              @{video.handle}
+            </a>
+            <div className="card-meta">
+              {followers > 0 && <span className="meta-tag">{fmt(followers)} följare</span>}
+              <span className="meta-tag">
+                {new Date(video.published_at).toLocaleDateString("sv-SE")}
+              </span>
+            </div>
+          </div>
+          <div className="stats-grid">
+            {stats.map((s) => (
+              <div key={s.key} className={`stat ${highlight === s.key ? "stat--hi" : ""}`}>
+                <span className="stat-val">{s.value}</span>
+                <span className="stat-key">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="stats-grid">
-          {stats.map((s) => (
-            <div key={s.key} className={`stat ${highlight === s.key ? "stat--hi" : ""}`}>
-              <span className="stat-val">{s.value}</span>
-              <span className="stat-key">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <a className="ext" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
-        TikTok →
-      </a>
-    </article>
+        <a
+          className="ext"
+          href={video.video_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Öppna på TikTok"
+        >
+          TikTok →
+        </a>
+      </article>
+    </>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "engagement_rate", label: "Engagemangsrate" },
+  { key: "engagement_rate", label: "Engagemangsgrad" },
   { key: "views", label: "Views" },
   { key: "likes", label: "Likes" },
   { key: "comments", label: "Kommentarer" },
@@ -139,12 +245,23 @@ const SIZE_OPTIONS: { key: SizeFilter; label: string }[] = [
   { key: "large", label: "> 100K" },
 ];
 
+const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
+  { key: "all", label: "Alla" },
+  { key: "under10k", label: "< 10K" },
+  { key: "10k100k", label: "10K–100K" },
+  { key: "100k1m", label: "100K–1M" },
+  { key: "over1m", label: "> 1M" },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function HomePage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SortKey>("engagement_rate");
   const [size, setSize] = useState<SizeFilter>("all");
+  const [views, setViews] = useState<ViewsFilter>("all");
 
   useEffect(() => {
     fetch("/api/videos")
@@ -156,8 +273,9 @@ export default function HomePage() {
   const sorted = useMemo(() => {
     return [...videos]
       .filter((v) => size === "all" || accountSize(v.accounts?.followers ?? 0) === size)
+      .filter((v) => views === "all" || viewsRange(v.views ?? 0) === views)
       .sort((a, b) => (b[sort] ?? 0) - (a[sort] ?? 0));
-  }, [videos, sort, size]);
+  }, [videos, sort, size, views]);
 
   return (
     <main className="page-root">
@@ -174,31 +292,24 @@ export default function HomePage() {
       <div className="controls">
         <div className="control-row">
           <span className="control-label">Sortera på</span>
-          <div className="seg">
-            {SORT_OPTIONS.map((o) => (
-              <button key={o.key} className={`seg-btn ${sort === o.key ? "seg-btn--on" : ""}`} onClick={() => setSort(o.key)}>
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <SlidingTabs options={SORT_OPTIONS} value={sort} onChange={setSort} />
         </div>
         <div className="control-row">
           <span className="control-label">Följare</span>
-          <div className="seg">
-            {SIZE_OPTIONS.map((o) => (
-              <button key={o.key} className={`seg-btn ${size === o.key ? "seg-btn--on" : ""}`} onClick={() => setSize(o.key)}>
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <SlidingTabs options={SIZE_OPTIONS} value={size} onChange={setSize} />
+        </div>
+        <div className="control-row">
+          <span className="control-label">Visningar</span>
+          <SlidingTabs options={VIEWS_OPTIONS} value={views} onChange={setViews} />
         </div>
       </div>
 
       {!loading && !error && <p className="count">{sorted.length} videos</p>}
-
       {loading && <p className="state">Laddar…</p>}
       {error && <p className="state state--err">{error}</p>}
-      {!loading && !error && sorted.length === 0 && <p className="state">Inga videos matchar filtret.</p>}
+      {!loading && !error && sorted.length === 0 && (
+        <p className="state">Inga videos matchar filtret.</p>
+      )}
 
       <div className="video-list">
         {sorted.map((v, i) => (

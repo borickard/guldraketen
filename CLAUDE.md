@@ -37,7 +37,7 @@ src/
     layout.tsx
     globals.css                       – all CSS för hela sajten
     nominera/
-      page.tsx                        – nomineringsformuläret (flyttat från startsidan)
+      page.tsx                        – nomineringsformuläret
     admin/
       page.tsx                        – admin-UI för att hantera konton
     api/
@@ -153,14 +153,16 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ### Startsida (`/`)
 - Topplista med videos live från Supabase
-- Thumbnails från TikTok visas via Next.js image proxy
-- Sortering: engagemangsrate, views, likes, kommentarer, delningar
-- Filter: kontostorlek (följare)
-- Klick på thumbnail expanderar inbäddad TikTok-video
-- Design: ljust editorial tema, Cormorant Garamond + DM Mono + DM Sans
+- Endast videos från de **senaste 14 dagarna** och med **minst 5 000 visningar** visas
+- Thumbnails från TikTok visas via Next.js image proxy (`next.config.ts` med `remotePatterns`)
+- Klick på thumbnail öppnar en **modal** med inbäddad TikTok-spelare (stäng med ✕, Escape eller klick utanför)
+- Sortering: engagemangsgrad, views, likes, kommentarer, delningar
+- Filter: kontostorlek (följare), visningar per video
+- Alla filter och sortering använder **sliding tabs** – en guldpill glider animerat mellan alternativen
+- Design: ljust editorial tema, Cormorant Garamond + DM Mono + DM Sans, guldfärgade accenter
 
 ### Nominera (`/nominera`)
-- Formulär för att nominera TikTok- eller Instagram-konton
+- Formulär för att nominera TikTok-konton
 - Sparar till Supabase via `/api/nominate`
 
 ### Admin (`/admin`)

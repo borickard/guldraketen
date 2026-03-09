@@ -2,27 +2,32 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-    const { data, error } = await supabaseAdmin
-        .from("videos")
-        .select(`
-          id,
-          handle,
-          video_url,
-          published_at,
-          views,
-          likes,
-          comments,
-          shares,
-          engagement_rate,
-          thumbnail_url,
-          last_updated,
-          accounts (
-            followers
-          )
-       `)
-        .order("engagement_rate", { ascending: false })
-        .limit(50);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 14);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+  const { data, error } = await supabaseAdmin
+    .from("videos")
+    .select(`
+      id,
+      handle,
+      video_url,
+      published_at,
+      views,
+      likes,
+      comments,
+      shares,
+      engagement_rate,
+      thumbnail_url,
+      last_updated,
+      accounts (
+        followers
+      )
+    `)
+    .gte("published_at", cutoff.toISOString())
+    .gte("views", 5000)
+    .order("engagement_rate", { ascending: false })
+    .limit(50);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
 }
