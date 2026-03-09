@@ -62,29 +62,21 @@ export default function AdminPage() {
     async function handleScrape() {
         setScraping(true);
         setScrapeResult("");
-        try {
-            const res = await fetch("/api/scrape/trigger", {
-                method: "POST",
-            });
-
-            // Hantera tomt svar (t.ex. vid timeout)
-            const text = await res.text();
-            const data = text ? JSON.parse(text) : {};
-
-            if (res.ok) {
-                setScrapeResult(
-                    `✓ Klar – ${data.upserted ?? "?"} videos upsertade, ${data.skipped ?? "?"} hoppades över, ${data.followers ?? "?"} konton uppdaterade.`
-                );
-            } else {
-                setScrapeResult(`✕ Fel: ${data.error ?? res.statusText}`);
-            }
-        } catch (err) {
-            setScrapeResult(`✕ Fel: ${String(err)}`);
+        const res = await fetch("/api/scrape/trigger", {
+            method: "POST",
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setScrapeResult(
+                `✓ Scraping startad – videos sparas automatiskt när Apify är klar (brukar ta 1–2 min).`
+            );
+        } else {
+            setScrapeResult(`✕ Fel: ${data.error}`);
         }
         setScraping(false);
         await fetchAccounts();
     }
-    
+
     async function handleDelete(id: string) {
         if (!confirm("Ta bort kontot?")) return;
         await fetch("/api/accounts", {

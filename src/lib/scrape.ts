@@ -5,64 +5,91 @@ const APIFY_API_BASE = "https://api.apify.com/v2";
 const DAYS_BACK = 14;
 const RESULTS_PER_PROFILE = 50;
 
-export interface ScrapeResult {
-    message: string;
-    handles: number;
-    upserted: number;
-    skipped: number;
-    followers: number;
-}
+// ─── Starta Apify-jobb asynkront ─────────────────────────────────────────────
 
-export async function runScrape(): Promise<ScrapeResult> {
+export async function startScrape(webhookUrl: string): Promise<{ runId: string; handles: number }> {
     const apifyToken = process.env.APIFY_TOKEN;
     if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
 
-    // 1. Hämta aktiva handles från Supabase
-    const { data: accounts, error: accountsError } = await supabaseAdmin
+    const { data: accounts, error } = await supabaseAdmin
         .from("accounts")
         .select("handle")
         .eq("is_active", true);
 
-    if (accountsError) throw new Error(accountsError.message);
+    if (error) throw new Error(error.message);
 
     const handles = (accounts ?? []).map((a: { handle: string }) => a.handle);
-    if (handles.length === 0) {
-        return { message: "Inga aktiva konton", handles: 0, upserted: 0, skipped: 0, followers: 0 };
-    }
+    if (handles.length === 0) throw new Error("Inga aktiva konton");
 
-    // 2. Kör Apify-scraping
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - DAYS_BACK);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const apifyUrl =
-        `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}` +
-        `/run-sync-get-dataset-items?format=json&clean=true`;
+    // Starta körning asynkront – /runs väntar inte på resultat
+    const res = await fetch(
+        `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apifyToken}`,
+            },
+            body: JSON.stringify({
+                profiles: handles,
+                profileScrapeSections: ["videos"],
+                profileSorting: "latest",
+                resultsPerPage: RESULTS_PER_PROFILE,
+                excludePinnedPosts: true,
+                oldestPostDateUnified: cutoffStr,
+            }),
+        }
+    );
 
-    const apifyResp = await fetch(apifyUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apifyToken}`,
-        },
-        body: JSON.stringify({
-            profiles: handles,
-            profileScrapeSections: ["videos"],
-            profileSorting: "latest",
-            resultsPerPage: RESULTS_PER_PROFILE,
-            excludePinnedPosts: true,
-            oldestPostDateUnified: cutoffStr,
-        }),
-    });
-
-    if (!apifyResp.ok) {
-        const text = await apifyResp.text();
-        throw new Error(`Apify error ${apifyResp.status}: ${text}`);
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Apify start error ${res.status}: ${text}`);
     }
 
-    const items: ApifyItem[] = await apifyResp.json();
+    const { data: run } = await res.json();
 
-    // 3. Bygg videorader + följaruppdateringar
+    // Registrera webhook på körningen
+    await fetch(
+        `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs/${run.id}/webhooks`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apifyToken}`,
+            },
+            body: JSON.stringify({
+                eventTypes: ["ACTOR.RUN.SUCCEEDED"],
+                requestUrl: webhookUrl,
+                payloadTemplate: `{"runId":"{{resource.id}}","datasetId":"{{resource.defaultDatasetId}}"}`,
+            }),
+        }
+    );
+
+    return { runId: run.id, handles: handles.length };
+}
+
+// ─── Bearbeta Apify-resultat (anropas från webhook) ───────────────────────────
+
+export async function processScrapeResults(datasetId: string): Promise<ScrapeResult> {
+    const apifyToken = process.env.APIFY_TOKEN;
+    if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
+
+    const res = await fetch(
+        `${APIFY_API_BASE}/datasets/${datasetId}/items?format=json&clean=true`,
+        { headers: { Authorization: `Bearer ${apifyToken}` } }
+    );
+
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Apify dataset error ${res.status}: ${text}`);
+    }
+
+    const items: ApifyItem[] = await res.json();
+
     const videoRows: VideoRow[] = [];
     const followerMap: Record<string, number> = {};
     let skipped = 0;
@@ -98,7 +125,6 @@ export async function runScrape(): Promise<ScrapeResult> {
         }
     }
 
-    // 4. Upserta videos i batchar
     const BATCH = 100;
     let upserted = 0;
     for (let i = 0; i < videoRows.length; i += BATCH) {
@@ -110,7 +136,6 @@ export async function runScrape(): Promise<ScrapeResult> {
         upserted += batch.length;
     }
 
-    // 5. Uppdatera följarantal
     const now = new Date().toISOString();
     for (const [handle, followers] of Object.entries(followerMap)) {
         await supabaseAdmin
@@ -121,7 +146,6 @@ export async function runScrape(): Promise<ScrapeResult> {
 
     return {
         message: "Klar",
-        handles: handles.length,
         upserted,
         skipped,
         followers: Object.keys(followerMap).length,
@@ -129,6 +153,13 @@ export async function runScrape(): Promise<ScrapeResult> {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ScrapeResult {
+    message: string;
+    upserted: number;
+    skipped: number;
+    followers: number;
+}
 
 interface VideoRow {
     handle: string;
