@@ -4,19 +4,16 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-
-        // Logga hela payload så vi ser vad Apify faktiskt skickar
         console.log("Webhook payload:", JSON.stringify(body, null, 2));
 
-        // Apify kan skicka datasetId på olika sätt
+        // Apify standard-payload har datasetId under resource
         const datasetId =
-            body?.datasetId ||
             body?.resource?.defaultDatasetId ||
-            body?.eventData?.defaultDatasetId ||
+            body?.datasetId ||
             null;
 
         if (!datasetId) {
-            console.error("Hittade inget datasetId i payload:", body);
+            console.error("Hittade inget datasetId:", body);
             return NextResponse.json({ error: "datasetId saknas", body }, { status: 400 });
         }
 

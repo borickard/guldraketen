@@ -31,7 +31,7 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
             {
                 eventTypes: ["ACTOR.RUN.SUCCEEDED"],
                 requestUrl: webhookUrl,
-                payloadTemplate: `{"runId":"{{resource.id}}","datasetId":"{{resource.defaultDatasetId}}"}`,
+
             }
         ])))}`;
 
