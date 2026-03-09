@@ -47,11 +47,13 @@ src/
         route.ts                      – scrape-endpoint (används av Vercel Cron)
         trigger/
           route.ts                    – anropas från admin-UI (ingen hemlighet i browsern)
+        webhook/
+          route.ts                    – tar emot callback från Apify när scraping är klar
   lib/
-    scrape.ts                         – all scrape-logik (delas mellan route.ts och trigger)
+    scrape.ts                         – all scrape-logik (startScrape + processScrapeResults)
     supabaseAdmin.ts                  – Supabase-klient (service role)
     validation.ts
-vercel.json                           – Vercel Cron-schema
+vercel.json                           – Vercel Cron-schema (måndagar kl 07 UTC)
 ```
 
 ---
@@ -62,9 +64,9 @@ vercel.json                           – Vercel Cron-schema
 Konton att scrapea. Hanteras via admin-sidan.
 
 ```sql
-id                   uuid primary key
-handle               text unique not null
-is_active            boolean default true
+id                   uuid primary key default gen_random_uuid()
+handle               text not null unique
+is_active            boolean not null default true
 followers            integer
 followers_updated_at timestamptz
 created_at           timestamptz default now()
@@ -74,9 +76,9 @@ created_at           timestamptz default now()
 Scrapad videodata. Upsert på `video_url`.
 
 ```sql
-id              uuid primary key
-handle          text references accounts(handle)
-video_url       text unique not null
+id              uuid primary key default gen_random_uuid()
+handle          text not null references accounts(handle) on delete cascade
+video_url       text not null unique
 published_at    timestamptz
 views           integer
 likes           integer
@@ -90,25 +92,38 @@ engagement_rate numeric generated always as (
 last_updated    timestamptz default now()
 ```
 
-Engagement rate = `(likes + comments×5 + shares×10) / views × 100`  
+**Engagement rate-formel:** `(likes + comments×5 + shares×10) / views × 100`
 Räknas automatiskt av databasen – skrivs aldrig manuellt.
+
+**OBS:** Supabase lagrar alla tider i UTC. Vid visning på sajten, konvertera till lokal tid:
+```ts
+new Date(video.last_updated).toLocaleString("sv-SE", { timeZone: "Europe/Stockholm" })
+```
 
 ---
 
 ## Scraping-flöde
 
 ```
-Vercel Cron (måndag kl 07)
-  → GET /api/scrape  (Authorization: Bearer CRON_SECRET)
-  → src/lib/scrape.ts
+Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
+  → POST /api/scrape  (Cron) eller POST /api/scrape/trigger  (admin)
+  → src/lib/scrape.ts → startScrape()
       1. Hämtar aktiva handles från Supabase accounts
-      2. Anropar Apify API (senaste 14 dagar, max 50 videos/konto)
-      3. Upsertar videos i Supabase
-      4. Uppdaterar followers + followers_updated_at på accounts
+      2. Startar Apify-körning asynkront (returnerar direkt med runId)
+      3. Registrerar webhook på Apify-körningen via query-parameter (base64-kodad)
+
+Apify kör klart (ca 10–30 sek)
+  → POST /api/scrape/webhook
+  → src/lib/scrape.ts → processScrapeResults()
+      1. Hämtar dataset-items från Apify (via resource.defaultDatasetId i payload)
+      2. Upsertar videos i Supabase
+      3. Uppdaterar followers + followers_updated_at på accounts
 ```
 
-Kan även triggas manuellt via admin-sidan (`/admin` → "Kör scraping nu").  
-Admin-knappen anropar `/api/scrape/trigger` som importerar `scrape.ts` direkt – hemligheten lämnar aldrig browsern.
+**Varför asynkront?** Vercel Hobby-plan tillåter max 10 sekunders körtid per funktion. Apify-scraping tar längre tid. Lösningen är att starta jobbet och svara direkt – Apify kallar på webhooken när det är klart.
+
+**Webhook-URL i produktion:** `https://guldraketen.vercel.app/api/scrape/webhook`
+Webhooken fungerar bara i produktion (Vercel), inte lokalt i Codespaces.
 
 ---
 
@@ -130,16 +145,38 @@ CRON_SECRET=
 - Lägg till TikTok-konton via handle (utan @)
 - Aktivera/avaktivera konton med toggle
 - Ta bort konton
-- Knapp för att trigga scraping manuellt
+- Knapp för att trigga scraping manuellt (asynkront – svarar direkt, data sparas när Apify är klar)
 - Visar följarantal och senaste uppdatering per konto
 
 Sidan är ännu inte lösenordsskyddad – planeras med Supabase Auth.
 
 ---
 
+## Lokalt test av scraping
+
+Webhooken kan inte testas lokalt. Men man kan verifiera att Apify-körningen startar:
+
+```bash
+curl -X POST http://localhost:3000/api/scrape \
+  -H "Authorization: Bearer <CRON_SECRET>"
+```
+
+Förväntat svar: `{"message":"Scraping startad","runId":"...","handles":N}`
+
+För att testa hela flödet inklusive webhook, kör mot Vercel:
+
+```bash
+curl -X POST https://guldraketen.vercel.app/api/scrape \
+  -H "Authorization: Bearer <CRON_SECRET>"
+```
+
+Kontrollera sedan i Apify-konsolen att **Triggered integrations** visar **1** på körningen.
+
+---
+
 ## Webbplats
 
-- Deployad på Vercel
+- Deployad på Vercel: `https://guldraketen.vercel.app`
 - Nomineringsformulär fungerar
 - Topplista med inbäddade TikTok-videos planeras (påbörjad design)
 
@@ -151,10 +188,10 @@ Sidan är ännu inte lösenordsskyddad – planeras med Supabase Auth.
 - Topplista på webbplatsen med inbäddade videos
 - Filtrera på kategori, kontostorlek, typ av engagemang
 - Fler konton att tracka
+- Kategori-fält på accounts
 
 **Admin**
 - Lösenordsskydd med Supabase Auth
-- Kategori-fält på konton
 
 **Brand**
 - LinkedIn som huvudkanal
@@ -164,17 +201,17 @@ Sidan är ännu inte lösenordsskyddad – planeras med Supabase Auth.
 
 ## Hur man återupptar projektet
 
-1. Klona repot från GitHub
+1. Klona repot från GitHub (`borickard/guldraketen`)
 2. Kör `npm install`
 3. Lägg in miljövariabler i `.env.local`
 4. Kör `npm run dev`
 5. Admin-sidan: `/admin`
-6. Supabase-tabeller: skapa via SQL i `CLAUDE.md` ovan om de saknas
+6. Supabase-tabeller: skapa via SQL ovan om de saknas
 
 ---
 
 ## Projektägare
 
-Rickard  
-Digital Strategist, IQ-initiativet  
+Rickard
+Digital Strategist, IQ-initiativet
 Drivs som sidoprojekt
