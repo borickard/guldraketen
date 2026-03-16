@@ -5,7 +5,9 @@ const APIFY_API_BASE = "https://api.apify.com/v2";
 const DAYS_BACK = 14;
 const RESULTS_PER_PROFILE = 50;
 
-// ─── Starta Apify-jobb asynkront ─────────────────────────────────────────────
+// ─── Starta Apify-jobb asynkront ──────────────────────────────────────────────
+// Returnerar direkt med ett runId – väntar INTE på att scraping ska bli klar.
+// Apify kallar på webhookUrl när jobbet är klart.
 
 export async function startScrape(webhookUrl: string): Promise<{ runId: string; handles: number }> {
     const apifyToken = process.env.APIFY_TOKEN;
@@ -25,13 +27,13 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
     cutoff.setDate(cutoff.getDate() - DAYS_BACK);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    // Starta körning med webhook definierad som query-parameter
+    // Starta körning med webhook definierad som query-parameter (base64-kodad)
     const url = `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs` +
         `?webhooks=${encodeURIComponent(btoa(JSON.stringify([
             {
                 eventTypes: ["ACTOR.RUN.SUCCEEDED"],
                 requestUrl: webhookUrl,
-
+                payloadTemplate: `{"runId":"{{resource.id}}","datasetId":"{{resource.defaultDatasetId}}"}`,
             }
         ])))}`;
 
@@ -61,6 +63,7 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
 }
 
 // ─── Bearbeta Apify-resultat (anropas från webhook) ───────────────────────────
+// Hämtar dataset-items via datasetId och skriver till Supabase.
 
 export async function processScrapeResults(datasetId: string): Promise<ScrapeResult> {
     const apifyToken = process.env.APIFY_TOKEN;
@@ -103,6 +106,12 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             it?.thumbnail ||
             null;
 
+        const caption =
+            it?.text ||
+            it?.description ||
+            it?.caption ||
+            null;
+
         videoRows.push({
             handle,
             video_url: videoUrl,
@@ -112,6 +121,7 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             comments: comments ?? 0,
             shares: shares ?? 0,
             thumbnail_url: thumbnailUrl,
+            caption: caption ? caption.slice(0, 500) : null,
             last_updated: new Date().toISOString(),
         });
 
@@ -121,6 +131,7 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         }
     }
 
+    // Upserta videos i batchar om 100
     const BATCH = 100;
     let upserted = 0;
     for (let i = 0; i < videoRows.length; i += BATCH) {
@@ -132,6 +143,7 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         upserted += batch.length;
     }
 
+    // Uppdatera följarantal
     const now = new Date().toISOString();
     for (const [handle, followers] of Object.entries(followerMap)) {
         await supabaseAdmin
@@ -166,6 +178,7 @@ interface VideoRow {
     comments: number;
     shares: number;
     thumbnail_url: string | null;
+    caption: string | null;
     last_updated: string;
 }
 
@@ -191,6 +204,9 @@ interface ApifyItem {
     covers?: { default?: string };
     cover?: string;
     thumbnail?: string;
+    text?: string;
+    description?: string;
+    caption?: string;
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
