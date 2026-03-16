@@ -48,6 +48,12 @@ function tiktokEmbedId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+// Format "2026-W10" → "Vecka 10, 2026"
+function formatWeek(w: string): string {
+  const [year, week] = w.split("-W");
+  return `Vecka ${parseInt(week)}, ${year}`;
+}
+
 // ─── SlidingTabs ─────────────────────────────────────────────────────────────
 
 function SlidingTabs<T extends string>({
@@ -153,12 +159,10 @@ function VideoCard({ video, rank, highlight }: { video: Video; rank: number; hig
     <>
       {showModal && <VideoModal video={video} onClose={() => setShowModal(false)} />}
       <article className="card">
-        {/* Rank */}
         <div className="rank-stripe" style={{ background: rankBg, border: rankBorder }}>
           <span className="rank-num" style={{ color: rankColor }}>{rank}</span>
         </div>
 
-        {/* Thumbnail */}
         <button className="thumb-btn" onClick={() => setShowModal(true)} aria-label="Visa video">
           <div className="thumb">
             {video.thumbnail_url ? (
@@ -170,11 +174,11 @@ function VideoCard({ video, rank, highlight }: { video: Video; rank: number; hig
                 style={{ objectFit: "cover" }}
               />
             ) : (
-                <span className="thumb-placeholder">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <polygon points="4,2 14,8 4,14" fill="#c8b89a" />
-                  </svg>
-                </span>
+              <span className="thumb-placeholder">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <polygon points="4,2 14,8 4,14" fill="#c8b89a" />
+                </svg>
+              </span>
             )}
             <div className="thumb-overlay">
               <span className="thumb-play">
@@ -186,7 +190,6 @@ function VideoCard({ video, rank, highlight }: { video: Video; rank: number; hig
           </div>
         </button>
 
-        {/* Content */}
         <div className="card-content">
           <div className="card-top">
             <a
@@ -256,19 +259,42 @@ const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const [weeks, setWeeks] = useState<string[]>([]);
+  const [week, setWeek] = useState<string>("");
   const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingWeeks, setLoadingWeeks] = useState(true);
+  const [loadingVideos, setLoadingVideos] = useState(false);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SortKey>("engagement_rate");
   const [size, setSize] = useState<SizeFilter>("all");
   const [views, setViews] = useState<ViewsFilter>("all");
 
+  // Load available weeks on mount
   useEffect(() => {
-    fetch("/api/videos")
+    fetch("/api/weeks")
       .then((r) => r.json())
-      .then((d) => { setVideos(d); setLoading(false); })
-      .catch(() => { setError("Kunde inte ladda videos."); setLoading(false); });
+      .then((data: string[]) => {
+        setWeeks(data);
+        // Default: most recent week (index 0 = newest)
+        if (data.length > 0) setWeek(data[0]);
+        setLoadingWeeks(false);
+      })
+      .catch(() => {
+        setError("Kunde inte ladda veckor.");
+        setLoadingWeeks(false);
+      });
   }, []);
+
+  // Load videos when week changes
+  useEffect(() => {
+    if (!week) return;
+    setLoadingVideos(true);
+    setError("");
+    fetch(`/api/videos?week=${week}`)
+      .then((r) => r.json())
+      .then((data) => { setVideos(data); setLoadingVideos(false); })
+      .catch(() => { setError("Kunde inte ladda videos."); setLoadingVideos(false); });
+  }, [week]);
 
   const sorted = useMemo(() => {
     return [...videos]
@@ -276,6 +302,8 @@ export default function HomePage() {
       .filter((v) => views === "all" || viewsRange(v.views ?? 0) === views)
       .sort((a, b) => (b[sort] ?? 0) - (a[sort] ?? 0));
   }, [videos, sort, size, views]);
+
+  const loading = loadingWeeks || loadingVideos;
 
   return (
     <main className="page-root">
@@ -290,14 +318,38 @@ export default function HomePage() {
       </header>
 
       <div className="controls">
+        {/* Week selector */}
+        <div className="control-row">
+          <span className="control-label">Vecka</span>
+          <div className="week-select-wrap">
+            <select
+              className="week-select"
+              value={week}
+              onChange={(e) => setWeek(e.target.value)}
+              disabled={weeks.length === 0}
+            >
+              {weeks.map((w) => (
+                <option key={w} value={w}>{formatWeek(w)}</option>
+              ))}
+              {weeks.length === 0 && <option value="">Laddar…</option>}
+            </select>
+            <span className="week-select-arrow">▾</span>
+          </div>
+        </div>
+
+        {/* Sort */}
         <div className="control-row">
           <span className="control-label">Sortera på</span>
           <SlidingTabs options={SORT_OPTIONS} value={sort} onChange={setSort} />
         </div>
+
+        {/* Followers filter */}
         <div className="control-row">
           <span className="control-label">Följare</span>
           <SlidingTabs options={SIZE_OPTIONS} value={size} onChange={setSize} />
         </div>
+
+        {/* Views filter */}
         <div className="control-row">
           <span className="control-label">Visningar</span>
           <SlidingTabs options={VIEWS_OPTIONS} value={views} onChange={setViews} />
@@ -308,7 +360,7 @@ export default function HomePage() {
       {loading && <p className="state">Laddar…</p>}
       {error && <p className="state state--err">{error}</p>}
       {!loading && !error && sorted.length === 0 && (
-        <p className="state">Inga videos matchar filtret.</p>
+        <p className="state">Inga videos för den här veckan.</p>
       )}
 
       <div className="video-list">
