@@ -33,13 +33,13 @@ Google Sheets och Google Apps Script används inte längre.
 ```
 src/
   app/
-    page.tsx                          – startsida med topplista live från Supabase
+    page.tsx                          – startsida med veckotopplista
     layout.tsx
-    globals.css                       – all CSS för hela sajten
+    globals.css                       – all CSS (retro OS-tema)
     nominera/
       page.tsx                        – nomineringsformuläret
     admin/
-      page.tsx                        – admin-UI för att hantera konton
+      page.tsx                        – admin-UI för att hantera konton + trigga scraping
     api/
       accounts/
         route.ts                      – CRUD för accounts-tabellen
@@ -53,12 +53,14 @@ src/
           route.ts                    – tar emot callback från Apify när scraping är klar
       videos/
         route.ts                      – hämtar videos från Supabase för topplistan
+      weeks/
+        route.ts                      – returnerar tillgängliga ISO-veckor med data
   lib/
     scrape.ts                         – all scrape-logik (startScrape + processScrapeResults)
     supabaseAdmin.ts                  – Supabase-klient (service role)
     validation.ts
 vercel.json                           – Vercel Cron-schema (måndagar kl 07 UTC)
-next.config.ts                        – Next.js config inkl. remotePatterns för externa bilder
+next.config.ts                        – remotePatterns för externa bilder (thumbnails)
 ```
 
 ---
@@ -90,6 +92,7 @@ likes           integer
 comments        integer
 shares          integer
 thumbnail_url   text
+caption         text
 engagement_rate numeric generated always as (
                   case when views > 0
                     then round(((likes + comments * 5 + shares * 10)::numeric / views) * 100, 4)
@@ -113,23 +116,24 @@ new Date(video.last_updated).toLocaleString("sv-SE", { timeZone: "Europe/Stockho
 ```
 Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
   → POST /api/scrape  (Cron) eller POST /api/scrape/trigger  (admin)
-  → src/lib/scrape.ts → startScrape()
+  → src/lib/scrape.ts → startScrape(webhookUrl, daysBack)
       1. Hämtar aktiva handles från Supabase accounts
       2. Startar Apify-körning asynkront (returnerar direkt med runId)
-      3. Registrerar webhook på Apify-körningen via query-parameter (base64-kodad)
+      3. Registrerar webhook via base64-kodad query-parameter
 
 Apify kör klart (ca 10–30 sek)
   → POST /api/scrape/webhook
-  → src/lib/scrape.ts → processScrapeResults()
-      1. Hämtar dataset-items från Apify (via resource.defaultDatasetId i payload)
-      2. Upsertar videos i Supabase inkl. thumbnail_url
+  → src/lib/scrape.ts → processScrapeResults(datasetId)
+      1. Hämtar dataset-items från Apify (via resource.defaultDatasetId)
+      2. Upsertar videos i Supabase inkl. thumbnail_url och caption
       3. Uppdaterar followers + followers_updated_at på accounts
 ```
 
+**daysBack** – standardvärde 14 för Cron. Admin-UI har ett inputfält för att styra hur många dagar bakåt man scrapear manuellt (användbart vid test och när man lägger till nya konton).
+
 **Varför asynkront?** Vercel Hobby-plan tillåter max 10 sekunders körtid per funktion. Lösningen är att starta jobbet och svara direkt – Apify kallar på webhooken när det är klart.
 
-**Webhook-URL i produktion:** `https://guldraketen.vercel.app/api/scrape/webhook`
-Webhooken fungerar bara i produktion (Vercel), inte lokalt i Codespaces.
+**Webhook fungerar bara i produktion (Vercel)**, inte lokalt i Codespaces.
 
 ---
 
@@ -152,14 +156,14 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ## Webbplats
 
 ### Startsida (`/`)
-- Topplista med videos live från Supabase
-- Endast videos från de **senaste 14 dagarna** och med **minst 5 000 visningar** visas
-- Thumbnails från TikTok visas via Next.js image proxy (`next.config.ts` med `remotePatterns`)
-- Klick på thumbnail öppnar en **modal** med inbäddad TikTok-spelare (stäng med ✕, Escape eller klick utanför)
-- Sortering: engagemangsgrad, views, likes, kommentarer, delningar
-- Filter: kontostorlek (följare), visningar per video
-- Alla filter och sortering använder **sliding tabs** – en guldpill glider animerat mellan alternativen
-- Design: ljust editorial tema, Cormorant Garamond + DM Mono + DM Sans, guldfärgade accenter
+- Veckotopplista med videos live från Supabase
+- Dropdown för att välja vecka (ISO-veckonummer), defaultar till senaste veckan med data
+- Sortering via klickbara kolumnrubriker (eng.rate, views, likes, shares) – aktiv kolumn highlightas i blå med pil
+- Filter för kontostorlek (följare) och visningar per video
+- Thumbnails visas via Next.js image proxy (72×72px kvadrat, object-fit cover)
+- Caption (videons text) visas under handle
+- Klick på thumbnail öppnar modal med inbäddad TikTok-spelare
+- Design: retro OS-tema med kremvit/beige bakgrund (#F5EFE6, #E8DFCA), blå accenter (#6D94C5, #CBDCEB), monospace-typsnitt
 
 ### Nominera (`/nominera`)
 - Formulär för att nominera TikTok-konton
@@ -169,7 +173,8 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 - Lägg till/ta bort konton
 - Aktivera/avaktivera konton med toggle
 - Visar följarantal och senaste uppdatering
-- Knapp för att trigga scraping manuellt
+- Inputfält för antal dagar bakåt (default 14, valbart för manuell körning)
+- Knapp för att trigga scraping manuellt (asynkront, svarar direkt)
 - Ej lösenordsskyddad ännu – planeras med Supabase Auth
 
 ---

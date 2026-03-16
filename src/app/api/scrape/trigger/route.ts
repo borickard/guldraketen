@@ -1,16 +1,16 @@
 import { startScrape } from "@/lib/scrape";
 import { NextRequest, NextResponse } from "next/server";
 
-// Anropas från admin-UI – startar Apify asynkront och svarar direkt
 export async function POST(req: NextRequest) {
     try {
-        const origin = req.nextUrl.origin;
-        const webhookUrl = `${origin}/api/scrape/webhook`;
-        const result = await startScrape(webhookUrl);
-        return NextResponse.json({
-            message: "Scraping startad – data sparas automatiskt när Apify är klar.",
-            ...result,
-        });
+        const body = await req.json().catch(() => ({}));
+        const daysBack = typeof body.daysBack === "number" ? body.daysBack : 14;
+
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
+        const webhookUrl = `${baseUrl}/api/scrape/webhook`;
+
+        const result = await startScrape(webhookUrl, daysBack);
+        return NextResponse.json({ message: "Scraping startad", ...result });
     } catch (err) {
         return NextResponse.json(
             { error: err instanceof Error ? err.message : String(err) },

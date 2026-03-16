@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       shares,
       engagement_rate,
       thumbnail_url,
+      caption,
       last_updated,
       accounts (
         followers

@@ -18,7 +18,8 @@ export default function AdminPage() {
     const [adding, setAdding] = useState(false);
     const [error, setError] = useState("");
     const [scraping, setScraping] = useState(false);
-    const [scrapeResult, setScrapeResult] = useState<string>("");
+    const [scrapeMsg, setScrapeMsg] = useState("");
+    const [daysBack, setDaysBack] = useState(14);
 
     async function fetchAccounts() {
         const res = await fetch("/api/accounts");
@@ -33,13 +34,11 @@ export default function AdminPage() {
         e.preventDefault();
         setAdding(true);
         setError("");
-
         const res = await fetch("/api/accounts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ handle: input }),
         });
-
         if (res.ok) {
             setInput("");
             await fetchAccounts();
@@ -59,24 +58,6 @@ export default function AdminPage() {
         await fetchAccounts();
     }
 
-    async function handleScrape() {
-        setScraping(true);
-        setScrapeResult("");
-        const res = await fetch("/api/scrape/trigger", {
-            method: "POST",
-        });
-        const data = await res.json();
-        if (res.ok) {
-            setScrapeResult(
-                `✓ Scraping startad – videos sparas automatiskt när Apify är klar (brukar ta 1–2 min).`
-            );
-        } else {
-            setScrapeResult(`✕ Fel: ${data.error}`);
-        }
-        setScraping(false);
-        await fetchAccounts();
-    }
-
     async function handleDelete(id: string) {
         if (!confirm("Ta bort kontot?")) return;
         await fetch("/api/accounts", {
@@ -85,6 +66,23 @@ export default function AdminPage() {
             body: JSON.stringify({ id }),
         });
         await fetchAccounts();
+    }
+
+    async function handleScrape() {
+        setScraping(true);
+        setScrapeMsg("");
+        const res = await fetch("/api/scrape/trigger", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ daysBack }),
+        });
+        const data = await res.json();
+        setScrapeMsg(
+            res.ok
+                ? `Scraping startad – runId: ${data.runId} (${data.handles} konton, ${daysBack} dagar bakåt)`
+                : `Fel: ${data.error}`
+        );
+        setScraping(false);
     }
 
     const active = accounts.filter((a) => a.is_active);
@@ -97,25 +95,7 @@ export default function AdminPage() {
                 <div className="admin-header">
                     <span className="admin-eyebrow">Guldraketen · Admin</span>
                     <h1 className="admin-title">Konton</h1>
-                    <p className="admin-sub">
-                        {active.length} aktiva · {inactive.length} inaktiva
-                    </p>
-                </div>
-
-                {/* Scrape trigger */}
-                <div className="scrape-section">
-                    <button
-                        className="scrape-btn"
-                        onClick={handleScrape}
-                        disabled={scraping}
-                    >
-                        {scraping ? "Hämtar data…" : "Kör scraping nu"}
-                    </button>
-                    {scrapeResult && (
-                        <p className={`scrape-result ${scrapeResult.startsWith("✓") ? "scrape-result--ok" : "scrape-result--error"}`}>
-                            {scrapeResult}
-                        </p>
-                    )}
+                    <p className="admin-sub">{active.length} aktiva · {inactive.length} inaktiva</p>
                 </div>
 
                 {/* Add form */}
@@ -149,24 +129,11 @@ export default function AdminPage() {
                         {accounts.map((a) => (
                             <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
                                 <label className="toggle-label">
-                                    <input
-                                        type="checkbox"
-                                        className="toggle-input"
-                                        checked={a.is_active}
-                                        onChange={() => handleToggle(a)}
-                                    />
-                                    <span className="toggle-track">
-                                        <span className="toggle-thumb" />
-                                    </span>
+                                    <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
+                                    <span className="toggle-track"><span className="toggle-thumb" /></span>
                                 </label>
-
                                 <div className="account-info">
-                                    <a
-                                        className="account-handle"
-                                        href={`https://www.tiktok.com/@${a.handle}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
+                                    <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
                                         @{a.handle}
                                     </a>
                                     {a.followers && (
@@ -178,124 +145,98 @@ export default function AdminPage() {
                                         </span>
                                     )}
                                 </div>
-
                                 <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
                                     {a.is_active ? "Aktiv" : "Pausad"}
                                 </span>
-
-                                <button
-                                    className="delete-btn"
-                                    onClick={() => handleDelete(a.id)}
-                                    aria-label="Ta bort"
-                                >
-                                    ✕
-                                </button>
+                                <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
                             </li>
                         ))}
                     </ul>
                 )}
+
+                {/* Scraping */}
+                <div className="scrape-section">
+                    <h2 className="scrape-title">Scraping</h2>
+                    <div className="scrape-row">
+                        <div className="days-input-wrap">
+                            <input
+                                className="days-input"
+                                type="number"
+                                min={1}
+                                max={90}
+                                value={daysBack}
+                                onChange={(e) => setDaysBack(Number(e.target.value))}
+                            />
+                            <span className="days-label">dagar bakåt</span>
+                        </div>
+                        <button className="scrape-btn" onClick={handleScrape} disabled={scraping}>
+                            {scraping ? "Startar…" : "Kör scraping nu"}
+                        </button>
+                    </div>
+                    {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
+                </div>
             </div>
         </>
     );
 }
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Courier+Prime:wght@400;500;700&display=swap');
 
   :root {
-    --bg:       #0c0b09;
-    --bg2:      #141210;
-    --bg3:      #1e1b16;
-    --gold:     #d4a840;
-    --gold-dim: #8a6c28;
-    --text:     #e8e2d6;
-    --muted:    #7a7060;
-    --border:   #2a2520;
-    --red:      #c0392b;
-    --radius:   6px;
+    --bg1:    #F5EFE6;
+    --bg2:    #E8DFCA;
+    --blue:   #6D94C5;
+    --ink:    #1a1a1a;
+    --mid:    #555;
+    --muted:  #999;
+    --border: #c8bfaa;
+    --border-light: #ddd5c0;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  body { background: var(--bg2); }
+
   .admin-root {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg2);
+    color: var(--ink);
     min-height: 100vh;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Courier Prime', 'Courier New', monospace;
     max-width: 640px;
     margin: 0 auto;
     padding: 0 1.5rem 6rem;
   }
 
   .admin-header {
-    padding: 4rem 0 2.5rem;
+    padding: 3rem 0 2rem;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .admin-eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.18em;
+    font-size: 9px;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--gold);
+    color: var(--muted);
     display: block;
     margin-bottom: 0.75rem;
   }
 
   .admin-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.75rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--ink);
   }
 
   .admin-sub {
-    font-size: 0.85rem;
+    font-size: 11px;
     color: var(--muted);
-    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
   }
-
-  /* Scrape section */
-  .scrape-section {
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .scrape-btn {
-    background: transparent;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.8rem;
-    letter-spacing: 0.08em;
-    padding: 0.7rem 1.25rem;
-    border-radius: var(--radius);
-    cursor: pointer;
-    align-self: flex-start;
-    transition: background 0.15s, color 0.15s;
-  }
-
-  .scrape-btn:hover:not(:disabled) {
-    background: var(--gold-dim);
-    color: #0c0b09;
-  }
-
-  .scrape-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .scrape-result {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.75rem;
-  }
-
-  .scrape-result--ok    { color: #6abf69; }
-  .scrape-result--error { color: #e07060; }
 
   /* Form */
   .add-form { margin-bottom: 2rem; }
@@ -303,21 +244,17 @@ const styles = `
   .input-row {
     display: flex;
     align-items: center;
-    gap: 0;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg2);
+    background: var(--bg1);
     overflow: hidden;
-    transition: border-color 0.15s;
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
-  .input-row:focus-within { border-color: var(--gold-dim); }
-
   .at-sign {
-    padding: 0 0.75rem;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.9rem;
+    padding: 0 0.6rem;
+    font-size: 13px;
     color: var(--muted);
+    flex-shrink: 0;
   }
 
   .handle-input {
@@ -325,101 +262,102 @@ const styles = `
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.9rem;
-    padding: 0.75rem 0;
+    color: var(--ink);
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 13px;
+    padding: 0.65rem 0;
   }
 
   .handle-input::placeholder { color: var(--muted); }
 
   .add-btn {
-    background: var(--gold);
+    background: var(--ink);
     border: none;
-    color: #0c0b09;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 0.8rem;
+    border-left: 1px solid var(--border);
+    color: var(--bg1);
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     padding: 0 1.25rem;
-    height: 100%;
-    cursor: pointer;
-    transition: opacity 0.15s;
-    white-space: nowrap;
     align-self: stretch;
+    cursor: pointer;
+    transition: background 0.12s;
+    white-space: nowrap;
   }
 
   .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .add-btn:not(:disabled):hover { opacity: 0.85; }
+  .add-btn:not(:disabled):hover { background: #333; }
 
   .form-error {
     margin-top: 0.5rem;
-    font-size: 0.78rem;
-    color: #e07060;
-    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #a33;
   }
 
   /* List */
   .loading, .empty {
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 11px;
     padding: 2rem 0;
-    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
   }
 
   .account-list {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0;
+    border: 1px solid var(--border);
+    box-shadow: 2px 2px 0 var(--ink);
+    background: var(--bg1);
   }
 
   .account-row {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    transition: border-color 0.15s, opacity 0.15s;
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s, opacity 0.15s;
   }
 
+  .account-row:last-child { border-bottom: none; }
   .account-row--inactive { opacity: 0.5; }
-  .account-row:hover { border-color: var(--gold-dim); opacity: 1; }
+  .account-row:hover { background: #faf7f1; opacity: 1; }
 
   /* Toggle */
   .toggle-label { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
   .toggle-input { display: none; }
 
   .toggle-track {
-    width: 36px;
-    height: 20px;
-    background: var(--bg3);
+    width: 32px;
+    height: 18px;
+    background: var(--bg2);
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 0;
     position: relative;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track {
-    background: var(--gold-dim);
-    border-color: var(--gold-dim);
+    background: var(--blue);
+    border-color: var(--blue);
   }
 
   .toggle-thumb {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     background: var(--muted);
-    border-radius: 50%;
     transition: transform 0.2s, background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track .toggle-thumb {
-    transform: translateX(16px);
-    background: var(--gold);
+    transform: translateX(14px);
+    background: #fff;
   }
 
   /* Account info */
@@ -428,50 +366,119 @@ const styles = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 2px;
   }
 
   .account-handle {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.88rem;
-    font-weight: 500;
-    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
     text-decoration: none;
     transition: color 0.12s;
   }
 
-  .account-handle:hover { color: var(--gold); }
+  .account-handle:hover { color: var(--blue); }
 
   .account-meta {
-    font-size: 0.68rem;
+    font-size: 10px;
     color: var(--muted);
-    font-family: 'IBM Plex Mono', monospace;
   }
 
-  /* Status */
   .status-badge {
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
+    font-size: 9px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-family: 'IBM Plex Mono', monospace;
     color: var(--muted);
     flex-shrink: 0;
   }
 
-  .status-badge--active { color: var(--gold); }
+  .status-badge--active { color: var(--blue); font-weight: 700; }
 
-  /* Delete */
   .delete-btn {
     background: none;
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.75rem;
-    padding: 0.25rem;
-    line-height: 1;
+    font-size: 11px;
+    padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
+    font-family: 'Courier Prime', monospace;
   }
 
-  .delete-btn:hover { color: #e07060; }
+  .delete-btn:hover { color: #a33; }
+
+  /* Scraping section */
+  .scrape-section {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+  }
+
+  .scrape-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .scrape-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .days-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--bg1);
+    padding: 0.5rem 0.75rem;
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
+  .days-input {
+    width: 52px;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .days-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .scrape-btn {
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    color: var(--bg1);
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.55rem 1.25rem;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 var(--border);
+    transition: background 0.12s;
+  }
+
+  .scrape-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .scrape-btn:not(:disabled):hover { background: #333; }
+
+  .scrape-msg {
+    margin-top: 0.75rem;
+    font-size: 11px;
+    color: var(--mid);
+    letter-spacing: 0.02em;
+  }
 `;

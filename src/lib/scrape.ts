@@ -9,7 +9,7 @@ const RESULTS_PER_PROFILE = 50;
 // Returnerar direkt med ett runId – väntar INTE på att scraping ska bli klar.
 // Apify kallar på webhookUrl när jobbet är klart.
 
-export async function startScrape(webhookUrl: string): Promise<{ runId: string; handles: number }> {
+export async function startScrape(webhookUrl: string, daysBack = 14): Promise<{ runId: string; handles: number }> {
     const apifyToken = process.env.APIFY_TOKEN;
     if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
 
@@ -24,7 +24,7 @@ export async function startScrape(webhookUrl: string): Promise<{ runId: string; 
     if (handles.length === 0) throw new Error("Inga aktiva konton");
 
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - DAYS_BACK);
+    cutoff.setDate(cutoff.getDate() - daysBack);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
     // Starta körning med webhook definierad som query-parameter (base64-kodad)
