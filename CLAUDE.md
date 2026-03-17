@@ -10,7 +10,7 @@ Projektet är i aktiv utvecklingsfas.
 
 ## Kärnidé
 
-De flesta reklampriser bedömer kreativitet. Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Data används för att identifiera kandidater, men slutbedömningen görs av en jury.
+De flesta reklampriser bedömer kreativitet. Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Data används för att identifiera kandidater, men slutbedömningen görs av en jury. Fokus är på svenska företagskonton på TikTok.
 
 ---
 
@@ -23,6 +23,7 @@ De flesta reklampriser bedömer kreativitet. Guldraketen fokuserar på faktiskt 
 | Databas | Supabase (PostgreSQL) |
 | Scraping | Apify (`clockworks~tiktok-profile-scraper`) |
 | Schemalagda jobb | Vercel Cron Jobs |
+| Ikoner | lucide-react |
 
 Google Sheets och Google Apps Script används inte längre.
 
@@ -34,8 +35,8 @@ Google Sheets och Google Apps Script används inte längre.
 src/
   app/
     page.tsx                          – startsida med veckotopplista
-    layout.tsx
-    globals.css                       – all CSS (retro OS-tema)
+    layout.tsx                        – Google Fonts (Jersey 10, Montserrat, Inter)
+    globals.css                       – all CSS (retro OS-tema, monokromt)
     nominera/
       page.tsx                        – nomineringsformuläret
     admin/
@@ -54,7 +55,7 @@ src/
       videos/
         route.ts                      – hämtar videos från Supabase för topplistan
       weeks/
-        route.ts                      – returnerar tillgängliga ISO-veckor med data
+        route.ts                      – returnerar tillgängliga ISO-veckor (exkl. innevarande)
   lib/
     scrape.ts                         – all scrape-logik (startScrape + processScrapeResults)
     supabaseAdmin.ts                  – Supabase-klient (service role)
@@ -104,11 +105,6 @@ last_updated    timestamptz default now()
 **Engagement rate-formel:** `(likes + comments×5 + shares×10) / views × 100`
 Räknas automatiskt av databasen – skrivs aldrig manuellt.
 
-**OBS:** Supabase lagrar alla tider i UTC. Vid visning på sajten, konvertera till lokal tid:
-```ts
-new Date(video.last_updated).toLocaleString("sv-SE", { timeZone: "Europe/Stockholm" })
-```
-
 ---
 
 ## Scraping-flöde
@@ -129,17 +125,12 @@ Apify kör klart (ca 10–30 sek)
       3. Uppdaterar followers + followers_updated_at på accounts
 ```
 
-**daysBack** – standardvärde 14 för Cron. Admin-UI har ett inputfält för att styra hur många dagar bakåt man scrapear manuellt (användbart vid test och när man lägger till nya konton).
-
-**Varför asynkront?** Vercel Hobby-plan tillåter max 10 sekunders körtid per funktion. Lösningen är att starta jobbet och svara direkt – Apify kallar på webhooken när det är klart.
-
-**Webhook fungerar bara i produktion (Vercel)**, inte lokalt i Codespaces.
+**daysBack** – standardvärde 14 för Cron. Admin-UI har inputfält för manuell körning.
+**Webhook fungerar bara i produktion (Vercel)**, inte lokalt.
 
 ---
 
 ## Miljövariabler
-
-Krävs i `.env.local` och Vercel Environment Variables:
 
 ```
 SUPABASE_URL=
@@ -149,58 +140,66 @@ CRON_SECRET=
 NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ```
 
-`.env.local` ska **inte** committas – den finns i `.gitignore`.
+`.env.local` ska **inte** committas – finns i `.gitignore`.
 
 ---
 
 ## Webbplats
 
+### Design
+- Retro OS-fönster-tema med svarta kanter och box-shadow offset
+- Bakgrundsfärg: `#64a4c8` (blå)
+- Fönster/kort: vit bakgrund, svarta outlines
+- Typsnitt: **Jersey 10** (logotyp), **Montserrat** (siffror/handles), **Inter** (brödtext/labels)
+- "Guld" i logotypen: `#ffb800`
+
 ### Startsida (`/`)
 - Veckotopplista med videos live från Supabase
-- Dropdown för att välja vecka (ISO-veckonummer), defaultar till senaste veckan med data
-- Sortering via klickbara kolumnrubriker (eng.rate, views, likes, shares) – aktiv kolumn highlightas i blå med pil
-- Filter för kontostorlek (följare) och visningar per video
-- Thumbnails visas via Next.js image proxy (72×72px kvadrat, object-fit cover)
-- Caption (videons text) visas under handle
-- Klick på thumbnail öppnar modal med inbäddad TikTok-spelare
-- Design: retro OS-tema med kremvit/beige bakgrund (#F5EFE6, #E8DFCA), blå accenter (#6D94C5, #CBDCEB), monospace-typsnitt
+- Dropdown för att välja vecka (ISO-veckonummer), defaultar till senaste kompletta veckan
+- Innevarande vecka exkluderas alltid (ej komplett data)
+- Sortering via klickbara kolumnrubriker med Lucide-ikoner (Rocket, Eye, ThumbsUp, MessageCircle, Share2)
+- Filter för followers och views – bakom "Filters"-knapp på mobil
+- URL-parametrar för delningsbara vyer (`?week=&sort=&size=&views=`)
+- Thumbnails via Next.js image proxy (72×72px kvadrat)
+- Caption visas under handle
+- Modal med inbäddad TikTok-spelare vid klick på thumbnail
+- Mobil: stats i full bredd under thumbnail, sortering alltid synlig
 
 ### Nominera (`/nominera`)
 - Formulär för att nominera TikTok-konton
-- Sparar till Supabase via `/api/nominate`
 
 ### Admin (`/admin`)
-- Lägg till/ta bort konton
-- Aktivera/avaktivera konton med toggle
-- Visar följarantal och senaste uppdatering
-- Inputfält för antal dagar bakåt (default 14, valbart för manuell körning)
-- Knapp för att trigga scraping manuellt (asynkront, svarar direkt)
-- Ej lösenordsskyddad ännu – planeras med Supabase Auth
+- Lägg till/ta bort konton, aktivera/avaktivera
+- Inputfält för dagar bakåt (default 14)
+- Knapp för att trigga scraping manuellt
 
 ---
 
 ## Lokalt test av scraping
-
-Webhooken kan inte testas lokalt. Verifiera att Apify-körningen startar:
-
-```bash
-curl -X POST http://localhost:3000/api/scrape \
-  -H "Authorization: Bearer <CRON_SECRET>"
-```
-
-Testa hela flödet mot Vercel:
 
 ```bash
 curl -X POST https://guldraketen.vercel.app/api/scrape \
   -H "Authorization: Bearer <CRON_SECRET>"
 ```
 
-Kontrollera i Apify-konsolen att **Triggered integrations** visar **1**.
-
 ---
 
-## Möjliga nästa steg
+## TODO / Nästa steg
 
+### 🚀 Hero-sektion på startsidan (prioriterat)
+Redesigna startsidan till två delar:
+
+**Del 1 – Hero / Om Guldraketen**
+- Kort beskrivning av vad Guldraketen är och vad som premieras
+- Tydliggör att fokus är på svenska företagskonton
+- Visa föregående veckas topp 3 som en karusell eller tre kort sida vid sida
+- Tydlig visuell hierarki: 1a, 2a, 3a plats
+
+**Del 2 – Fullständig topplista**
+- Nuvarande topplista med filter och sortering
+- Kan vara på `/topplista` som undersida, eller längre ned på startsidan
+
+### Övriga nästa steg
 - Lösenordsskydd på `/admin` med Supabase Auth
 - Kategori-fält på konton (för filtrering)
 - Fler konton att tracka
@@ -215,7 +214,6 @@ Kontrollera i Apify-konsolen att **Triggered integrations** visar **1**.
 3. Lägg in miljövariabler i `.env.local`
 4. Kör `npm run dev`
 5. Startsida: `/` · Admin: `/admin` · Nominera: `/nominera`
-6. Supabase-tabeller: skapa via SQL ovan om de saknas
 
 ---
 
