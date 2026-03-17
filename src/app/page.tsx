@@ -75,6 +75,57 @@ function StatIcon({ col }: { col: SortKey }) {
   return null;
 }
 
+// ─── ShareButton ─────────────────────────────────────────────────────────────
+
+function buildShareText(video: Video, rank: number, shareUrl: string): string {
+  const views = fmt(video.views ?? 0);
+  const likes = fmt(video.likes ?? 0);
+  const comments = fmt(video.comments ?? 0);
+  const shares = fmt(video.shares ?? 0);
+  const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
+  const ordinal = rank === 1 ? "🥇 1:a" : rank === 2 ? "🥈 2:a" : "🥉 3:e";
+
+  return `${ordinal} plats på Guldraketen den här veckan: @${video.handle}
+
+📊 ${er} engagemangsgrad
+👁 ${views} visningar · 👍 ${likes} likes · 💬 ${comments} kommentarer · 🔁 ${shares} delningar
+
+Guldraketen rankar svenska företagskonton på TikTok efter äkta engagemang – där delningar väger tyngst.
+👉 ${shareUrl}`;
+}
+
+function ShareButton({ video, rank, week }: { video: Video; rank: number; week: string }) {
+  const [copied, setCopied] = useState(false);
+  if (rank > 3) return null;
+
+  const shareUrl = `https://guldraketen.vercel.app/${week}/top${rank}`;
+  const text = buildShareText(video, rank, shareUrl);
+  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+
+  function handleShare() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    });
+    setTimeout(() => window.open(linkedinUrl, "_blank"), 300);
+  }
+
+  return (
+    <button
+      className={`share-btn${copied ? " share-btn--copied" : ""}`}
+      onClick={handleShare}
+      title="Kopierar text till urklipp och öppnar LinkedIn"
+    >
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ display: "inline-block", verticalAlign: "middle" }}>
+        <rect x="0" y="3.5" width="2.5" height="7.5" fill="currentColor" />
+        <circle cx="1.25" cy="1.25" r="1.25" fill="currentColor" />
+        <path d="M4 3.5h2.3v1s.7-1.2 2.2-1.2c1.8 0 2.5 1.2 2.5 3v4.2H8.5V7c0-1-.3-1.7-1.1-1.7-.9 0-1.2.6-1.2 1.7v4H4V3.5z" fill="currentColor" />
+      </svg>
+      {copied ? "Kopierat!" : "Dela"}
+    </button>
+  );
+}
+
 // ─── VideoModal ───────────────────────────────────────────────────────────────
 
 function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
@@ -103,11 +154,18 @@ function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
 
 // ─── SortableHeader ───────────────────────────────────────────────────────────
 
+const ER_TOOLTIP = "Viktad engagemangsgrad: delningar väger tyngst (×10), kommentarer näst (×5), sedan likes (×1). Delningar kräver mest av tittaren – att vilja visa videon för sin närmsta krets. Formel: (likes + comments×5 + shares×10) / views × 100";
+
 function SortableHeader({ col, label, active, onSort }: {
   col: SortKey; label: string; active: boolean; onSort: (col: SortKey) => void;
 }) {
+  const isER = col === "engagement_rate";
   return (
-    <span className={`hcell col-stat sortable${active ? " hcell--active" : ""}`} onClick={() => onSort(col)}>
+    <span
+      className={`hcell col-stat sortable${active ? " hcell--active" : ""}`}
+      onClick={() => onSort(col)}
+      title={isER ? ER_TOOLTIP : undefined}
+    >
       {label}{" "}
       <span className="sort-icon">
         {active
@@ -143,8 +201,8 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
 
 // ─── VideoRow ─────────────────────────────────────────────────────────────────
 
-function VideoRow({ video, rank, sort, onThumb }: {
-  video: Video; rank: number; sort: SortKey; onThumb: () => void;
+function VideoRow({ video, rank, sort, onThumb, week }: {
+  video: Video; rank: number; sort: SortKey; onThumb: () => void; week: string;
 }) {
   const followers = video.accounts?.followers ?? 0;
 
@@ -190,6 +248,7 @@ function VideoRow({ video, rank, sort, onThumb }: {
                 <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
               </svg>
             </a>
+            <ShareButton video={video} rank={rank} week={week} />
           </div>
           {video.caption && <div className="caption-row">{video.caption}</div>}
           <div className="date-row">
@@ -200,7 +259,11 @@ function VideoRow({ video, rank, sort, onThumb }: {
       </div>
 
       {allStats.map((s) => (
-        <div key={s.key} className="rcell col-stat desktop-only">
+        <div
+          key={s.key}
+          className="rcell col-stat desktop-only"
+          title={s.key === "engagement_rate" ? ER_TOOLTIP : undefined}
+        >
           <div className="stat-inline">
             <span className="stat-icon"><StatIcon col={s.key} /></span>
             <span className={`stat-val${sort === s.key ? " stat-val--hi" : ""}`}>{s.value}</span>
@@ -221,6 +284,7 @@ function VideoRow({ video, rank, sort, onThumb }: {
                 <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
               </svg>
             </a>
+            <ShareButton video={video} rank={rank} week={week} />
           </div>
           {video.caption && <div className="caption-row">{video.caption}</div>}
           <div className="date-row">
@@ -459,7 +523,7 @@ function HomePageInner() {
           {!loading && !error && sorted.length === 0 && <p className="state">Inga videos för den här veckan.</p>}
 
           {sorted.map((v, i) => (
-            <VideoRow key={v.id} video={v} rank={i + 1} sort={sortState} onThumb={() => setModal(v)} />
+            <VideoRow key={v.id} video={v} rank={i + 1} sort={sortState} onThumb={() => setModal(v)} week={weekState} />
           ))}
         </div>
 
