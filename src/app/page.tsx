@@ -156,7 +156,7 @@ function VideoRow({ video, rank, sort, onThumb }: {
     { key: "shares", label: "Shares", value: fmt(video.shares ?? 0) },
   ];
 
-  const mobileStats = allStats.filter(s => s.key !== "engagement_rate");
+  const mobileStats = allStats; // visa alla inkl. eng.rate på mobil
 
   return (
     <div className={rowClass(rank)}>
@@ -169,7 +169,7 @@ function VideoRow({ video, rank, sort, onThumb }: {
       <button className="thumb-cell" onClick={onThumb} aria-label="Visa video">
         <div className="thumb-sq">
           {video.thumbnail_url
-            ? <Image src={video.thumbnail_url} alt={`@${video.handle}`} fill sizes="72px" style={{ objectFit: "cover", objectPosition: "center top" }} />
+            ? <Image src={video.thumbnail_url} alt={`@${video.handle}`} fill sizes="150px" style={{ objectFit: "cover", objectPosition: "center top" }} />
             : <div style={{ width: "100%", height: "100%", background: "var(--bg2)" }} />
           }
           <div className="thumb-play-sq">

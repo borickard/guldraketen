@@ -199,6 +199,13 @@ Redesigna startsidan till två delar:
 - Nuvarande topplista med filter och sortering
 - Kan vara på `/topplista` som undersida, eller längre ned på startsidan
 
+### 🔗 Delbarhet och LinkedIn-integration
+För att varje veckas topp 3 ska kunna delas på LinkedIn och andra plattformar:
+
+- **`/vecka/[week]`** – dedikerad sida per vecka (t.ex. `/vecka/2026-W11`) med hero-layout för topp 3. Fungerar som permanent arkiv – data finns kvar i Supabase hur länge som helst.
+- **Open Graph-bilder** via `@vercel/og` – generera dynamiska `og:image` per vecka/video som visar thumbnail + rank + handle + stats. Gör att länkförhandsvisningen ser snygg ut på LinkedIn, Slack etc.
+- **"Dela"-knapp** på varje topplacerad video som öppnar LinkedIn share-dialog med rätt URL och förhandsvisning.
+
 ### Övriga nästa steg
 - Lösenordsskydd på `/admin` med Supabase Auth
 - Kategori-fält på konton (för filtrering)
@@ -222,3 +229,26 @@ Redesigna startsidan till två delar:
 Rickard
 Digital Strategist, IQ-initiativet
 Drivs som sidoprojekt
+
+---
+
+## Uppdaterade TODO (senast)
+
+### Hall of Fame
+- Poängsystem: 1:a plats = 3p, 2:a = 2p, 3:e = 1p per vecka
+- Ackumulerat per konto över alla veckor
+- Egen sida `/hall-of-fame` med rankning
+
+### LinkedIn-delning via admin
+- Knapp i `/admin` för att manuellt trigga en LinkedIn-post
+- Postar topp 1-videons thumbnail + stats för senaste veckan
+- Kräver LinkedIn API-integration (OAuth)
+
+### Nomineringsflöde
+- Befintligt formulär på `/nominera` används
+- Admin granskar och godkänner med ett klick → kontot läggs till i `accounts`
+
+### Delbarhet
+- `/vecka/[week]` – dedikerad sida per vecka med hero för topp 3
+- `@vercel/og` för Open Graph-bilder per vecka/video
+- "Dela"-knapp med LinkedIn share-dialog

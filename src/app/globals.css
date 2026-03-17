@@ -176,7 +176,7 @@ body {
 /* ── Inset list ── */
 
 .os-inset {
-  border: 1px solid var(--border);
+  border: 1px 0 0 0 solid var(--border);
   background: var(--bg1);
   box-shadow: 2px 2px 0 var(--ink);
 }
@@ -259,7 +259,7 @@ body {
 }
 
 .col-thumb {
-  width: 72px;
+  width: 150px;
   justify-content: center;
   padding: 0;
 }
@@ -294,11 +294,16 @@ body {
   background: var(--blue-light);
 }
 
-.video-row--top1,
-.video-row--top2,
-.video-row--top3,
-.video-row--rest {
-  border-left: none;
+.video-row--top1 {
+  border-left: 1px solid var(--border-light);
+}
+
+.video-row--top2 {
+  border-left: 1px solid var(--border-light);
+}
+
+.video-row--top3 {
+  border-left: 1px solid var(--border-light);
 }
 
 .video-row--rest {
@@ -333,20 +338,29 @@ body {
   color: var(--ink-muted);
 }
 
+.video-row--top1 .rank-num {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.video-row--top2 .rank-num {
+  color: var(--ink-mid);
+}
 
 /* Thumbnail */
 .thumb-cell {
   padding: 0;
   overflow: hidden;
   cursor: pointer;
-  width: 72px;
+  width: 150px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border-light);
+  border: none;
+  background: none;
 }
 
 .thumb-sq {
-  width: 72px;
-  height: 72px;
+  width: 150px;
+  height: 150px;
   background: var(--bg2);
   position: relative;
   overflow: hidden;
@@ -383,6 +397,10 @@ body {
 .name-inner {
   padding: 6px 8px;
   min-width: 0;
+  max-height: 150px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .handle-row {
@@ -403,6 +421,10 @@ body {
   color: var(--blue);
 }
 
+.video-row--top1 .handle {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 .tiktok-link {
   font-size: 9px;
@@ -722,6 +744,9 @@ body {
   padding-top: 1px;
 }
 
+.video-row--top1 .mobile-rank {
+  color: var(--ink);
+}
 
 .mobile-text {
   flex: 1;
@@ -848,6 +873,10 @@ body {
     flex-shrink: 0;
     align-self: flex-start;
   }
+
+  .os-body {
+    border-bottom: 1px solid var(--border);
+  }
 }
 
 /* ── Top controls ── */
@@ -915,10 +944,11 @@ body {
   font-size: 10px;
   color: var(--ink-mid);
   margin-bottom: 2px;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  flex-shrink: 1;
 }
 
 .filter-group {
@@ -975,3 +1005,4 @@ body {
   background: #444;
   color: #fff;
 }
+
