@@ -125,6 +125,80 @@ function ShareButton({ video, rank, week }: { video: Video; rank: number; week: 
   );
 }
 
+// ─── HeroSection ─────────────────────────────────────────────────────────────
+
+const RANK_BADGES = ["🥇", "🥈", "🥉"];
+const RANK_LABELS = ["1:a plats", "2:a plats", "3:e plats"];
+
+function HeroSection({ week }: { week: string }) {
+  const [top3, setTop3] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!week) return;
+    setLoading(true);
+    fetch(`/api/top3?week=${week}`)
+      .then((r) => r.json())
+      .then((data) => { setTop3(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [week]);
+
+  if (loading) return <div className="hero-loading">Laddar…</div>;
+  if (!top3.length) return null;
+
+  const weekLabel = (() => {
+    const [y, w] = week.split("-W");
+    return `Vecka ${parseInt(w)}, ${y}`;
+  })();
+
+  return (
+    <section className="hero-section">
+      <div className="hero-week-label">{weekLabel} · Veckans topp 3</div>
+      <div className="hero-podium">
+        {top3.map((video, i) => {
+          const rank = i + 1;
+          const followers = (video.accounts as { followers: number }[] | null)?.[0]?.followers ?? 0;
+          const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
+          return (
+            <div key={video.id} className={`hero-card hero-card--${rank}`}>
+              <button
+                className="hero-thumb"
+                onClick={() => window.open(video.video_url, "_blank")}
+                aria-label={`Se video av @${video.handle}`}
+              >
+                {video.thumbnail_url
+                  ? <img src={video.thumbnail_url} alt={`@${video.handle}`} />
+                  : <div className="hero-thumb-placeholder" />
+                }
+                <div className="hero-rank-badge">{RANK_BADGES[i]}</div>
+                <div className="hero-play">
+                  <svg width="10" height="13" viewBox="0 0 10 13"><polygon points="1,1 9,6.5 1,12" fill="#fff" /></svg>
+                </div>
+              </button>
+              <div className="hero-card-body">
+                <div className="hero-card-rank">{RANK_LABELS[i]}</div>
+                <a className="hero-handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
+                  @{video.handle}
+                </a>
+                {video.caption && <div className="hero-caption">{video.caption}</div>}
+                {followers > 0 && <div className="hero-meta">{fmt(followers)} followers</div>}
+                <div className="hero-er">
+                  <Rocket size={11} strokeWidth={1.75} />
+                  <span>{er}</span>
+                  <span className="hero-er-label">eng.rate</span>
+                </div>
+                <div className="hero-card-actions">
+                  <ShareButton video={video} rank={rank} week={week} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ─── VideoModal ───────────────────────────────────────────────────────────────
 
 function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
@@ -433,6 +507,8 @@ function HomePageInner() {
         </div>
         <div className="header-rule" />
       </header>
+
+      {weekState && <HeroSection week={weekState} />}
 
       <div className="os-window">
         <div className="os-titlebar">
