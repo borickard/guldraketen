@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Rocket, Eye, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ interface Video {
   accounts: { followers: number } | null;
 }
 
-type SortKey = "engagement_rate" | "views" | "likes" | "shares";
+type SortKey = "engagement_rate" | "views" | "likes" | "comments" | "shares";
 type SizeFilter = "all" | "small" | "medium" | "large";
 type ViewsFilter = "all" | "under10k" | "10k100k" | "100k1m" | "over1m";
 
@@ -60,6 +61,18 @@ function rowClass(rank: number): string {
   if (rank === 2) return "video-row video-row--top2";
   if (rank === 3) return "video-row video-row--top3";
   return "video-row video-row--rest";
+}
+
+// ─── Stat icon ────────────────────────────────────────────────────────────────
+
+function StatIcon({ col }: { col: SortKey }) {
+  const props = { size: 11, strokeWidth: 1.75 };
+  if (col === "engagement_rate") return <Rocket {...props} />;
+  if (col === "views") return <Eye {...props} />;
+  if (col === "likes") return <ThumbsUp {...props} />;
+  if (col === "comments") return <MessageCircle {...props} />;
+  if (col === "shares") return <Share2 {...props} />;
+  return null;
 }
 
 // ─── VideoModal ───────────────────────────────────────────────────────────────
@@ -134,15 +147,25 @@ function VideoRow({ video, rank, sort, onThumb }: {
   video: Video; rank: number; sort: SortKey; onThumb: () => void;
 }) {
   const followers = video.accounts?.followers ?? 0;
-  const stats: { key: SortKey; label: string; value: string }[] = [
+
+  const allStats: { key: SortKey; label: string; value: string }[] = [
     { key: "engagement_rate", label: "Eng.rate", value: video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–" },
     { key: "views", label: "Views", value: fmt(video.views ?? 0) },
     { key: "likes", label: "Likes", value: fmt(video.likes ?? 0) },
+    { key: "comments", label: "Comments", value: fmt(video.comments ?? 0) },
     { key: "shares", label: "Shares", value: fmt(video.shares ?? 0) },
   ];
+
+  const mobileStats = allStats.filter(s => s.key !== "engagement_rate");
+
   return (
     <div className={rowClass(rank)}>
-      <div className="rcell col-rank"><span className="rank-num">{rank}</span></div>
+      {/* ── Desktop: rank ── */}
+      <div className="rcell col-rank desktop-only">
+        <span className="rank-num">{rank}</span>
+      </div>
+
+      {/* ── Thumbnail (both) ── */}
       <button className="thumb-cell" onClick={onThumb} aria-label="Visa video">
         <div className="thumb-sq">
           {video.thumbnail_url
@@ -154,7 +177,9 @@ function VideoRow({ video, rank, sort, onThumb }: {
           </div>
         </div>
       </button>
-      <div className="rcell col-name grow">
+
+      {/* ── Desktop: name + stats ── */}
+      <div className="rcell col-name grow desktop-only">
         <div className="name-inner">
           <div className="handle-row">
             <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
@@ -168,34 +193,75 @@ function VideoRow({ video, rank, sort, onThumb }: {
           </div>
           {video.caption && <div className="caption-row">{video.caption}</div>}
           <div className="date-row">
-            {followers > 0 && `${fmt(followers)} följare · `}
+            {followers > 0 && `${fmt(followers)} followers · `}
             {new Date(video.published_at).toLocaleDateString("sv-SE")}
           </div>
         </div>
       </div>
-      {stats.map((s) => (
-        <div key={s.key} className="rcell col-stat">
-          <div className="stat-inner">
+
+      {allStats.map((s) => (
+        <div key={s.key} className="rcell col-stat desktop-only">
+          <div className="stat-inline">
+            <span className="stat-icon"><StatIcon col={s.key} /></span>
             <span className={`stat-val${sort === s.key ? " stat-val--hi" : ""}`}>{s.value}</span>
-            <span className="stat-lbl">{s.label}</span>
           </div>
         </div>
       ))}
+
+      {/* ── Mobile: info (flex sibling of thumb) ── */}
+      <div className="mobile-info-cell">
+        <div className="mobile-rank">{rank}</div>
+        <div className="mobile-text">
+          <div className="handle-row">
+            <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
+              @{video.handle}
+            </a>
+            <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
+              <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
+                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              </svg>
+            </a>
+          </div>
+          {video.caption && <div className="caption-row">{video.caption}</div>}
+          <div className="date-row">
+            {followers > 0 && `${fmt(followers)} followers · `}
+            {new Date(video.published_at).toLocaleDateString("sv-SE")}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile: stats row – spans full width via flex-wrap ── */}
+      <div className="mobile-stats-row">
+        {mobileStats.map((s) => (
+          <div key={s.key} className={`mobile-stat${sort === s.key ? " mobile-stat--hi" : ""}`}>
+            <span className="mobile-stat-icon"><StatIcon col={s.key} /></span>
+            <span className="mobile-stat-val">{s.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "engagement_rate", label: "Eng.rate" },
+  { key: "views", label: "Views" },
+  { key: "likes", label: "Likes" },
+  { key: "comments", label: "Comments" },
+  { key: "shares", label: "Shares" },
+];
+
 const SIZE_OPTIONS: { key: SizeFilter; label: string }[] = [
-  { key: "all", label: "Alla" },
+  { key: "all", label: "All" },
   { key: "small", label: "< 10K" },
   { key: "medium", label: "10K–100K" },
   { key: "large", label: "> 100K" },
 ];
 
 const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
-  { key: "all", label: "Alla" },
+  { key: "all", label: "All" },
   { key: "under10k", label: "< 10K" },
   { key: "10k100k", label: "10K–100K" },
   { key: "100k1m", label: "100K–1M" },
@@ -208,8 +274,6 @@ function HomePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ─── State (declared before any functions that reference them) ─────────────
-
   const [weeks, setWeeks] = useState<string[]>([]);
   const [weekState, setWeekState] = useState<string>("");
   const [videos, setVideos] = useState<Video[]>([]);
@@ -217,6 +281,7 @@ function HomePageInner() {
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<Video | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [sortState, setSortState] = useState<SortKey>(
     (searchParams.get("sort") as SortKey) || "engagement_rate"
@@ -228,7 +293,7 @@ function HomePageInner() {
     (searchParams.get("views") as ViewsFilter) || "all"
   );
 
-  // ─── URL sync ──────────────────────────────────────────────────────────────
+  const hasActiveFilters = sizeState !== "all" || viewsState !== "all";
 
   function updateURL(patch: { week?: string; sort?: SortKey; size?: SizeFilter; views?: ViewsFilter }) {
     const p = new URLSearchParams(searchParams.toString());
@@ -239,30 +304,19 @@ function HomePageInner() {
     router.replace(`?${p.toString()}`, { scroll: false });
   }
 
-  function setWeek(w: string) {
-    setWeekState(w);
-    updateURL({ week: w });
-  }
-
+  function setWeek(w: string) { setWeekState(w); updateURL({ week: w }); }
   function setSort(s: SortKey) {
     const next = s === sortState ? "engagement_rate" : s;
-    setSortState(next);
-    updateURL({ sort: next });
+    setSortState(next); updateURL({ sort: next });
   }
-
   function setSize(s: SizeFilter) {
     const next = s === sizeState ? "all" : s;
-    setSizeState(next);
-    updateURL({ size: next });
+    setSizeState(next); updateURL({ size: next });
   }
-
   function setViews(v: ViewsFilter) {
     const next = v === viewsState ? "all" : v;
-    setViewsState(next);
-    updateURL({ views: next });
+    setViewsState(next); updateURL({ views: next });
   }
-
-  // ─── Load weeks ────────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetch("/api/weeks")
@@ -273,7 +327,7 @@ function HomePageInner() {
         const initial = urlWeek && data.includes(urlWeek) ? urlWeek : data[0];
         if (initial) {
           setWeekState(initial);
-          if (!urlWeek && initial) {
+          if (!urlWeek) {
             const p = new URLSearchParams(searchParams.toString());
             p.set("week", initial);
             router.replace(`?${p.toString()}`, { scroll: false });
@@ -283,8 +337,6 @@ function HomePageInner() {
       })
       .catch(() => { setError("Kunde inte ladda veckor."); setLoadingWeeks(false); });
   }, []);
-
-  // ─── Load videos ───────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!weekState) return;
@@ -296,8 +348,6 @@ function HomePageInner() {
       .catch(() => { setError("Kunde inte ladda videos."); setLoadingVideos(false); });
   }, [weekState]);
 
-  // ─── Derived ───────────────────────────────────────────────────────────────
-
   const currentWeekIndex = weeks.indexOf(weekState);
 
   const sorted = useMemo(() => {
@@ -308,8 +358,6 @@ function HomePageInner() {
   }, [videos, sortState, sizeState, viewsState]);
 
   const loading = loadingWeeks || loadingVideos;
-
-  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <main className="page-root">
@@ -350,29 +398,59 @@ function HomePageInner() {
                 <button className="nav-btn" disabled={currentWeekIndex >= weeks.length - 1} onClick={() => setWeek(weeks[currentWeekIndex + 1])}>←</button>
                 <button className="nav-btn" disabled={currentWeekIndex <= 0} onClick={() => setWeek(weeks[currentWeekIndex - 1])}>→</button>
               </div>
+              <button
+                className={`filter-toggle mobile-only${hasActiveFilters ? " filter-toggle--active" : ""}`}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+                  <rect x="0" y="0" width="13" height="1.5" fill="currentColor" />
+                  <rect x="2" y="4" width="9" height="1.5" fill="currentColor" />
+                  <rect x="4" y="8" width="5" height="1.5" fill="currentColor" />
+                </svg>
+                Filters{hasActiveFilters ? " ●" : ""}
+              </button>
             </div>
 
-            <div className="filter-col">
+            <div className="filter-col desktop-only">
               <div className="filter-group">
-                <span className="filter-label">Följare</span>
+                <span className="filter-label">Followers</span>
                 <FilterTabs options={SIZE_OPTIONS} value={sizeState} onChange={setSize} />
               </div>
               <div className="filter-group">
-                <span className="filter-label">Visningar</span>
+                <span className="filter-label">Views</span>
                 <FilterTabs options={VIEWS_OPTIONS} value={viewsState} onChange={setViews} />
               </div>
             </div>
+
+            <div className="mobile-sort-row mobile-only">
+              <span className="filter-label">Sort by</span>
+              <FilterTabs options={SORT_OPTIONS} value={sortState} onChange={setSort} />
+            </div>
+
+            {showFilters && (
+              <div className="filter-col mobile-only">
+                <div className="filter-group">
+                  <span className="filter-label">Followers</span>
+                  <FilterTabs options={SIZE_OPTIONS} value={sizeState} onChange={setSize} />
+                </div>
+                <div className="filter-group">
+                  <span className="filter-label">Views</span>
+                  <FilterTabs options={VIEWS_OPTIONS} value={viewsState} onChange={setViews} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="os-inset">
-          <div className="list-hdr">
+          <div className="list-hdr desktop-only">
             <span className="hcell col-rank">#</span>
             <span className="hcell col-thumb">Video</span>
-            <span className="hcell col-name grow">Konto</span>
+            <span className="hcell col-name grow">Account</span>
             <SortableHeader col="engagement_rate" label="Eng.rate" active={sortState === "engagement_rate"} onSort={setSort} />
             <SortableHeader col="views" label="Views" active={sortState === "views"} onSort={setSort} />
             <SortableHeader col="likes" label="Likes" active={sortState === "likes"} onSort={setSort} />
+            <SortableHeader col="comments" label="Comm." active={sortState === "comments"} onSort={setSort} />
             <SortableHeader col="shares" label="Shares" active={sortState === "shares"} onSort={setSort} />
           </div>
 
@@ -398,8 +476,6 @@ function HomePageInner() {
     </main>
   );
 }
-
-// ─── Page (Suspense wrapper required for useSearchParams) ─────────────────────
 
 export default function HomePage() {
   return (
