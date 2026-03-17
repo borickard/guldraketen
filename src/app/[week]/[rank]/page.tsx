@@ -29,12 +29,16 @@ function fmt(n: number): string {
 }
 
 function parseRank(rank: string): number | null {
-    const m = rank.match(/^top([1-3])$/);
-    return m ? parseInt(m[1]) : null;
+    const m = rank.match(/^top(\d+)$/);
+    const n = m ? parseInt(m[1]) : null;
+    return n && n >= 1 ? n : null;
 }
 
 function rankLabel(rank: number): string {
-    return rank === 1 ? "🥇 1:a plats" : rank === 2 ? "🥈 2:a plats" : "🥉 3:e plats";
+    if (rank === 1) return "🥇 1:a plats";
+    if (rank === 2) return "🥈 2:a plats";
+    if (rank === 3) return "🥉 3:e plats";
+    return `Plats ${rank}`;
 }
 
 function formatWeek(w: string): string {
@@ -133,6 +137,14 @@ export default async function VideoSharePage({
         <>
             <style>{css}</style>
             <main className="share-root">
+
+                <header className="share-header">
+                    <Link href="/" className="share-logo">
+                        <span className="share-logo-guld">Guld</span>raketen
+                    </Link>
+                    <span className="share-logo-sub">Sveriges mest engagerande TikTok-konton · 2026</span>
+                </header>
+
                 <div className="share-window">
                     <div className="share-titlebar">
                         <span className="share-wbtn">×</span>
@@ -205,14 +217,44 @@ export default async function VideoSharePage({
 }
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap');
+
   body { background: #64a4c8; margin: 0; font-family: 'Inter', system-ui, sans-serif; }
 
   .share-root {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 24px 16px;
+    padding: 24px 16px 48px;
+  }
+
+  .share-header {
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 20px;
+  }
+
+  .share-logo {
+    font-family: 'Jersey 10', sans-serif;
+    font-size: 42px;
+    font-weight: 400;
+    line-height: 1;
+    color: #222;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .share-logo-guld { color: #ffb800; }
+
+  .share-logo-sub {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #222;
+    opacity: 0.7;
+    display: block;
   }
 
   .share-window {

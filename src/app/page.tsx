@@ -96,7 +96,6 @@ Guldraketen rankar svenska företagskonton på TikTok efter äkta engagemang –
 
 function ShareButton({ video, rank, week }: { video: Video; rank: number; week: string }) {
   const [copied, setCopied] = useState(false);
-  if (rank > 3) return null;
 
   const shareUrl = `https://guldraketen.vercel.app/${week}/top${rank}`;
   const text = buildShareText(video, rank, shareUrl);
