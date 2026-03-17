@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,9 @@ function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
 
 // ─── SortableHeader ───────────────────────────────────────────────────────────
 
-function SortableHeader({ col, label, active, onSort }: { col: SortKey; label: string; active: boolean; onSort: (col: SortKey) => void }) {
+function SortableHeader({ col, label, active, onSort }: {
+  col: SortKey; label: string; active: boolean; onSort: (col: SortKey) => void;
+}) {
   return (
     <span className={`hcell col-stat sortable${active ? " hcell--active" : ""}`} onClick={() => onSort(col)}>
       {label}{" "}
@@ -127,7 +130,9 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
 
 // ─── VideoRow ─────────────────────────────────────────────────────────────────
 
-function VideoRow({ video, rank, sort, onThumb }: { video: Video; rank: number; sort: SortKey; onThumb: () => void }) {
+function VideoRow({ video, rank, sort, onThumb }: {
+  video: Video; rank: number; sort: SortKey; onThumb: () => void;
+}) {
   const followers = video.accounts?.followers ?? 0;
   const stats: { key: SortKey; label: string; value: string }[] = [
     { key: "engagement_rate", label: "Eng.rate", value: video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–" },
@@ -161,9 +166,7 @@ function VideoRow({ video, rank, sort, onThumb }: { video: Video; rank: number; 
               </svg>
             </a>
           </div>
-          {video.caption && (
-            <div className="caption-row">{video.caption}</div>
-          )}
+          {video.caption && <div className="caption-row">{video.caption}</div>}
           <div className="date-row">
             {followers > 0 && `${fmt(followers)} följare · `}
             {new Date(video.published_at).toLocaleDateString("sv-SE")}
@@ -199,47 +202,114 @@ const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
   { key: "over1m", label: "> 1M" },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Inner page ───────────────────────────────────────────────────────────────
 
-export default function HomePage() {
+function HomePageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ─── State (declared before any functions that reference them) ─────────────
+
   const [weeks, setWeeks] = useState<string[]>([]);
-  const [week, setWeek] = useState<string>("");
+  const [weekState, setWeekState] = useState<string>("");
   const [videos, setVideos] = useState<Video[]>([]);
   const [loadingWeeks, setLoadingWeeks] = useState(true);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [error, setError] = useState("");
-  const [sort, setSort] = useState<SortKey>("engagement_rate");
-  const [size, setSize] = useState<SizeFilter>("all");
-  const [views, setViews] = useState<ViewsFilter>("all");
   const [modal, setModal] = useState<Video | null>(null);
+
+  const [sortState, setSortState] = useState<SortKey>(
+    (searchParams.get("sort") as SortKey) || "engagement_rate"
+  );
+  const [sizeState, setSizeState] = useState<SizeFilter>(
+    (searchParams.get("size") as SizeFilter) || "all"
+  );
+  const [viewsState, setViewsState] = useState<ViewsFilter>(
+    (searchParams.get("views") as ViewsFilter) || "all"
+  );
+
+  // ─── URL sync ──────────────────────────────────────────────────────────────
+
+  function updateURL(patch: { week?: string; sort?: SortKey; size?: SizeFilter; views?: ViewsFilter }) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (patch.week !== undefined) p.set("week", patch.week);
+    if (patch.sort !== undefined) p.set("sort", patch.sort);
+    if (patch.size !== undefined) p.set("size", patch.size);
+    if (patch.views !== undefined) p.set("views", patch.views);
+    router.replace(`?${p.toString()}`, { scroll: false });
+  }
+
+  function setWeek(w: string) {
+    setWeekState(w);
+    updateURL({ week: w });
+  }
+
+  function setSort(s: SortKey) {
+    const next = s === sortState ? "engagement_rate" : s;
+    setSortState(next);
+    updateURL({ sort: next });
+  }
+
+  function setSize(s: SizeFilter) {
+    const next = s === sizeState ? "all" : s;
+    setSizeState(next);
+    updateURL({ size: next });
+  }
+
+  function setViews(v: ViewsFilter) {
+    const next = v === viewsState ? "all" : v;
+    setViewsState(next);
+    updateURL({ views: next });
+  }
+
+  // ─── Load weeks ────────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetch("/api/weeks")
       .then((r) => r.json())
-      .then((data: string[]) => { setWeeks(data); if (data.length > 0) setWeek(data[0]); setLoadingWeeks(false); })
+      .then((data: string[]) => {
+        setWeeks(data);
+        const urlWeek = searchParams.get("week");
+        const initial = urlWeek && data.includes(urlWeek) ? urlWeek : data[0];
+        if (initial) {
+          setWeekState(initial);
+          if (!urlWeek && initial) {
+            const p = new URLSearchParams(searchParams.toString());
+            p.set("week", initial);
+            router.replace(`?${p.toString()}`, { scroll: false });
+          }
+        }
+        setLoadingWeeks(false);
+      })
       .catch(() => { setError("Kunde inte ladda veckor."); setLoadingWeeks(false); });
   }, []);
 
+  // ─── Load videos ───────────────────────────────────────────────────────────
+
   useEffect(() => {
-    if (!week) return;
+    if (!weekState) return;
     setLoadingVideos(true);
     setError("");
-    fetch(`/api/videos?week=${week}`)
+    fetch(`/api/videos?week=${weekState}`)
       .then((r) => r.json())
-      .then((data) => { setVideos(data); setLoadingVideos(false); })
+      .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoadingVideos(false); })
       .catch(() => { setError("Kunde inte ladda videos."); setLoadingVideos(false); });
-  }, [week]);
+  }, [weekState]);
 
-  const currentWeekIndex = weeks.indexOf(week);
+  // ─── Derived ───────────────────────────────────────────────────────────────
+
+  const currentWeekIndex = weeks.indexOf(weekState);
 
   const sorted = useMemo(() => {
     return [...videos]
-      .filter((v) => size === "all" || accountSize(v.accounts?.followers ?? 0) === size)
-      .filter((v) => views === "all" || viewsRange(v.views ?? 0) === views)
-      .sort((a, b) => (b[sort] ?? 0) - (a[sort] ?? 0));
-  }, [videos, sort, size, views]);
+      .filter((v) => sizeState === "all" || accountSize(v.accounts?.followers ?? 0) === sizeState)
+      .filter((v) => viewsState === "all" || viewsRange(v.views ?? 0) === viewsState)
+      .sort((a, b) => (b[sortState] ?? 0) - (a[sortState] ?? 0));
+  }, [videos, sortState, sizeState, viewsState]);
 
   const loading = loadingWeeks || loadingVideos;
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <main className="page-root">
@@ -267,7 +337,7 @@ export default function HomePage() {
               <div className="week-select-wrap">
                 <select
                   className="week-select"
-                  value={week}
+                  value={weekState}
                   onChange={(e) => setWeek(e.target.value)}
                   disabled={weeks.length === 0}
                 >
@@ -285,11 +355,11 @@ export default function HomePage() {
             <div className="filter-col">
               <div className="filter-group">
                 <span className="filter-label">Följare</span>
-                <FilterTabs options={SIZE_OPTIONS} value={size} onChange={setSize} />
+                <FilterTabs options={SIZE_OPTIONS} value={sizeState} onChange={setSize} />
               </div>
               <div className="filter-group">
                 <span className="filter-label">Visningar</span>
-                <FilterTabs options={VIEWS_OPTIONS} value={views} onChange={setViews} />
+                <FilterTabs options={VIEWS_OPTIONS} value={viewsState} onChange={setViews} />
               </div>
             </div>
           </div>
@@ -300,10 +370,10 @@ export default function HomePage() {
             <span className="hcell col-rank">#</span>
             <span className="hcell col-thumb">Video</span>
             <span className="hcell col-name grow">Konto</span>
-            <SortableHeader col="engagement_rate" label="Eng.rate" active={sort === "engagement_rate"} onSort={setSort} />
-            <SortableHeader col="views" label="Views" active={sort === "views"} onSort={setSort} />
-            <SortableHeader col="likes" label="Likes" active={sort === "likes"} onSort={setSort} />
-            <SortableHeader col="shares" label="Shares" active={sort === "shares"} onSort={setSort} />
+            <SortableHeader col="engagement_rate" label="Eng.rate" active={sortState === "engagement_rate"} onSort={setSort} />
+            <SortableHeader col="views" label="Views" active={sortState === "views"} onSort={setSort} />
+            <SortableHeader col="likes" label="Likes" active={sortState === "likes"} onSort={setSort} />
+            <SortableHeader col="shares" label="Shares" active={sortState === "shares"} onSort={setSort} />
           </div>
 
           {loading && <p className="state">Laddar…</p>}
@@ -311,12 +381,12 @@ export default function HomePage() {
           {!loading && !error && sorted.length === 0 && <p className="state">Inga videos för den här veckan.</p>}
 
           {sorted.map((v, i) => (
-            <VideoRow key={v.id} video={v} rank={i + 1} sort={sort} onThumb={() => setModal(v)} />
+            <VideoRow key={v.id} video={v} rank={i + 1} sort={sortState} onThumb={() => setModal(v)} />
           ))}
         </div>
 
         <div className="os-footer">
-          <div className="status-tag">◆ Guldraketen · {week ? formatWeek(week) : "–"}</div>
+          <div className="status-tag">◆ Guldraketen · {weekState ? formatWeek(weekState) : "–"}</div>
           <span className="ctrl-meta">{!loading && !error ? `${sorted.length} videos` : ""}</span>
         </div>
       </div>
@@ -326,5 +396,15 @@ export default function HomePage() {
         <a href="/nominera" className="footer-link">Nominera ett konto</a>
       </footer>
     </main>
+  );
+}
+
+// ─── Page (Suspense wrapper required for useSearchParams) ─────────────────────
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageInner />
+    </Suspense>
   );
 }

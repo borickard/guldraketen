@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Courier+Prime:wght@400;700&display=swap');
+
 
 :root {
-  --bg1: #F5EFE6;
-  --bg2: #E8DFCA;
-  --blue: #6D94C5;
-  --blue-light: #CBDCEB;
-  --ink: #1a1a1a;
-  --ink-mid: #555;
-  --ink-muted: #999;
-  --border: #c8bfaa;
-  --border-light: #ddd5c0;
+  --bg1: #ffffff;
+  --bg2: #f4f4f4;
+  --blue: #222222;
+  --blue-light: #eeeeee;
+  --ink: #222222;
+  --ink-mid: #555555;
+  --ink-muted: #999999;
+  --border: #222222;
+  --border-light: #dddddd;
 }
 
 *,
@@ -24,7 +24,7 @@ html,
 body {
   background: var(--bg2);
   color: var(--ink);
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ── Page root ── */
@@ -47,11 +47,11 @@ body {
 }
 
 .wordmark {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(2.8rem, 8vw, 5rem);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
 
@@ -146,7 +146,7 @@ body {
   background: var(--bg1);
   border: 1px solid var(--border);
   border-radius: 0;
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
   padding: 3px 22px 3px 7px;
   color: var(--ink);
@@ -224,13 +224,13 @@ body {
 }
 
 .hcell.hcell--active {
-  background: var(--blue);
+  background: #222222;
   color: #fff;
   font-weight: 700;
 }
 
 .hcell.hcell--active:hover {
-  background: #5a82b2;
+  background: #444;
   color: #fff;
 }
 
@@ -455,7 +455,8 @@ body {
 }
 
 .stat-val--hi {
-  color: var(--blue);
+  color: #222222;
+  font-weight: 700;
 }
 
 .stat-lbl {
@@ -483,7 +484,7 @@ body {
 }
 
 .nav-btn {
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
   background: var(--bg1);
   border: none;
@@ -615,7 +616,7 @@ body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
   box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
 }
 
@@ -708,7 +709,7 @@ body {
 }
 
 .nav-btn {
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
   background: var(--bg1);
   border: none;
@@ -778,7 +779,7 @@ body {
 }
 
 .filter-tab {
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -802,12 +803,12 @@ body {
 }
 
 .filter-tab--on {
-  background: var(--blue);
+  background: #222222;
   color: #fff;
   font-weight: 700;
 }
 
 .filter-tab--on:hover {
-  background: #5a82b2;
+  background: #444;
   color: #fff;
 }

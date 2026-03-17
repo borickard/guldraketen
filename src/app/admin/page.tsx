@@ -3,195 +3,195 @@
 import { useEffect, useState } from "react";
 
 interface Account {
-    id: string;
-    handle: string;
-    is_active: boolean;
-    followers: number | null;
-    followers_updated_at: string | null;
-    created_at: string;
+  id: string;
+  handle: string;
+  is_active: boolean;
+  followers: number | null;
+  followers_updated_at: string | null;
+  created_at: string;
 }
 
 export default function AdminPage() {
-    const [accounts, setAccounts] = useState<Account[]>([]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [adding, setAdding] = useState(false);
-    const [error, setError] = useState("");
-    const [scraping, setScraping] = useState(false);
-    const [scrapeMsg, setScrapeMsg] = useState("");
-    const [daysBack, setDaysBack] = useState(14);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [scrapeMsg, setScrapeMsg] = useState("");
+  const [daysBack, setDaysBack] = useState(14);
 
-    async function fetchAccounts() {
-        const res = await fetch("/api/accounts");
-        const data = await res.json();
-        setAccounts(data);
-        setLoading(false);
+  async function fetchAccounts() {
+    const res = await fetch("/api/accounts");
+    const data = await res.json();
+    setAccounts(data);
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchAccounts(); }, []);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setAdding(true);
+    setError("");
+    const res = await fetch("/api/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: input }),
+    });
+    if (res.ok) {
+      setInput("");
+      await fetchAccounts();
+    } else {
+      const { error } = await res.json();
+      setError(error);
     }
+    setAdding(false);
+  }
 
-    useEffect(() => { fetchAccounts(); }, []);
+  async function handleToggle(account: Account) {
+    await fetch("/api/accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: account.id, is_active: !account.is_active }),
+    });
+    await fetchAccounts();
+  }
 
-    async function handleAdd(e: React.FormEvent) {
-        e.preventDefault();
-        setAdding(true);
-        setError("");
-        const res = await fetch("/api/accounts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ handle: input }),
-        });
-        if (res.ok) {
-            setInput("");
-            await fetchAccounts();
-        } else {
-            const { error } = await res.json();
-            setError(error);
-        }
-        setAdding(false);
-    }
+  async function handleDelete(id: string) {
+    if (!confirm("Ta bort kontot?")) return;
+    await fetch("/api/accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await fetchAccounts();
+  }
 
-    async function handleToggle(account: Account) {
-        await fetch("/api/accounts", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: account.id, is_active: !account.is_active }),
-        });
-        await fetchAccounts();
-    }
-
-    async function handleDelete(id: string) {
-        if (!confirm("Ta bort kontot?")) return;
-        await fetch("/api/accounts", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id }),
-        });
-        await fetchAccounts();
-    }
-
-    async function handleScrape() {
-        setScraping(true);
-        setScrapeMsg("");
-        const res = await fetch("/api/scrape/trigger", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ daysBack }),
-        });
-        const data = await res.json();
-        setScrapeMsg(
-            res.ok
-                ? `Scraping startad – runId: ${data.runId} (${data.handles} konton, ${daysBack} dagar bakåt)`
-                : `Fel: ${data.error}`
-        );
-        setScraping(false);
-    }
-
-    const active = accounts.filter((a) => a.is_active);
-    const inactive = accounts.filter((a) => !a.is_active);
-
-    return (
-        <>
-            <style>{styles}</style>
-            <div className="admin-root">
-                <div className="admin-header">
-                    <span className="admin-eyebrow">Guldraketen · Admin</span>
-                    <h1 className="admin-title">Konton</h1>
-                    <p className="admin-sub">{active.length} aktiva · {inactive.length} inaktiva</p>
-                </div>
-
-                {/* Add form */}
-                <form className="add-form" onSubmit={handleAdd}>
-                    <div className="input-row">
-                        <span className="at-sign">@</span>
-                        <input
-                            className="handle-input"
-                            type="text"
-                            placeholder="tiktokhandle"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            disabled={adding}
-                            autoComplete="off"
-                            spellCheck={false}
-                        />
-                        <button className="add-btn" type="submit" disabled={adding || !input.trim()}>
-                            {adding ? "Lägger till…" : "Lägg till"}
-                        </button>
-                    </div>
-                    {error && <p className="form-error">{error}</p>}
-                </form>
-
-                {/* Account list */}
-                {loading ? (
-                    <p className="loading">Laddar…</p>
-                ) : accounts.length === 0 ? (
-                    <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
-                ) : (
-                    <ul className="account-list">
-                        {accounts.map((a) => (
-                            <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
-                                <label className="toggle-label">
-                                    <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
-                                    <span className="toggle-track"><span className="toggle-thumb" /></span>
-                                </label>
-                                <div className="account-info">
-                                    <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
-                                        @{a.handle}
-                                    </a>
-                                    {a.followers && (
-                                        <span className="account-meta">
-                                            {a.followers.toLocaleString("sv-SE")} följare
-                                            {a.followers_updated_at && (
-                                                <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
-                                            )}
-                                        </span>
-                                    )}
-                                </div>
-                                <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
-                                    {a.is_active ? "Aktiv" : "Pausad"}
-                                </span>
-                                <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-
-                {/* Scraping */}
-                <div className="scrape-section">
-                    <h2 className="scrape-title">Scraping</h2>
-                    <div className="scrape-row">
-                        <div className="days-input-wrap">
-                            <input
-                                className="days-input"
-                                type="number"
-                                min={1}
-                                max={90}
-                                value={daysBack}
-                                onChange={(e) => setDaysBack(Number(e.target.value))}
-                            />
-                            <span className="days-label">dagar bakåt</span>
-                        </div>
-                        <button className="scrape-btn" onClick={handleScrape} disabled={scraping}>
-                            {scraping ? "Startar…" : "Kör scraping nu"}
-                        </button>
-                    </div>
-                    {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
-                </div>
-            </div>
-        </>
+  async function handleScrape() {
+    setScraping(true);
+    setScrapeMsg("");
+    const res = await fetch("/api/scrape/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ daysBack }),
+    });
+    const data = await res.json();
+    setScrapeMsg(
+      res.ok
+        ? `Scraping startad – runId: ${data.runId} (${data.handles} konton, ${daysBack} dagar bakåt)`
+        : `Fel: ${data.error}`
     );
+    setScraping(false);
+  }
+
+  const active = accounts.filter((a) => a.is_active);
+  const inactive = accounts.filter((a) => !a.is_active);
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="admin-root">
+        <div className="admin-header">
+          <span className="admin-eyebrow">Guldraketen · Admin</span>
+          <h1 className="admin-title">Konton</h1>
+          <p className="admin-sub">{active.length} aktiva · {inactive.length} inaktiva</p>
+        </div>
+
+        {/* Add form */}
+        <form className="add-form" onSubmit={handleAdd}>
+          <div className="input-row">
+            <span className="at-sign">@</span>
+            <input
+              className="handle-input"
+              type="text"
+              placeholder="tiktokhandle"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={adding}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button className="add-btn" type="submit" disabled={adding || !input.trim()}>
+              {adding ? "Lägger till…" : "Lägg till"}
+            </button>
+          </div>
+          {error && <p className="form-error">{error}</p>}
+        </form>
+
+        {/* Account list */}
+        {loading ? (
+          <p className="loading">Laddar…</p>
+        ) : accounts.length === 0 ? (
+          <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
+        ) : (
+          <ul className="account-list">
+            {accounts.map((a) => (
+              <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
+                <label className="toggle-label">
+                  <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
+                  <span className="toggle-track"><span className="toggle-thumb" /></span>
+                </label>
+                <div className="account-info">
+                  <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
+                    @{a.handle}
+                  </a>
+                  {a.followers && (
+                    <span className="account-meta">
+                      {a.followers.toLocaleString("sv-SE")} följare
+                      {a.followers_updated_at && (
+                        <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
+                  {a.is_active ? "Aktiv" : "Pausad"}
+                </span>
+                <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Scraping */}
+        <div className="scrape-section">
+          <h2 className="scrape-title">Scraping</h2>
+          <div className="scrape-row">
+            <div className="days-input-wrap">
+              <input
+                className="days-input"
+                type="number"
+                min={1}
+                max={90}
+                value={daysBack}
+                onChange={(e) => setDaysBack(Number(e.target.value))}
+              />
+              <span className="days-label">dagar bakåt</span>
+            </div>
+            <button className="scrape-btn" onClick={handleScrape} disabled={scraping}>
+              {scraping ? "Startar…" : "Kör scraping nu"}
+            </button>
+          </div>
+          {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
+        </div>
+      </div>
+    </>
+  );
 }
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Courier+Prime:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
   :root {
-    --bg1:    #F5EFE6;
-    --bg2:    #E8DFCA;
-    --blue:   #6D94C5;
-    --ink:    #1a1a1a;
+    --bg1:    #ffffff;
+    --bg2:    #f7f7f7;
+    --blue:   #222222;
+    --ink:    #222222;
     --mid:    #555;
     --muted:  #999;
-    --border: #c8bfaa;
-    --border-light: #ddd5c0;
+    --border: #222222;
+    --border-light: #e0e0e0;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -202,7 +202,7 @@ const styles = `
     background: var(--bg2);
     color: var(--ink);
     min-height: 100vh;
-    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
     max-width: 640px;
     margin: 0 auto;
     padding: 0 1.5rem 6rem;
@@ -224,7 +224,7 @@ const styles = `
   }
 
   .admin-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Montserrat', sans-serif;
     font-size: 3rem;
     font-weight: 700;
     line-height: 1;
@@ -263,7 +263,7 @@ const styles = `
     border: none;
     outline: none;
     color: var(--ink);
-    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     padding: 0.65rem 0;
   }
@@ -275,7 +275,7 @@ const styles = `
     border: none;
     border-left: 1px solid var(--border);
     color: var(--bg1);
-    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 11px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -403,7 +403,7 @@ const styles = `
     padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
-    font-family: 'Courier Prime', monospace;
+    font-family: 'Inter', sans-serif;
   }
 
   .delete-btn:hover { color: #a33; }
@@ -416,7 +416,7 @@ const styles = `
   }
 
   .scrape-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Montserrat', sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--ink);
@@ -445,7 +445,7 @@ const styles = `
     background: transparent;
     border: none;
     outline: none;
-    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     color: var(--ink);
     text-align: center;
@@ -462,7 +462,7 @@ const styles = `
     background: var(--ink);
     border: 1px solid var(--ink);
     color: var(--bg1);
-    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;

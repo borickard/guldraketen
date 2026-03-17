@@ -1,7 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
-// Returns ISO week string for a date, e.g. "2026-W10"
 function toISOWeek(date: Date): string {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
@@ -19,7 +18,6 @@ function toISOWeek(date: Date): string {
 }
 
 export async function GET() {
-    // Fetch published_at for all videos within last 12 weeks
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 12 * 7);
 
@@ -31,15 +29,19 @@ export async function GET() {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Collect unique weeks
+    const currentWeek = toISOWeek(new Date());
+
     const weekSet = new Set<string>();
     for (const row of data ?? []) {
         if (row.published_at) {
-            weekSet.add(toISOWeek(new Date(row.published_at)));
+            const w = toISOWeek(new Date(row.published_at));
+            // Exkludera innevarande vecka – den är inte komplett
+            if (w !== currentWeek) {
+                weekSet.add(w);
+            }
         }
     }
 
-    // Sort descending
     const weeks = Array.from(weekSet).sort((a, b) => (b > a ? 1 : -1));
     return NextResponse.json(weeks);
 }
