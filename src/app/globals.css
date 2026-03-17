@@ -1,4 +1,4 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
   --bg1: #ffffff;
@@ -47,11 +47,11 @@ body {
 }
 
 .wordmark {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Instrument Serif', serif;
   font-size: clamp(2.8rem, 8vw, 5rem);
-  font-weight: 800;
+  font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
