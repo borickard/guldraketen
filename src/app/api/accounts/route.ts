@@ -37,13 +37,17 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: 201 });
 }
 
-// PATCH – uppdatera is_active
+// PATCH – uppdatera is_active och/eller display_name
 export async function PATCH(req: Request) {
-    const { id, is_active } = await req.json();
+    const { id, is_active, display_name } = await req.json();
+
+    const updates: Record<string, unknown> = {};
+    if (is_active !== undefined) updates.is_active = is_active;
+    if (display_name !== undefined) updates.display_name = display_name || null;
 
     const { data, error } = await supabaseAdmin
         .from("accounts")
-        .update({ is_active })
+        .update(updates)
         .eq("id", id)
         .select()
         .single();

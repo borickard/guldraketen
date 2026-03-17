@@ -20,7 +20,7 @@ interface Video {
   thumbnail_url: string | null;
   caption: string | null;
   last_updated: string;
-  accounts: { followers: number } | null;
+  accounts: { followers: number; display_name?: string | null } | null;
 }
 
 type SortKey = "engagement_rate" | "views" | "likes" | "comments" | "shares";
@@ -44,6 +44,10 @@ function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
   return String(n);
+}
+
+function displayName(video: Video): string {
+  return video.accounts?.display_name || video.handle;
 }
 
 function tiktokEmbedId(url: string): string | null {
@@ -178,7 +182,7 @@ function HeroSection({ week }: { week: string }) {
               <div className="hero-card-body">
                 <div className="hero-card-rank">{RANK_LABELS[i]}</div>
                 <a className="hero-handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-                  @{video.handle}
+                  {displayName(video)}
                 </a>
                 {video.caption && <div className="hero-caption">{video.caption}</div>}
                 {followers > 0 && <div className="hero-meta">{fmt(followers)} followers</div>}
@@ -213,7 +217,7 @@ function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-handle">@{video.handle}</span>
+          <span className="modal-handle">{displayName(video)}</span>
           <button className="modal-close" onClick={onClose} aria-label="Stäng">×</button>
         </div>
         {embedId
@@ -314,7 +318,7 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
         <div className="name-inner">
           <div className="handle-row">
             <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-              @{video.handle}
+              {displayName(video)}
             </a>
             <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
               <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
@@ -350,7 +354,7 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
         <div className="mobile-text">
           <div className="handle-row">
             <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-              @{video.handle}
+              {displayName(video)}
             </a>
             <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
               <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>

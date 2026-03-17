@@ -1059,9 +1059,9 @@ body {
 
 .hero-podium {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 10px;
-  align-items: start;
 }
 
 .hero-card {
@@ -1074,13 +1074,26 @@ body {
 }
 
 .hero-card--1 {
+  grid-column: 1 / -1;
+  flex-direction: row;
   box-shadow: 4px 4px 0 #222;
+}
+
+.hero-card--1 .hero-thumb {
+  width: 280px;
+  height: 220px;
+  flex-shrink: 0;
+}
+
+.hero-card--2,
+.hero-card--3 {
+  flex-direction: column;
 }
 
 .hero-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  height: 180px;
   padding: 0;
   border: none;
   background: #f4f4f4;
@@ -1138,7 +1151,23 @@ body {
 }
 
 .hero-card-body {
-  padding: 8px 10px 10px;
+  padding: 10px 12px 12px;
+  flex: 1;
+}
+
+.hero-card--1 .hero-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero-card--1 .hero-handle {
+  font-size: 16px;
+}
+
+.hero-card--1 .hero-er {
+  font-size: 16px;
+  margin-bottom: 12px;
 }
 
 .hero-card-rank {

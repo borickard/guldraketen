@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 interface Account {
   id: string;
   handle: string;
+  display_name: string | null;
   is_active: boolean;
   followers: number | null;
   followers_updated_at: string | null;
@@ -136,6 +137,23 @@ export default function AdminPage() {
                   <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
                     @{a.handle}
                   </a>
+                  <input
+                    className="display-name-input"
+                    type="text"
+                    placeholder="Visningsnamn (t.ex. Lidl Sverige)"
+                    defaultValue={a.display_name ?? ""}
+                    onBlur={async (e) => {
+                      const val = e.target.value.trim();
+                      if (val !== (a.display_name ?? "")) {
+                        await fetch("/api/accounts", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: a.id, display_name: val }),
+                        });
+                        await fetchAccounts();
+                      }
+                    }}
+                  />
                   {a.followers && (
                     <span className="account-meta">
                       {a.followers.toLocaleString("sv-SE")} följare
@@ -378,6 +396,22 @@ const styles = `
   }
 
   .account-handle:hover { color: var(--blue); }
+
+  .display-name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--border-light);
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: var(--mid);
+    padding: 1px 2px;
+    width: 100%;
+    margin-top: 2px;
+  }
+
+  .display-name-input::placeholder { color: var(--muted); }
+  .display-name-input:focus { border-bottom-color: var(--ink); }
 
   .account-meta {
     font-size: 10px;

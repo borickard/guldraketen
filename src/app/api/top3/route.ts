@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       id, handle, video_url, published_at,
       views, likes, comments, shares,
       engagement_rate, thumbnail_url, caption,
-      accounts ( followers )
+      accounts ( followers, display_name )
     `)
         .gte("published_at", start.toISOString())
         .lt("published_at", end.toISOString())

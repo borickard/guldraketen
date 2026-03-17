@@ -17,7 +17,7 @@ interface Video {
     engagement_rate: number;
     thumbnail_url: string | null;
     caption: string | null;
-    accounts: { followers: number }[] | null;
+    accounts: { followers: number; display_name?: string | null }[] | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -69,13 +69,13 @@ async function getVideo(week: string, rank: number): Promise<Video | null> {
         .select(`
       handle, video_url, published_at, views, likes, comments, shares,
       engagement_rate, thumbnail_url, caption,
-      accounts ( followers )
+      accounts ( followers, display_name )
     `)
         .gte("published_at", start.toISOString())
         .lt("published_at", end.toISOString())
         .gte("views", 5000)
         .order("engagement_rate", { ascending: false })
-        .limit(3);
+        .limit(rank);
 
     if (error || !data || data.length < rank) return null;
     return data[rank - 1] as unknown as Video;
@@ -130,7 +130,8 @@ export default async function VideoSharePage({
 
     const label = rankLabel(rank!);
     const weekFmt = formatWeek(week);
-    const followers = (video.accounts as { followers: number }[] | null)?.[0]?.followers ?? 0;
+    const followers = (video.accounts as { followers: number; display_name?: string | null }[] | null)?.[0]?.followers ?? 0;
+    const accountName = (video.accounts as { followers: number; display_name?: string | null }[] | null)?.[0]?.display_name || `@${video.handle}`;
     const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
 
     return (
@@ -170,8 +171,9 @@ export default async function VideoSharePage({
                             <div className="share-info">
                                 <div className="share-handle">
                                     <a href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-                                        @{video.handle}
+                                        {accountName}
                                     </a>
+                                    <span className="share-handle-sub">@{video.handle}</span>
                                 </div>
                                 {video.caption && <div className="share-caption">{video.caption}</div>}
                                 {followers > 0 && (
@@ -320,7 +322,14 @@ const css = `
     color: #222;
     text-decoration: none;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
+  }
+
+  .share-handle-sub {
+    font-size: 11px;
+    color: #999;
+    display: block;
+    margin-bottom: 4px;
   }
 
   .share-handle a:hover { text-decoration: underline; }
