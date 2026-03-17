@@ -2,15 +2,13 @@
 
 ## Syfte
 
-Guldraketen identifierar och uppmärksammar svenska företag och organisationer som skapar exceptionellt engagerande innehåll på TikTok. Projektet kombinerar automatiserad datainsamling, engagemangsanalys, manuell jurybedömning och en webbplats för nomineringar och presentation.
-
-Projektet är i aktiv utvecklingsfas.
+Guldraketen identifierar och uppmärksammar svenska företag och organisationer som skapar exceptionellt engagerande innehåll på TikTok. Projektet kombinerar automatiserad datainsamling, engagemangsanalys och en webbplats för nomineringar och presentation.
 
 ---
 
 ## Kärnidé
 
-De flesta reklampriser bedömer kreativitet. Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Data används för att identifiera kandidater, men slutbedömningen görs av en jury. Fokus är på svenska företagskonton på TikTok.
+Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Fokus är på svenska företagskonton på TikTok. Engagement rate-formeln: `(likes + comments×5 + shares×10) / views × 100` – delningar väger tyngst eftersom de kräver mest av tittaren.
 
 ---
 
@@ -25,8 +23,6 @@ De flesta reklampriser bedömer kreativitet. Guldraketen fokuserar på faktiskt 
 | Schemalagda jobb | Vercel Cron Jobs |
 | Ikoner | lucide-react |
 
-Google Sheets och Google Apps Script används inte längre.
-
 ---
 
 ## Filstruktur
@@ -34,34 +30,31 @@ Google Sheets och Google Apps Script används inte längre.
 ```
 src/
   app/
-    page.tsx                          – startsida med veckotopplista
+    page.tsx                          – startsida med hero + topplista
     layout.tsx                        – Google Fonts (Jersey 10, Montserrat, Inter)
-    globals.css                       – all CSS (retro OS-tema, monokromt)
+    globals.css                       – all CSS
     nominera/
       page.tsx                        – nomineringsformuläret
     admin/
-      page.tsx                        – admin-UI för att hantera konton + trigga scraping
+      page.tsx                        – admin-UI
+    [week]/
+      [rank]/
+        page.tsx                      – delningssida /2026-W10/top1 etc
     api/
-      accounts/
-        route.ts                      – CRUD för accounts-tabellen
-      nominate/
-        route.ts                      – nomineringsformulär
-      scrape/
-        route.ts                      – scrape-endpoint (används av Vercel Cron)
-        trigger/
-          route.ts                    – anropas från admin-UI (ingen hemlighet i browsern)
-        webhook/
-          route.ts                    – tar emot callback från Apify när scraping är klar
-      videos/
-        route.ts                      – hämtar videos från Supabase för topplistan
-      weeks/
-        route.ts                      – returnerar tillgängliga ISO-veckor (exkl. innevarande)
+      accounts/route.ts               – CRUD inkl. display_name
+      nominate/route.ts
+      scrape/route.ts                 – Vercel Cron endpoint
+      scrape/trigger/route.ts         – manuell trigger från admin
+      scrape/webhook/route.ts         – Apify callback
+      videos/route.ts                 – topplista med veckofilter
+      weeks/route.ts                  – tillgängliga veckor (exkl. nuvarande + föregående)
+      top3/route.ts                   – topp 3 för en vecka (används av hero)
   lib/
-    scrape.ts                         – all scrape-logik (startScrape + processScrapeResults)
-    supabaseAdmin.ts                  – Supabase-klient (service role)
+    scrape.ts                         – startScrape + processScrapeResults
+    supabaseAdmin.ts
     validation.ts
-vercel.json                           – Vercel Cron-schema (måndagar kl 07 UTC)
-next.config.ts                        – remotePatterns för externa bilder (thumbnails)
+vercel.json                           – Cron: måndagar kl 07 UTC
+next.config.ts                        – remotePatterns för thumbnails
 ```
 
 ---
@@ -69,11 +62,10 @@ next.config.ts                        – remotePatterns för externa bilder (th
 ## Supabase-schema
 
 ### `accounts`
-Konton att scrapea. Hanteras via admin-sidan.
-
 ```sql
 id                   uuid primary key default gen_random_uuid()
 handle               text not null unique
+display_name         text                        -- visningsnamn, t.ex. "Lidl Sverige"
 is_active            boolean not null default true
 followers            integer
 followers_updated_at timestamptz
@@ -81,8 +73,6 @@ created_at           timestamptz default now()
 ```
 
 ### `videos`
-Scrapad videodata. Upsert på `video_url`.
-
 ```sql
 id              uuid primary key default gen_random_uuid()
 handle          text not null references accounts(handle) on delete cascade
@@ -102,31 +92,63 @@ engagement_rate numeric generated always as (
 last_updated    timestamptz default now()
 ```
 
-**Engagement rate-formel:** `(likes + comments×5 + shares×10) / views × 100`
-Räknas automatiskt av databasen – skrivs aldrig manuellt.
-
 ---
 
 ## Scraping-flöde
 
 ```
 Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
-  → POST /api/scrape  (Cron) eller POST /api/scrape/trigger  (admin)
-  → src/lib/scrape.ts → startScrape(webhookUrl, daysBack)
-      1. Hämtar aktiva handles från Supabase accounts
-      2. Startar Apify-körning asynkront (returnerar direkt med runId)
-      3. Registrerar webhook via base64-kodad query-parameter
-
-Apify kör klart (ca 10–30 sek)
+  → startScrape(webhookUrl, daysBack)  [lib/scrape.ts]
+  → Apify kör asynkront
   → POST /api/scrape/webhook
-  → src/lib/scrape.ts → processScrapeResults(datasetId)
-      1. Hämtar dataset-items från Apify (via resource.defaultDatasetId)
-      2. Upsertar videos i Supabase inkl. thumbnail_url och caption
-      3. Uppdaterar followers + followers_updated_at på accounts
+  → processScrapeResults(datasetId)
+      – upsertar videos inkl. thumbnail_url och caption
+      – uppdaterar followers på accounts
 ```
 
-**daysBack** – standardvärde 14 för Cron. Admin-UI har inputfält för manuell körning.
-**Webhook fungerar bara i produktion (Vercel)**, inte lokalt.
+`daysBack` = 14 för Cron. Valbart i admin-UI.
+Webhook fungerar bara i produktion (Vercel).
+
+---
+
+## Veckologik
+
+- `weeks/route.ts` exkluderar **innevarande + föregående vecka** för att säkerställa att data hunnit landa
+- Topplistan defaultar alltid till senaste kompletta veckan
+- Ingen normalisering på publiceringsålder just nu – accepterad kompromiss
+
+---
+
+## Design
+
+- **Bakgrund:** `#64a4c8` (blå)
+- **Fönster/kort:** vit bakgrund, svarta outlines (`#222`)
+- **Typsnitt:** Jersey 10 (logotyp), Montserrat (siffror/handles), Inter (brödtext)
+- **"Guld"** i logotypen: `#ffb800`
+- Retro OS-fönster-tema med box-shadow offset
+
+---
+
+## Webbplats
+
+### Startsida (`/`)
+- **Hero-sektion** med topp 3 för senaste veckan (komponent `HeroSection`)
+- Veckotopplista i OS-fönster med sortering, filter, URL-parametrar
+- Dela-knapp på alla videor (top1–topN) – kopierar text + öppnar LinkedIn
+- Tooltips på eng.rate-kolumnen förklarar viktningsformeln
+- Innevarande + föregående vecka döljs alltid
+
+### Delningssidor (`/[week]/[rank]`)
+- Server-renderade sidor med OG-metadata för LinkedIn-delning
+- `og:image` pekar på videons `thumbnail_url`
+- URL-format: `/2026-W10/top1`, `/2026-W10/top8` etc.
+- Innehåller: logotyp, rank, display_name/@handle, stats, länk till TikTok och topplistan
+
+### Admin (`/admin`)
+- Lägg till/ta bort/aktivera/avaktivera konton
+- Redigera `display_name` inline (visas istf handle överallt på sajten)
+- Inputfält för `daysBack` (default 14) vid manuell scraping
+- Ej lösenordsskyddad ännu
 
 ---
 
@@ -140,115 +162,29 @@ CRON_SECRET=
 NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ```
 
-`.env.local` ska **inte** committas – finns i `.gitignore`.
-
 ---
 
-## Webbplats
+## TODO
 
-### Design
-- Retro OS-fönster-tema med svarta kanter och box-shadow offset
-- Bakgrundsfärg: `#64a4c8` (blå)
-- Fönster/kort: vit bakgrund, svarta outlines
-- Typsnitt: **Jersey 10** (logotyp), **Montserrat** (siffror/handles), **Inter** (brödtext/labels)
-- "Guld" i logotypen: `#ffb800`
+### 🚀 Hero-sektion (pågående – behöver redesign)
+Nuvarande layout fungerar inte bra visuellt. Behöver:
+- Tydlig hierarki där 1:an dominerar
+- Konsekvent thumbnail-höjd
+- Renare, mer editorial känsla
 
-### Startsida (`/`)
-- Veckotopplista med videos live från Supabase
-- Dropdown för att välja vecka (ISO-veckonummer), defaultar till senaste kompletta veckan
-- Innevarande vecka exkluderas alltid (ej komplett data)
-- Sortering via klickbara kolumnrubriker med Lucide-ikoner (Rocket, Eye, ThumbsUp, MessageCircle, Share2)
-- Filter för followers och views – bakom "Filters"-knapp på mobil
-- URL-parametrar för delningsbara vyer (`?week=&sort=&size=&views=`)
-- Thumbnails via Next.js image proxy (72×72px kvadrat)
-- Caption visas under handle
-- Modal med inbäddad TikTok-spelare vid klick på thumbnail
-- Mobil: stats i full bredd under thumbnail, sortering alltid synlig
+### Hall of Fame
+- Poängsystem: 1:a = 3p, 2:a = 2p, 3:e = 1p per vecka
+- Ackumulerat per konto, egen sida `/hall-of-fame`
 
-### Nominera (`/nominera`)
-- Formulär för att nominera TikTok-konton
+### Lösenordsskydd på `/admin`
+- Supabase Auth
 
-### Admin (`/admin`)
-- Lägg till/ta bort konton, aktivera/avaktivera
-- Inputfält för dagar bakåt (default 14)
-- Knapp för att trigga scraping manuellt
-
----
-
-## Lokalt test av scraping
-
-```bash
-curl -X POST https://guldraketen.vercel.app/api/scrape \
-  -H "Authorization: Bearer <CRON_SECRET>"
-```
-
----
-
-## TODO / Nästa steg
-
-### 🚀 Hero-sektion på startsidan (prioriterat)
-Redesigna startsidan till två delar:
-
-**Del 1 – Hero / Om Guldraketen**
-- Kort beskrivning av vad Guldraketen är och vad som premieras
-- Tydliggör att fokus är på svenska företagskonton
-- Visa föregående veckas topp 3 som en karusell eller tre kort sida vid sida
-- Tydlig visuell hierarki: 1a, 2a, 3a plats
-
-**Del 2 – Fullständig topplista**
-- Nuvarande topplista med filter och sortering
-- Kan vara på `/topplista` som undersida, eller längre ned på startsidan
-
-### 🔗 Delbarhet och LinkedIn-integration
-För att varje veckas topp 3 ska kunna delas på LinkedIn och andra plattformar:
-
-- **`/vecka/[week]`** – dedikerad sida per vecka (t.ex. `/vecka/2026-W11`) med hero-layout för topp 3. Fungerar som permanent arkiv – data finns kvar i Supabase hur länge som helst.
-- **Open Graph-bilder** via `@vercel/og` – generera dynamiska `og:image` per vecka/video som visar thumbnail + rank + handle + stats. Gör att länkförhandsvisningen ser snygg ut på LinkedIn, Slack etc.
-- **"Dela"-knapp** på varje topplacerad video som öppnar LinkedIn share-dialog med rätt URL och förhandsvisning.
-
-### Övriga nästa steg
-- Lösenordsskydd på `/admin` med Supabase Auth
-- Kategori-fält på konton (för filtrering)
-- Fler konton att tracka
-- Presentera vinnare/shortlist
-
----
-
-## Hur man återupptar projektet
-
-1. Klona repot från GitHub (`borickard/guldraketen`)
-2. Kör `npm install`
-3. Lägg in miljövariabler i `.env.local`
-4. Kör `npm run dev`
-5. Startsida: `/` · Admin: `/admin` · Nominera: `/nominera`
+### LinkedIn-delning via admin
+- Manuell trigger av LinkedIn-post med veckans topp-video
 
 ---
 
 ## Projektägare
 
-Rickard
-Digital Strategist, IQ-initiativet
-Drivs som sidoprojekt
-
----
-
-## Uppdaterade TODO (senast)
-
-### Hall of Fame
-- Poängsystem: 1:a plats = 3p, 2:a = 2p, 3:e = 1p per vecka
-- Ackumulerat per konto över alla veckor
-- Egen sida `/hall-of-fame` med rankning
-
-### LinkedIn-delning via admin
-- Knapp i `/admin` för att manuellt trigga en LinkedIn-post
-- Postar topp 1-videons thumbnail + stats för senaste veckan
-- Kräver LinkedIn API-integration (OAuth)
-
-### Nomineringsflöde
-- Befintligt formulär på `/nominera` används
-- Admin granskar och godkänner med ett klick → kontot läggs till i `accounts`
-
-### Delbarhet
-- `/vecka/[week]` – dedikerad sida per vecka med hero för topp 3
-- `@vercel/og` för Open Graph-bilder per vecka/video
-- "Dela"-knapp med LinkedIn share-dialog
+Rickard · Digital Strategist, IQ-initiativet · GitHub: `borickard/guldraketen`
+Deployad: `https://guldraketen.vercel.app`

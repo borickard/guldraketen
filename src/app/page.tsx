@@ -131,9 +131,6 @@ function ShareButton({ video, rank, week }: { video: Video; rank: number; week: 
 
 // ─── HeroSection ─────────────────────────────────────────────────────────────
 
-const RANK_BADGES = ["🥇", "🥈", "🥉"];
-const RANK_LABELS = ["1:a plats", "2:a plats", "3:e plats"];
-
 function HeroSection({ week }: { week: string }) {
   const [top3, setTop3] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,35 +154,27 @@ function HeroSection({ week }: { week: string }) {
 
   return (
     <section className="hero-section">
-      <div className="hero-week-label">{weekLabel} · Veckans topp 3</div>
+      <div className="hero-week-label">{weekLabel} · Topp 3</div>
       <div className="hero-podium">
         {top3.map((video, i) => {
           const rank = i + 1;
-          const followers = (video.accounts as { followers: number }[] | null)?.[0]?.followers ?? 0;
           const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
           return (
             <div key={video.id} className={`hero-card hero-card--${rank}`}>
-              <button
-                className="hero-thumb"
-                onClick={() => window.open(video.video_url, "_blank")}
-                aria-label={`Se video av @${video.handle}`}
-              >
+              <button className="hero-thumb" onClick={() => window.open(video.video_url, "_blank")} aria-label={`Se video av ${displayName(video)}`}>
                 {video.thumbnail_url
-                  ? <img src={video.thumbnail_url} alt={`@${video.handle}`} />
+                  ? <img src={video.thumbnail_url} alt={displayName(video)} />
                   : <div className="hero-thumb-placeholder" />
                 }
-                <div className="hero-rank-badge">{RANK_BADGES[i]}</div>
+                <div className="hero-rank-badge">{rank}</div>
                 <div className="hero-play">
-                  <svg width="10" height="13" viewBox="0 0 10 13"><polygon points="1,1 9,6.5 1,12" fill="#fff" /></svg>
+                  <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff" /></svg>
                 </div>
               </button>
               <div className="hero-card-body">
-                <div className="hero-card-rank">{RANK_LABELS[i]}</div>
                 <a className="hero-handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
                   {displayName(video)}
                 </a>
-                {video.caption && <div className="hero-caption">{video.caption}</div>}
-                {followers > 0 && <div className="hero-meta">{fmt(followers)} followers</div>}
                 <div className="hero-er">
                   <Rocket size={11} strokeWidth={1.75} />
                   <span>{er}</span>
