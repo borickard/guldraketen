@@ -23,8 +23,8 @@ interface Video {
   accounts: { followers: number; display_name?: string | null } | null;
 }
 
-type SortKey = "engagement_rate" | "views" | "likes" | "comments" | "shares";
-type SizeFilter = "all" | "small" | "medium" | "large";
+type SortKey     = "engagement_rate" | "views" | "likes" | "comments" | "shares";
+type SizeFilter  = "all" | "small" | "medium" | "large";
 type ViewsFilter = "all" | "under10k" | "10k100k" | "100k1m" | "over1m";
 
 function accountSize(followers: number): SizeFilter {
@@ -72,22 +72,22 @@ function rowClass(rank: number): string {
 function StatIcon({ col }: { col: SortKey }) {
   const props = { size: 11, strokeWidth: 1.75 };
   if (col === "engagement_rate") return <Rocket {...props} />;
-  if (col === "views") return <Eye {...props} />;
-  if (col === "likes") return <ThumbsUp {...props} />;
-  if (col === "comments") return <MessageCircle {...props} />;
-  if (col === "shares") return <Share2 {...props} />;
+  if (col === "views")           return <Eye {...props} />;
+  if (col === "likes")           return <ThumbsUp {...props} />;
+  if (col === "comments")        return <MessageCircle {...props} />;
+  if (col === "shares")          return <Share2 {...props} />;
   return null;
 }
 
 // ─── ShareButton ─────────────────────────────────────────────────────────────
 
 function buildShareText(video: Video, rank: number, shareUrl: string): string {
-  const views = fmt(video.views ?? 0);
-  const likes = fmt(video.likes ?? 0);
+  const views    = fmt(video.views ?? 0);
+  const likes    = fmt(video.likes ?? 0);
   const comments = fmt(video.comments ?? 0);
-  const shares = fmt(video.shares ?? 0);
-  const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
-  const ordinal = rank === 1 ? "🥇 1:a" : rank === 2 ? "🥈 2:a" : "🥉 3:e";
+  const shares   = fmt(video.shares ?? 0);
+  const er       = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
+  const ordinal  = rank === 1 ? "🥇 1:a" : rank === 2 ? "🥈 2:a" : "🥉 3:e";
 
   return `${ordinal} plats på Guldraketen den här veckan: @${video.handle}
 
@@ -101,8 +101,8 @@ Guldraketen rankar svenska företagskonton på TikTok efter äkta engagemang –
 function ShareButton({ video, rank, week }: { video: Video; rank: number; week: string }) {
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = `https://guldraketen.vercel.app/${week}/top${rank}`;
-  const text = buildShareText(video, rank, shareUrl);
+  const shareUrl    = `https://guldraketen.vercel.app/${week}/top${rank}`;
+  const text        = buildShareText(video, rank, shareUrl);
   const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
 
   function handleShare() {
@@ -120,9 +120,9 @@ function ShareButton({ video, rank, week }: { video: Video; rank: number; week: 
       title="Kopierar text till urklipp och öppnar LinkedIn"
     >
       <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ display: "inline-block", verticalAlign: "middle" }}>
-        <rect x="0" y="3.5" width="2.5" height="7.5" fill="currentColor" />
-        <circle cx="1.25" cy="1.25" r="1.25" fill="currentColor" />
-        <path d="M4 3.5h2.3v1s.7-1.2 2.2-1.2c1.8 0 2.5 1.2 2.5 3v4.2H8.5V7c0-1-.3-1.7-1.1-1.7-.9 0-1.2.6-1.2 1.7v4H4V3.5z" fill="currentColor" />
+        <rect x="0" y="3.5" width="2.5" height="7.5" fill="currentColor"/>
+        <circle cx="1.25" cy="1.25" r="1.25" fill="currentColor"/>
+        <path d="M4 3.5h2.3v1s.7-1.2 2.2-1.2c1.8 0 2.5 1.2 2.5 3v4.2H8.5V7c0-1-.3-1.7-1.1-1.7-.9 0-1.2.6-1.2 1.7v4H4V3.5z" fill="currentColor"/>
       </svg>
       {copied ? "Kopierat!" : "Dela"}
     </button>
@@ -131,8 +131,8 @@ function ShareButton({ video, rank, week }: { video: Video; rank: number; week: 
 
 // ─── HeroSection ─────────────────────────────────────────────────────────────
 
-function HeroSection({ week }: { week: string }) {
-  const [top3, setTop3] = useState<Video[]>([]);
+function HeroSection({ week, onOpenModal }: { week: string; onOpenModal: (video: Video) => void }) {
+  const [top3, setTop3]       = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -158,19 +158,23 @@ function HeroSection({ week }: { week: string }) {
       <div className="hero-podium">
         {top3.map((video, i) => {
           const rank = i + 1;
-          const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
+          const er   = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
           return (
             <div key={video.id} className={`hero-card hero-card--${rank}`}>
-              <button className="hero-thumb" onClick={() => window.open(video.video_url, "_blank")} aria-label={`Se video av ${displayName(video)}`}>
+              <a className="hero-thumb" href={`/${week}/top${rank}`} aria-label={`Se detaljer för ${displayName(video)}`}>
                 {video.thumbnail_url
                   ? <img src={video.thumbnail_url} alt={displayName(video)} />
                   : <div className="hero-thumb-placeholder" />
                 }
                 <div className="hero-rank-badge">{rank}</div>
-                <div className="hero-play">
-                  <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff" /></svg>
-                </div>
-              </button>
+                <button
+                  className="hero-play"
+                  aria-label="Spela video"
+                  onClick={(e) => { e.preventDefault(); onOpenModal(video); }}
+                >
+                  <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff"/></svg>
+                </button>
+              </a>
               <div className="hero-card-body">
                 <a className="hero-handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
                   {displayName(video)}
@@ -235,8 +239,8 @@ function SortableHeader({ col, label, active, onSort }: {
       {label}{" "}
       <span className="sort-icon">
         {active
-          ? <svg width="7" height="5" viewBox="0 0 7 5"><polygon points="0,0 7,0 3.5,5" fill="currentColor" /></svg>
-          : <svg width="7" height="8" viewBox="0 0 7 8"><polygon points="0,3 7,3 3.5,0" fill="currentColor" /><polygon points="0,5 7,5 3.5,8" fill="currentColor" /></svg>
+          ? <svg width="7" height="5" viewBox="0 0 7 5"><polygon points="0,0 7,0 3.5,5" fill="currentColor"/></svg>
+          : <svg width="7" height="8" viewBox="0 0 7 8"><polygon points="0,3 7,3 3.5,0" fill="currentColor"/><polygon points="0,5 7,5 3.5,8" fill="currentColor"/></svg>
         }
       </span>
     </span>
@@ -273,11 +277,11 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
   const followers = video.accounts?.followers ?? 0;
 
   const allStats: { key: SortKey; label: string; value: string }[] = [
-    { key: "engagement_rate", label: "Eng.rate", value: video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–" },
-    { key: "views", label: "Views", value: fmt(video.views ?? 0) },
-    { key: "likes", label: "Likes", value: fmt(video.likes ?? 0) },
-    { key: "comments", label: "Comments", value: fmt(video.comments ?? 0) },
-    { key: "shares", label: "Shares", value: fmt(video.shares ?? 0) },
+    { key: "engagement_rate", label: "Eng.rate",  value: video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–" },
+    { key: "views",           label: "Views",     value: fmt(video.views ?? 0) },
+    { key: "likes",           label: "Likes",     value: fmt(video.likes ?? 0) },
+    { key: "comments",        label: "Comments",  value: fmt(video.comments ?? 0) },
+    { key: "shares",          label: "Shares",    value: fmt(video.shares ?? 0) },
   ];
 
   const mobileStats = allStats; // visa alla inkl. eng.rate på mobil
@@ -297,7 +301,7 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
             : <div style={{ width: "100%", height: "100%", background: "var(--bg2)" }} />
           }
           <div className="thumb-play-sq">
-            <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff" /></svg>
+            <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff"/></svg>
           </div>
         </div>
       </button>
@@ -311,7 +315,7 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
             </a>
             <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
               <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
               </svg>
             </a>
             <ShareButton video={video} rank={rank} week={week} />
@@ -347,7 +351,7 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
             </a>
             <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
               <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
               </svg>
             </a>
             <ShareButton video={video} rank={rank} week={week} />
@@ -377,46 +381,46 @@ function VideoRow({ video, rank, sort, onThumb, week }: {
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "engagement_rate", label: "Eng.rate" },
-  { key: "views", label: "Views" },
-  { key: "likes", label: "Likes" },
-  { key: "comments", label: "Comments" },
-  { key: "shares", label: "Shares" },
+  { key: "views",           label: "Views" },
+  { key: "likes",           label: "Likes" },
+  { key: "comments",        label: "Comments" },
+  { key: "shares",          label: "Shares" },
 ];
 
 const SIZE_OPTIONS: { key: SizeFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "small", label: "< 10K" },
+  { key: "all",    label: "All" },
+  { key: "small",  label: "< 10K" },
   { key: "medium", label: "10K–100K" },
-  { key: "large", label: "> 100K" },
+  { key: "large",  label: "> 100K" },
 ];
 
 const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
-  { key: "all", label: "All" },
+  { key: "all",      label: "All" },
   { key: "under10k", label: "< 10K" },
-  { key: "10k100k", label: "10K–100K" },
-  { key: "100k1m", label: "100K–1M" },
-  { key: "over1m", label: "> 1M" },
+  { key: "10k100k",  label: "10K–100K" },
+  { key: "100k1m",   label: "100K–1M" },
+  { key: "over1m",   label: "> 1M" },
 ];
 
 // ─── Inner page ───────────────────────────────────────────────────────────────
 
 function HomePageInner() {
-  const router = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
 
-  const [weeks, setWeeks] = useState<string[]>([]);
-  const [weekState, setWeekState] = useState<string>("");
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loadingWeeks, setLoadingWeeks] = useState(true);
+  const [weeks, setWeeks]                 = useState<string[]>([]);
+  const [weekState, setWeekState]         = useState<string>("");
+  const [videos, setVideos]               = useState<Video[]>([]);
+  const [loadingWeeks, setLoadingWeeks]   = useState(true);
   const [loadingVideos, setLoadingVideos] = useState(false);
-  const [error, setError] = useState("");
-  const [modal, setModal] = useState<Video | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [error, setError]                 = useState("");
+  const [modal, setModal]                 = useState<Video | null>(null);
+  const [showFilters, setShowFilters]     = useState(false);
 
-  const [sortState, setSortState] = useState<SortKey>(
+  const [sortState, setSortState]   = useState<SortKey>(
     (searchParams.get("sort") as SortKey) || "engagement_rate"
   );
-  const [sizeState, setSizeState] = useState<SizeFilter>(
+  const [sizeState, setSizeState]   = useState<SizeFilter>(
     (searchParams.get("size") as SizeFilter) || "all"
   );
   const [viewsState, setViewsState] = useState<ViewsFilter>(
@@ -427,9 +431,9 @@ function HomePageInner() {
 
   function updateURL(patch: { week?: string; sort?: SortKey; size?: SizeFilter; views?: ViewsFilter }) {
     const p = new URLSearchParams(searchParams.toString());
-    if (patch.week !== undefined) p.set("week", patch.week);
-    if (patch.sort !== undefined) p.set("sort", patch.sort);
-    if (patch.size !== undefined) p.set("size", patch.size);
+    if (patch.week  !== undefined) p.set("week",  patch.week);
+    if (patch.sort  !== undefined) p.set("sort",  patch.sort);
+    if (patch.size  !== undefined) p.set("size",  patch.size);
     if (patch.views !== undefined) p.set("views", patch.views);
     router.replace(`?${p.toString()}`, { scroll: false });
   }
@@ -482,7 +486,7 @@ function HomePageInner() {
 
   const sorted = useMemo(() => {
     return [...videos]
-      .filter((v) => sizeState === "all" || accountSize(v.accounts?.followers ?? 0) === sizeState)
+      .filter((v) => sizeState  === "all" || accountSize(v.accounts?.followers ?? 0) === sizeState)
       .filter((v) => viewsState === "all" || viewsRange(v.views ?? 0) === viewsState)
       .sort((a, b) => (b[sortState] ?? 0) - (a[sortState] ?? 0));
   }, [videos, sortState, sizeState, viewsState]);
@@ -501,7 +505,7 @@ function HomePageInner() {
         <div className="header-rule" />
       </header>
 
-      {weekState && <HeroSection week={weekState} />}
+      {weekState && <HeroSection week={weekState} onOpenModal={setModal} />}
 
       <div className="os-window">
         <div className="os-titlebar">
@@ -535,9 +539,9 @@ function HomePageInner() {
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-                  <rect x="0" y="0" width="13" height="1.5" fill="currentColor" />
-                  <rect x="2" y="4" width="9" height="1.5" fill="currentColor" />
-                  <rect x="4" y="8" width="5" height="1.5" fill="currentColor" />
+                  <rect x="0" y="0" width="13" height="1.5" fill="currentColor"/>
+                  <rect x="2" y="4" width="9" height="1.5" fill="currentColor"/>
+                  <rect x="4" y="8" width="5" height="1.5" fill="currentColor"/>
                 </svg>
                 Filters{hasActiveFilters ? " ●" : ""}
               </button>
@@ -580,14 +584,14 @@ function HomePageInner() {
             <span className="hcell col-thumb">Video</span>
             <span className="hcell col-name grow">Account</span>
             <SortableHeader col="engagement_rate" label="Eng.rate" active={sortState === "engagement_rate"} onSort={setSort} />
-            <SortableHeader col="views" label="Views" active={sortState === "views"} onSort={setSort} />
-            <SortableHeader col="likes" label="Likes" active={sortState === "likes"} onSort={setSort} />
-            <SortableHeader col="comments" label="Comm." active={sortState === "comments"} onSort={setSort} />
-            <SortableHeader col="shares" label="Shares" active={sortState === "shares"} onSort={setSort} />
+            <SortableHeader col="views"           label="Views"    active={sortState === "views"}           onSort={setSort} />
+            <SortableHeader col="likes"           label="Likes"    active={sortState === "likes"}           onSort={setSort} />
+            <SortableHeader col="comments"        label="Comm."    active={sortState === "comments"}        onSort={setSort} />
+            <SortableHeader col="shares"          label="Shares"   active={sortState === "shares"}          onSort={setSort} />
           </div>
 
           {loading && <p className="state">Laddar…</p>}
-          {error && <p className="state state--err">{error}</p>}
+          {error   && <p className="state state--err">{error}</p>}
           {!loading && !error && sorted.length === 0 && <p className="state">Inga videos för den här veckan.</p>}
 
           {sorted.map((v, i) => (

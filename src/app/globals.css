@@ -1086,6 +1086,7 @@ body {
   display: block;
   overflow: hidden;
   flex-shrink: 0;
+  text-decoration: none;
 }
 
 .hero-thumb img {
@@ -1134,7 +1135,10 @@ body {
   width: 22px;
   height: 22px;
   background: #222;
+  border: none;
   display: flex;
+  cursor: pointer;
+  z-index: 1;
   align-items: center;
   justify-content: center;
 }
