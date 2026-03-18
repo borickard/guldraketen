@@ -39,11 +39,14 @@ function rankLabel(rank: number): string {
 export default function VideoSharePage() {
     const params = useParams<{ week: string; rank: string }>();
     const week = params?.week ?? "";
-    const rankNum = parseInt((params?.rank ?? "").replace("top", "")) || 0;
+    const rankMap: Record<string, number> = { guld: 1, silver: 2, brons: 3 };
+    const rankParam = params?.rank ?? "";
+    const rankNum = rankMap[rankParam] ?? (parseInt(rankParam.replace("top", "")) || 0);
 
     const [video, setVideo] = useState<Video | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [playing, setPlaying] = useState(false);
 
     useEffect(() => {
         if (!week || !rankNum) return;
@@ -89,14 +92,42 @@ export default function VideoSharePage() {
                             <span className="sp-label">{rankLabel(rankNum)}</span>
                         </div>
 
+                        <div className="sp-nav-row">
+                            {rankNum > 1 && (
+                                <a className="sp-nav-btn" href={`/${week}/top${rankNum - 1}`}>
+                                    ← {rankNum === 2 ? "Guld" : rankNum === 3 ? "Silver" : `Plats ${rankNum - 1}`}
+                                </a>
+                            )}
+                            <div className="sp-nav-spacer" />
+                            {rankNum < 3 && (
+                                <a className="sp-nav-btn" href={`/${week}/top${rankNum + 1}`}>
+                                    {rankNum === 1 ? "Silver" : rankNum === 2 ? "Brons" : `Plats ${rankNum + 1}`} →
+                                </a>
+                            )}
+                        </div>
+
                         <div className="sp-card">
                             <div className="sp-thumb-wrap">
-                                {video.thumbnail_url
-                                    ? <img className="sp-thumb" src={video.thumbnail_url} alt={accountName} />
-                                    : <div className="sp-thumb-placeholder" />
+                                {playing
+                                    ? <iframe
+                                        className="sp-embed"
+                                        src={`https://www.tiktok.com/embed/v2/${video.video_url.match(/\/video\/(\d+)/)?.[1]}`}
+                                        allowFullScreen
+                                        allow="autoplay"
+                                        scrolling="no"
+                                    />
+                                    : <>
+                                        {video.thumbnail_url
+                                            ? <img className="sp-thumb" src={video.thumbnail_url} alt={accountName} />
+                                            : <div className="sp-thumb-placeholder" />
+                                        }
+                                        <button className="sp-play-btn" onClick={() => setPlaying(true)} aria-label="Spela video">
+                                            <svg width="20" height="24" viewBox="0 0 20 24"><polygon points="2,2 18,12 2,22" fill="#fff" /></svg>
+                                        </button>
+                                    </>
                                 }
                                 <a className="sp-tiktok-btn" href={video.video_url} target="_blank" rel="noopener noreferrer">
-                                    Se videon på TikTok →
+                                    Öppna på TikTok <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ display: "inline-block", verticalAlign: "middle" }}><path d="M1 7L7 1M7 1H3M7 1V5" stroke="currentColor" strokeWidth="1.5" /></svg>
                                 </a>
                             </div>
 
@@ -117,12 +148,18 @@ export default function VideoSharePage() {
                                 </div>
 
                                 <div className="sp-stats">
-                                    {stats.map((s) => (
-                                        <div key={s.label} className={`sp-stat${s.label === "Eng.rate" ? " sp-stat--hi" : ""}`}>
-                                            <span className="sp-stat-val">{s.value}</span>
-                                            <span className="sp-stat-lbl">{s.label}</span>
-                                        </div>
-                                    ))}
+                                    <div className="sp-stat-er">
+                                        <span className="sp-stat-er-val">{er}</span>
+                                        <span className="sp-stat-er-lbl">Engagement rate</span>
+                                    </div>
+                                    <div className="sp-stat-row">
+                                        {stats.filter(s => s.label !== "Eng.rate").map((s) => (
+                                            <div key={s.label} className="sp-stat-sm">
+                                                <span className="sp-stat-sm-val">{s.value}</span>
+                                                <span className="sp-stat-sm-lbl">{s.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 <div className="sp-actions">
@@ -188,7 +225,31 @@ const css = `
     font-family: 'Inter', sans-serif;
   }
 
-  .sp-meta-row {
+  .sp-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .sp-nav-spacer { flex: 1; }
+
+  .sp-nav-btn {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.5);
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    white-space: nowrap;
+  }
+
+  .sp-nav-btn:hover {
+    background: rgba(255,255,255,0.25);
+  }
     display: flex;
     align-items: center;
     gap: 12px;
@@ -226,6 +287,31 @@ const css = `
     background: #f4f4f4;
   }
 
+  .sp-embed {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    border: none;
+    display: block;
+  }
+
+  .sp-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px;
+    height: 64px;
+    background: rgba(0,0,0,0.65);
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .sp-play-btn:hover { background: rgba(0,0,0,0.85); }
+
   .sp-thumb {
     width: 100%;
     aspect-ratio: 9 / 16;
@@ -242,22 +328,20 @@ const css = `
 
   .sp-tiktok-btn {
     position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #222;
-    color: #fff;
-    font-size: 10px;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.5);
+    color: rgba(255,255,255,0.8);
+    font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-decoration: none;
-    padding: 6px 14px;
+    padding: 4px 8px;
     white-space: nowrap;
-    border: 1px solid rgba(255,255,255,0.2);
   }
 
-  .sp-tiktok-btn:hover { background: #000; }
+  .sp-tiktok-btn:hover { background: rgba(0,0,0,0.75); color: #fff; }
 
   .sp-info {
     flex: 1;
@@ -288,43 +372,66 @@ const css = `
 
   .sp-stats {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 24px;
   }
 
-  .sp-stat {
+  .sp-stat-er {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: 12px 16px;
-    background: #f4f4f4;
-    border: 1px solid #ddd;
-    flex: 1;
-    min-width: 70px;
+    gap: 4px;
+    padding: 16px 20px;
+    background: #ffb800;
+    border: 1px solid #222;
   }
 
-  .sp-stat--hi { background: #222; border-color: #222; }
-
-  .sp-stat-val {
+  .sp-stat-er-val {
     font-family: 'Montserrat', sans-serif;
-    font-size: 22px;
+    font-size: 42px;
     font-weight: 900;
     color: #222;
     line-height: 1;
   }
 
-  .sp-stat--hi .sp-stat-val { color: #fff; }
+  .sp-stat-er-lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(0,0,0,0.5);
+    font-family: 'Inter', sans-serif;
+  }
 
-  .sp-stat-lbl {
-    font-size: 9px;
+  .sp-stat-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .sp-stat-sm {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    flex: 1;
+  }
+
+  .sp-stat-sm-val {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+    line-height: 1;
+  }
+
+  .sp-stat-sm-lbl {
+    font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #999;
     font-family: 'Inter', sans-serif;
   }
-
-  .sp-stat--hi .sp-stat-lbl { color: rgba(255,255,255,0.6); }
 
   .sp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 

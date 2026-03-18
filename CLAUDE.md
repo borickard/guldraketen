@@ -188,3 +188,29 @@ Nuvarande layout fungerar inte bra visuellt. Behöver:
 
 Rickard · Digital Strategist, IQ-initiativet · GitHub: `borickard/guldraketen`
 Deployad: `https://guldraketen.vercel.app`
+
+---
+
+## Viktiga kodreferenser
+
+### displayName(video)
+Supabase returnerar joined relations (`accounts`) som en **array**, inte ett objekt. Använd alltid:
+```ts
+const acct = Array.isArray(video.accounts) ? video.accounts[0] : video.accounts;
+const name = acct?.display_name || `@${video.handle}`;
+```
+
+### caption i /api/videos/route.ts
+Måste explicit inkluderas i `.select()` – den försvinner lätt vid refaktorering.
+
+---
+
+## Senaste ändringar (2026-03-18)
+
+- **Share-sida** (`[week]/[rank]/page.tsx`) är nu en klientkomponent (löste 503-fel vid RSC-refetch)
+- Data hämtas via `/api/video?week=X&rank=Y` (ny route)
+- URL-format: `/2026-W10/guld`, `/2026-W10/silver`, `/2026-W10/brons`, `/2026-W10/top4` etc.
+- Share-sidan har inbäddad TikTok-spelare (klicka play-knapp) + diskret TikTok-länk
+- Engagement rate visas med gul bakgrund (#ffb800) på share-sidan
+- Hero-korten på startsidan länkar till share-sidan via `window.location.href`
+- **Undvik unicode-tecken** (↗ ← → ◆ etc.) i JSX/HTML – de kan få blå renderingsbug i vissa browsers. Använd alltid SVG-ikoner eller Lucide istället.
