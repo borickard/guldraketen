@@ -54,6 +54,12 @@ function fmtWeek(w: string): string {
   return `Vecka ${parseInt(m[2])}, ${m[1]}`;
 }
 
+function fmtWeekShort(w: string): string {
+  const m = w.match(/(\d{4})-W(\d{2})/);
+  if (!m) return w;
+  return `Vecka ${parseInt(m[2])}`;
+}
+
 function groupByAccount(videos: RawVideo[]): AccountRow[] {
   const map = new Map<string, RawVideo[]>();
   for (const v of videos) {
@@ -238,6 +244,14 @@ export default function Home() {
   const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 600);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const [reachFilter, setReachFilter] = useState<"off" | "low" | "high">("off");
   const wordmarkRef = useRef<HTMLSpanElement>(null);
   const navLinksRef = useRef<HTMLButtonElement>(null);
@@ -380,7 +394,7 @@ export default function Home() {
             onChange={(e) => setSelectedWeek(e.target.value)}
           >
             {weeks.map((w) => (
-              <option key={w} value={w}>{fmtWeek(w)}</option>
+              <option key={w} value={w}>{isMobile ? fmtWeekShort(w) : fmtWeek(w)}</option>
             ))}
           </select>
         </div>
