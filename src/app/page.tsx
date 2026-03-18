@@ -157,10 +157,10 @@ function rankColor(i: number) {
   return RANK_COLORS[i] ?? "rgba(28,27,25,0.11)";
 }
 function rankSize(i: number) {
-  if (i === 0) return "60px";
-  if (i === 1) return "44px";
-  if (i === 2) return "34px";
-  return "26px";
+  if (i === 0) return "clamp(32px, 8vw, 60px)";
+  if (i === 1) return "clamp(26px, 6vw, 44px)";
+  if (i === 2) return "clamp(22px, 5vw, 34px)";
+  return "clamp(18px, 4vw, 26px)";
 }
 function companySize(i: number) {
   if (i === 0) return "26px";
@@ -251,9 +251,9 @@ export default function Home() {
       const navWidth = wm.parentElement?.offsetWidth ?? 0;
       const linksWidth = links.offsetWidth + 48; // 48 = gap + padding
       const available = navWidth - linksWidth;
-      let size = 200;
+      let size = 48;
       wm.style.fontSize = size + "px";
-      while (wm.scrollWidth > available && size > 16) {
+      while (wm.scrollWidth > available && size > 14) {
         size -= 1;
         wm.style.fontSize = size + "px";
       }
@@ -332,93 +332,6 @@ export default function Home() {
 
   return (
     <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: ${C.bg}; }
-
-        .gr-ticker {
-          display: inline-block;
-          animation: gr-tick 32s linear infinite;
-          font-family: ${fMono};
-          font-size: 10px;
-          letter-spacing: .18em;
-          text-transform: uppercase;
-          color: ${C.tickerText};
-        }
-        @keyframes gr-tick {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-
-        .gr-entry { cursor: pointer; transition: background 0.1s; }
-        .gr-entry:hover { background: rgba(28,27,25,.022); }
-        .gr-entry-dark { background: ${C.dark}; }
-        .gr-entry-dark:hover { background: #212019; }
-
-        .gr-vpanel { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(.4,0,.2,1); }
-        .gr-vpanel.open { max-height: 260px; }
-        .gr-entry-dark .gr-vpanel { background: ${C.dark}; }
-
-        .gr-srow { display: flex; gap: 10px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; padding-bottom: 2px; }
-        .gr-srow::-webkit-scrollbar { display: none; }
-
-        .gr-vc {
-          flex-shrink: 0; width: 120px;
-          background: ${C.cardBg};
-          border: 1.5px solid ${C.cardBorder};
-          border-radius: 18px; overflow: hidden;
-          cursor: pointer; text-decoration: none;
-          transition: border-color 0.15s; display: block;
-        }
-        .gr-vc:hover { border-color: rgba(200,150,42,.55); }
-        .gr-entry-dark .gr-vc { background: #2C2926; border-color: rgba(255,255,255,.1); }
-        .gr-entry-dark .gr-vc:hover { border-color: rgba(200,150,42,.45); }
-
-        .gr-chev { transition: transform 0.25s; display: flex; align-items: center; justify-content: center; }
-        .gr-chev.open { transform: rotate(90deg); }
-
-        .gr-arr {
-          position: absolute; right: 6px; top: 50%; transform: translateY(-58%);
-          width: 26px; height: 26px;
-          background: ${C.dark}; border: none; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; opacity: 0; transition: opacity 0.18s;
-        }
-        .gr-vinner:hover .gr-arr { opacity: 0.72; }
-        .gr-arr:hover { opacity: 1 !important; }
-
-        .gr-wk-sel {
-          font-family: ${fMono}; font-size: 10px;
-          background: transparent; border: none;
-          border-bottom: 1px solid ${C.gold};
-          color: ${C.gold}; padding: 2px 4px;
-          letter-spacing: .05em; cursor: pointer; outline: none;
-        }
-        .gr-pill-track {
-          display: flex; position: relative;
-          background: rgba(28,27,25,0.08);
-          border-radius: 100px; padding: 3px;
-        }
-        .gr-pill-highlight {
-          position: absolute; top: 3px;
-          height: calc(100% - 6px);
-          background: ${C.dark};
-          border-radius: 100px;
-          transition: left 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
-          pointer-events: none;
-        }
-        .gr-pill-btn {
-          position: relative; z-index: 1;
-          font-family: ${fMono}; font-size: 10px;
-          letter-spacing: .07em; text-transform: uppercase;
-          border: none; background: transparent;
-          padding: 5px 14px; border-radius: 100px;
-          cursor: pointer; color: rgba(28,27,25,0.45);
-          transition: color 0.25s; white-space: nowrap;
-        }
-        .gr-pill-btn.active { color: ${C.bg}; }
-      `}</style>
-
       <div style={{ background: C.bg, color: C.dark, fontFamily: fSans, overflow: "hidden", minHeight: "100vh" }}>
 
         {/* ── NAV ──────────────────────────────────────────────────── */}
@@ -511,10 +424,11 @@ export default function Home() {
                 {/* Row */}
                 <div
                   onClick={() => toggle(acc.handle)}
-                  style={{ display: "flex", alignItems: "center", padding: "0 24px", gap: "14px", minHeight: rowMinHeight(i), borderBottom: rowBorder }}
+                  className="gr-entry-row-inner"
+                  style={{ display: "flex", alignItems: "center", padding: "0 24px", gap: "20px", minHeight: rowMinHeight(i), borderBottom: rowBorder }}
                 >
                   {/* Rank */}
-                  <span style={{ fontFamily: fSyne, fontWeight: 500, fontSize: rankSize(i), color: rankColor(i), lineHeight: 1, flexShrink: 0, width: "76px", textAlign: "right" }}>
+                  <span className="gr-rank-col" style={{ fontFamily: fSyne, fontWeight: 500, fontSize: rankSize(i), color: rankColor(i), lineHeight: 1, flexShrink: 0, width: "clamp(36px, 8vw, 64px)", textAlign: "right" }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
 
@@ -523,44 +437,26 @@ export default function Home() {
                     <p style={{ fontFamily: fSyne, fontWeight: 800, fontSize: companySize(i), color: textColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {acc.displayName}
                     </p>
-                    <p style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, marginTop: "4px", letterSpacing: ".04em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                      Bästa inlägg
-                      {delta !== null && delta > 0 && (
-                        <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "#2E8B55" }}>
-                          <TrendUp />{delta}
-                        </span>
-                      )}
-                      {delta !== null && delta < 0 && (
-                        <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "#9B3A2A" }}>
-                          <TrendDown />{Math.abs(delta)}
-                        </span>
-                      )}
-                      {isNew && (
-                        <span style={{ background: C.gold, color: "#fff", fontSize: "8px", padding: "1px 5px", borderRadius: "3px", letterSpacing: ".05em", fontFamily: fMono }}>
-                          NY
-                        </span>
-                      )}
+                    <p style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, marginTop: "4px", letterSpacing: ".04em", textTransform: "uppercase" }}>
+                      {acc.videoCount} {acc.videoCount === 1 ? "inlägg" : "inlägg"}
                     </p>
                   </div>
 
-                  {/* Stats — best video only */}
-                  <div style={{ display: "flex", gap: "16px", textAlign: "right", flexShrink: 0 }}>
-                    <div>
-                      <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
-                        {fmt(acc.bestVideo.views)}
-                      </span>
-                      <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
-                        visningar
-                      </span>
-                    </div>
-                    <div>
-                      <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
-                        {Number(acc.bestEngagement).toFixed(2)}%
-                      </span>
-                      <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
-                        eng.rate
-                      </span>
-                    </div>
+                  {/* Eng.rate span — right side */}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
+                      {(() => {
+                        const rates = acc.videos.map(v => v.engagement_rate ?? 0);
+                        const mn = Math.min(...rates);
+                        const mx = Math.max(...rates);
+                        return rates.length === 1
+                          ? mx.toFixed(2) + "%"
+                          : mn.toFixed(2) + "–" + mx.toFixed(2) + "%";
+                      })()}
+                    </span>
+                    <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
+                      eng.rate
+                    </span>
                   </div>
 
                   {/* Chevron */}
@@ -670,7 +566,7 @@ export default function Home() {
 
         {/* ── FOOTER ───────────────────────────────────────────────── */}
         <div style={{ background: C.dark, padding: "28px 24px 32px" }}>
-          <div style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "clamp(28px, 5.5vw, 50px)", color: C.lightText, lineHeight: 0.95, textTransform: "uppercase", letterSpacing: "-.01em" }}>
+          <div style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "clamp(22px, 7vw, 50px)", color: C.lightText, lineHeight: 1, textTransform: "uppercase", letterSpacing: "-.01em" }}>
             Vad är<br />
             <span style={{ color: C.gold }}>Engagemang?</span>
           </div>
