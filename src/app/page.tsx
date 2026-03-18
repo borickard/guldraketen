@@ -326,20 +326,17 @@ export default function Home() {
     if (el) el.scrollBy({ left: 280, behavior: "smooth" });
   }
 
-  const fSyne = "'Syne', sans-serif";
-  const fMono = "'DM Mono', monospace";
-  const fSans = "'DM Sans', sans-serif";
 
   return (
     <>
-      <div style={{ background: C.bg, color: C.dark, fontFamily: fSans, overflow: "hidden", minHeight: "100vh" }}>
+      <div className="gr-root">
 
         {/* ── NAV ──────────────────────────────────────────────────── */}
         <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.line}`, gap: "24px", overflow: "hidden" }}>
-          <span ref={wordmarkRef} style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "16px", letterSpacing: ".02em", textTransform: "uppercase", flexShrink: 0, display: "flex", alignItems: "center", lineHeight: 1, whiteSpace: "nowrap" }}>
+          <span ref={wordmarkRef} className="gr-wordmark">
             <span style={{ color: C.gold }}>G</span>uldraketen
           </span>
-          <button ref={navLinksRef} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", flexDirection: "column", gap: "5px", flexShrink: 0, alignSelf: "center" }}>
+          <button ref={navLinksRef} className="gr-hamburger">
             <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
             <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
             <span style={{ display: "block", width: "14px", height: "2px", background: C.dark, borderRadius: "2px" }} />
@@ -356,23 +353,17 @@ export default function Home() {
 
         {/* ── LIST HEADER ──────────────────────────────────────────── */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 24px", borderBottom: `1px solid ${C.line}`, gap: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px", flexShrink: 0 }}>
-            <span style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "13px", color: "rgba(28,27,25,.55)", letterSpacing: ".04em", textTransform: "uppercase" }}>Filter</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-              <span style={{ fontFamily: fMono, fontSize: "8px", color: "rgba(28,27,25,.28)", letterSpacing: ".14em", textTransform: "uppercase", textAlign: "center" }}>Visningar</span>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="gr-filter-group">
+            <span className="gr-filter-label">Filter</span>
+            <div className="gr-filter-col">
+              <span className="gr-filter-sublabel">Visningar</span>
+              <div className="gr-filter-row">
                 <ReachPill value={reachFilter} onChange={(v) => { setReachFilter(v === reachFilter ? "off" : v); setExpanded(null); }} />
                 {reachFilter !== "off" && (
                   <button
                     onClick={() => { setReachFilter("off"); setExpanded(null); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "5px",
-                      fontFamily: fMono, fontSize: "10px", letterSpacing: ".06em",
-                      textTransform: "uppercase", color: C.dark,
-                      background: C.gold + "22", border: `1px solid ${C.gold}55`,
-                      borderRadius: "100px", padding: "3px 10px 3px 12px",
-                      cursor: "pointer", transition: "all 0.15s",
-                    }}
+                    className="gr-filter-chip"
+                    style={{ background: C.gold + "22", border: `1px solid ${C.gold}55` }}
                   >
                     {reachFilter === "low" ? "Under 100K" : "Över 100K"}
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -396,7 +387,7 @@ export default function Home() {
 
         {/* ── ENTRIES ──────────────────────────────────────────────── */}
         {loading ? (
-          <div style={{ padding: "40px 24px", fontFamily: fMono, fontSize: "11px", color: C.muted, letterSpacing: ".06em", textTransform: "uppercase" }}>
+          <div className="gr-loading">
             Laddar...
           </div>
         ) : (
@@ -428,23 +419,23 @@ export default function Home() {
                   style={{ display: "flex", alignItems: "center", padding: "0 24px", gap: "20px", minHeight: rowMinHeight(i), borderBottom: rowBorder }}
                 >
                   {/* Rank */}
-                  <span className="gr-rank-col" style={{ fontFamily: fSyne, fontWeight: 500, fontSize: rankSize(i), color: rankColor(i), lineHeight: 1, flexShrink: 0, width: "clamp(36px, 8vw, 64px)", textAlign: "right" }}>
+                  <span className="gr-rank-col" style={{ fontWeight: 500, fontSize: rankSize(i), color: rankColor(i) }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
 
                   {/* Name + meta */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: fSyne, fontWeight: 800, fontSize: companySize(i), color: textColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div className="gr-entry-main">
+                    <p className="gr-entry-name" style={{ fontSize: companySize(i), color: textColor }}>
                       {acc.displayName}
                     </p>
-                    <p style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, marginTop: "4px", letterSpacing: ".04em", textTransform: "uppercase" }}>
+                    <p className="gr-entry-meta" style={{ color: metaColor }}>
                       {acc.videoCount} {acc.videoCount === 1 ? "inlägg" : "inlägg"}
                     </p>
                   </div>
 
                   {/* Eng.rate span — right side */}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
+                  <div className="gr-entry-rate">
+                    <span className="gr-entry-rate-val" style={{ color: statVal }}>
                       {(() => {
                         const rates = acc.videos.map(v => v.engagement_rate ?? 0);
                         const mn = Math.min(...rates);
@@ -454,7 +445,7 @@ export default function Home() {
                           : mn.toFixed(2) + "–" + mx.toFixed(2) + "%";
                       })()}
                     </span>
-                    <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
+                    <span className="gr-entry-rate-lbl" style={{ color: statLbl }}>
                       eng.rate
                     </span>
                   </div>
@@ -467,16 +458,16 @@ export default function Home() {
 
                 {/* Video panel */}
                 <div className={`gr-vpanel${isOpen ? " open" : ""}`}>
-                  <div className="gr-vinner" style={{ padding: "10px 24px 16px", position: "relative" }}>
+                  <div className="gr-vinner">
                     {/* Panel summary */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "10px", paddingBottom: "10px", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,.07)" : C.line}` }}>
-                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                    <div className="gr-panel-summary" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,.07)" : C.line}` }}>
+                      <span className="gr-panel-meta" style={{ color: metaColor }}>
                         {acc.videoCount} {acc.videoCount === 1 ? "inlägg" : "inlägg"} veckan
                       </span>
-                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                      <span className="gr-panel-meta" style={{ color: metaColor }}>
                         {fmt(acc.videos.reduce((s, v) => s + (v.views ?? 0), 0))} visningar totalt
                       </span>
-                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                      <span className="gr-panel-meta" style={{ color: metaColor }}>
                         {(() => {
                           const totalViews = acc.videos.reduce((s, v) => s + (v.views ?? 0), 0);
                           const wavg = totalViews > 0
@@ -507,7 +498,7 @@ export default function Home() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             {/* Thumbnail */}
-                            <div style={{ width: "120px", height: "120px", borderRadius: "16.5px 16.5px 0 0", overflow: "hidden", position: "relative", background: "rgba(28,27,25,.08)", flexShrink: 0 }}>
+                            <div className="gr-thumb">
                               {v.thumbnail_url ? (
                                 <Image
                                   src={v.thumbnail_url}
@@ -518,26 +509,26 @@ export default function Home() {
                                   unoptimized
                                 />
                               ) : (
-                                <span style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "24px", color: "rgba(28,27,25,.09)", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                                <span className="gr-thumb-placeholder">
                                   {String(vi + 1).padStart(2, "0")}
                                 </span>
                               )}
-                              <span style={{ position: "absolute", bottom: "6px", right: "6px", background: C.dark, color: "rgba(235,231,226,.85)", fontFamily: fMono, fontSize: "9px", padding: "2px 6px", borderRadius: "8px", letterSpacing: ".03em" }}>
+                              <span className="gr-thumb-views">
                                 {fmt(v.views)}
                               </span>
                               {isBest && (
-                                <span style={{ position: "absolute", top: "6px", left: "6px", background: C.gold, color: "#fff", fontFamily: fMono, fontSize: "8px", fontWeight: 500, padding: "2px 6px", borderRadius: "4px", letterSpacing: ".06em", textTransform: "uppercase" }}>
+                                <span className="gr-thumb-best">
                                   Bäst
                                 </span>
                               )}
                             </div>
 
                             {/* Info */}
-                            <div style={{ padding: "7px 9px 9px" }}>
-                              <p style={{ fontFamily: fSans, fontSize: "11px", fontWeight: 500, color: titleColor, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
+                            <div className="gr-vid-info">
+                              <p className="gr-vid-title" style={{ color: titleColor }}>
                                 {v.caption ?? "Se video"}
                               </p>
-                              <p style={{ fontFamily: fMono, fontSize: "10px", color: isBest ? C.gold : "rgba(28,27,25,.45)", marginTop: "4px", fontWeight: isBest ? 500 : 400 }}>
+                              <p className="gr-vid-eng" style={{ color: isBest ? C.gold : "rgba(28,27,25,.45)", fontWeight: isBest ? 500 : 400 }}>
                                 {Number(v.engagement_rate).toFixed(2)}% eng.
                               </p>
                             </div>
@@ -565,15 +556,15 @@ export default function Home() {
         )}
 
         {/* ── FOOTER ───────────────────────────────────────────────── */}
-        <div style={{ background: C.dark, padding: "28px 24px 32px" }}>
-          <div style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "clamp(22px, 7vw, 50px)", color: C.lightText, lineHeight: 1, textTransform: "uppercase", letterSpacing: "-.01em" }}>
+        <div className="gr-footer">
+          <div className="gr-footer-heading">
             Vad är<br />
             <span style={{ color: C.gold }}>Engagemang?</span>
           </div>
-          <p style={{ fontFamily: fSans, fontSize: "14px", color: "rgba(235,231,226,.55)", marginTop: "20px", lineHeight: 1.7, maxWidth: "400px" }}>
-            Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em style={{ fontStyle: "italic", color: "rgba(235,231,226,.8)" }}>"det här måste du se."</em> Det är vår definition av engagemang.
+          <p className="gr-footer-body">
+            Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em className="gr-footer-em">"det här måste du se."</em> Det är vår definition av engagemang.
           </p>
-          <p style={{ fontFamily: fMono, fontSize: "9px", letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(235,231,226,.18)", marginTop: "24px" }}>
+          <p className="gr-footer-credit">
             Guldraketen&nbsp;&middot;&nbsp;2026
           </p>
         </div>
