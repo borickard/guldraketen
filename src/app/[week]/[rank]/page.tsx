@@ -1,10 +1,8 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { notFound } from "next/navigation";
-import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
+"use client";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 
 interface Video {
     handle: string;
@@ -17,10 +15,8 @@ interface Video {
     engagement_rate: number;
     thumbnail_url: string | null;
     caption: string | null;
-    accounts: { followers: number; display_name?: string | null }[] | null;
+    accounts: { followers: number; display_name?: string | null } | null;
 }
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: number): string {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -28,10 +24,9 @@ function fmt(n: number): string {
     return String(n);
 }
 
-function parseRank(rank: string): number | null {
-    const m = rank.match(/^top(\d+)$/);
-    const n = m ? parseInt(m[1]) : null;
-    return n && n >= 1 ? n : null;
+function formatWeek(w: string): string {
+    const [year, week] = w.split("-W");
+    return `Vecka ${parseInt(week)}, ${year}`;
 }
 
 function rankLabel(rank: number): string {
@@ -41,377 +36,333 @@ function rankLabel(rank: number): string {
     return `Plats ${rank}`;
 }
 
-function formatWeek(w: string): string {
-    const [year, week] = w.split("-W");
-    return `Vecka ${parseInt(week)}, ${year}`;
-}
+export default function VideoSharePage() {
+    const params = useParams<{ week: string; rank: string }>();
+    const week = params?.week ?? "";
+    const rankNum = parseInt((params?.rank ?? "").replace("top", "")) || 0;
 
-function weekBounds(weekStr: string): { start: Date; end: Date } {
-    const [yearStr, weekStr2] = weekStr.split("-W");
-    const year = parseInt(yearStr);
-    const week = parseInt(weekStr2);
-    const jan4 = new Date(Date.UTC(year, 0, 4));
-    const startOfWeek1 = new Date(jan4);
-    startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
-    const start = new Date(startOfWeek1);
-    start.setUTCDate(startOfWeek1.getUTCDate() + (week - 1) * 7);
-    const end = new Date(start);
-    end.setUTCDate(start.getUTCDate() + 7);
-    return { start, end };
-}
+    const [video, setVideo] = useState<Video | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
-async function getVideo(week: string, rank: number): Promise<Video | null> {
-    if (!/^\d{4}-W\d{2}$/.test(week)) return null;
-    const { start, end } = weekBounds(week);
+    useEffect(() => {
+        if (!week || !rankNum) return;
+        fetch(`/api/video?week=${week}&rank=${rankNum}`)
+            .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+            .then((data) => { setVideo(data); setLoading(false); })
+            .catch(() => { setError(true); setLoading(false); });
+    }, [week, rankNum]);
 
-    const { data, error } = await supabaseAdmin
-        .from("videos")
-        .select(`
-      handle, video_url, published_at, views, likes, comments, shares,
-      engagement_rate, thumbnail_url, caption,
-      accounts ( followers, display_name )
-    `)
-        .gte("published_at", start.toISOString())
-        .lt("published_at", end.toISOString())
-        .gte("views", 5000)
-        .order("engagement_rate", { ascending: false })
-        .limit(rank);
+    const weekFmt = week ? formatWeek(week) : "";
+    const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
+    const accountName = acct?.display_name || (video ? `@${video.handle}` : "");
+    const followers = acct?.followers ?? 0;
+    const er = video?.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
 
-    if (error || !data || data.length < rank) return null;
-    return data[rank - 1] as unknown as Video;
-}
-
-// ─── Metadata (OG) ───────────────────────────────────────────────────────────
-
-export async function generateMetadata({
-    params,
-}: {
-    params: Promise<{ week: string; rank: string }>;
-}): Promise<Metadata> {
-    const { week, rank: rankParam } = await params;
-    const rank = parseRank(rankParam);
-    if (!rank) return {};
-
-    const video = await getVideo(week, rank);
-    if (!video) return {};
-
-    const label = rankLabel(rank);
-    const weekFmt = formatWeek(week);
-    const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
-
-    return {
-        title: `${label} ${weekFmt} · @${video.handle} · Guldraketen`,
-        description: `${er} engagemangsgrad · ${fmt(video.views)} visningar · ${fmt(video.likes)} likes · ${fmt(video.comments)} kommentarer · ${fmt(video.shares)} delningar. Guldraketen rankar svenska företagskonton på TikTok efter äkta engagemang.`,
-        openGraph: {
-            title: `${label} ${weekFmt} · @${video.handle}`,
-            description: `${er} engagemangsgrad · ${fmt(video.views)} visningar · ${fmt(video.likes)} likes · ${fmt(video.comments)} kommentarer · ${fmt(video.shares)} delningar`,
-            url: `https://guldraketen.vercel.app/${week}/${rankParam}`,
-            siteName: "Guldraketen",
-            images: video.thumbnail_url
-                ? [{ url: video.thumbnail_url, width: 720, height: 720, alt: `@${video.handle}` }]
-                : [],
-        },
-    };
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default async function VideoSharePage({
-    params,
-}: {
-    params: Promise<{ week: string; rank: string }>;
-}) {
-    const { week, rank: rankParam } = await params;
-    const rank = parseRank(rankParam);
-    if (!rank) notFound();
-
-    const video = await getVideo(week, rank!);
-    if (!video) notFound();
-
-    const label = rankLabel(rank!);
-    const weekFmt = formatWeek(week);
-    const followers = (video.accounts as { followers: number; display_name?: string | null }[] | null)?.[0]?.followers ?? 0;
-    const accountName = (video.accounts as { followers: number; display_name?: string | null }[] | null)?.[0]?.display_name || `@${video.handle}`;
-    const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
+    const stats = video ? [
+        { label: "Eng.rate", value: er },
+        { label: "Views", value: fmt(video.views ?? 0) },
+        { label: "Likes", value: fmt(video.likes ?? 0) },
+        { label: "Comments", value: fmt(video.comments ?? 0) },
+        { label: "Shares", value: fmt(video.shares ?? 0) },
+    ] : [];
 
     return (
         <>
             <style>{css}</style>
-            <main className="share-root">
-
-                <header className="share-header">
-                    <Link href="/" className="share-logo">
-                        <span className="share-logo-guld">Guld</span>raketen
+            <main className="sp-root">
+                <header className="sp-header">
+                    <Link href="/" className="sp-wordmark">
+                        <span className="sp-guld">Guld</span>raketen
                     </Link>
-                    <span className="share-logo-sub">Sveriges mest engagerande TikTok-konton · 2026</span>
+                    <p className="sp-header-desc">Sveriges mest engagerande TikTok-konton · 2026</p>
+                    <div className="sp-header-rule" />
                 </header>
 
-                <div className="share-window">
-                    <div className="share-titlebar">
-                        <span className="share-wbtn">×</span>
-                        <span className="share-wbtn">□</span>
-                        <span className="share-title">◆ Guldraketen · {weekFmt}</span>
-                    </div>
+                {loading && <p className="sp-state">Laddar…</p>}
+                {error && <p className="sp-state">Kunde inte ladda videon.</p>}
 
-                    <div className="share-body">
-                        <div className="share-rank">{label}</div>
+                {video && (
+                    <>
+                        <div className="sp-meta-row">
+                            <span className="sp-week">{weekFmt}</span>
+                            <span className="sp-label">{rankLabel(rankNum)}</span>
+                        </div>
 
-                        <div className="share-card">
-                            {video.thumbnail_url && (
-                                <div className="share-thumb">
-                                    <Image
-                                        src={video.thumbnail_url}
-                                        alt={`@${video.handle}`}
-                                        fill
-                                        style={{ objectFit: "cover", objectPosition: "center top" }}
-                                        unoptimized
-                                    />
-                                </div>
-                            )}
-                            <div className="share-info">
-                                <div className="share-handle">
-                                    <a href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
+                        <div className="sp-card">
+                            <div className="sp-thumb-wrap">
+                                {video.thumbnail_url
+                                    ? <img className="sp-thumb" src={video.thumbnail_url} alt={accountName} />
+                                    : <div className="sp-thumb-placeholder" />
+                                }
+                                <a className="sp-tiktok-btn" href={video.video_url} target="_blank" rel="noopener noreferrer">
+                                    Se videon på TikTok →
+                                </a>
+                            </div>
+
+                            <div className="sp-info">
+                                <div className="sp-account">
+                                    <a className="sp-account-name" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
                                         {accountName}
                                     </a>
-                                    <span className="share-handle-sub">@{video.handle}</span>
+                                    {acct?.display_name && (
+                                        <span className="sp-handle">@{video.handle}</span>
+                                    )}
+                                    {followers > 0 && (
+                                        <span className="sp-followers">{fmt(followers)} followers</span>
+                                    )}
+                                    {video.caption && (
+                                        <p className="sp-caption">{video.caption}</p>
+                                    )}
                                 </div>
-                                {video.caption && <div className="share-caption">{video.caption}</div>}
-                                {followers > 0 && (
-                                    <div className="share-meta">{fmt(followers)} followers · {new Date(video.published_at).toLocaleDateString("sv-SE")}</div>
-                                )}
-                                <div className="share-stats">
-                                    <div className="share-stat share-stat--hi">
-                                        <span className="share-stat-val">{er}</span>
-                                        <span className="share-stat-lbl">Eng.rate</span>
-                                    </div>
-                                    <div className="share-stat">
-                                        <span className="share-stat-val">{fmt(video.views)}</span>
-                                        <span className="share-stat-lbl">Views</span>
-                                    </div>
-                                    <div className="share-stat">
-                                        <span className="share-stat-val">{fmt(video.likes)}</span>
-                                        <span className="share-stat-lbl">Likes</span>
-                                    </div>
-                                    <div className="share-stat">
-                                        <span className="share-stat-val">{fmt(video.comments)}</span>
-                                        <span className="share-stat-lbl">Comments</span>
-                                    </div>
-                                    <div className="share-stat">
-                                        <span className="share-stat-val">{fmt(video.shares)}</span>
-                                        <span className="share-stat-lbl">Shares</span>
-                                    </div>
+
+                                <div className="sp-stats">
+                                    {stats.map((s) => (
+                                        <div key={s.label} className={`sp-stat${s.label === "Eng.rate" ? " sp-stat--hi" : ""}`}>
+                                            <span className="sp-stat-val">{s.value}</span>
+                                            <span className="sp-stat-lbl">{s.label}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="share-actions">
-                                    <a href={video.video_url} target="_blank" rel="noopener noreferrer" className="share-action-btn">
-                                        Se videon på TikTok →
-                                    </a>
-                                    <Link href="/" className="share-action-btn share-action-btn--sec">
-                                        Se hela topplistan
-                                    </Link>
+
+                                <div className="sp-actions">
+                                    <Link href="/" className="sp-btn sp-btn--sec">← Tillbaka till topplistan</Link>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                )}
+
+                <footer className="sp-footer">
+                    © {new Date().getFullYear()} Guldraketen &nbsp;·&nbsp;
+                    <Link href="/nominera" className="sp-footer-link">Nominera ett konto</Link>
+                </footer>
             </main>
         </>
     );
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Montserrat:wght@400;700;900&family=Inter:wght@400;600&display=swap');
 
-  body { background: #64a4c8; margin: 0; font-family: 'Inter', system-ui, sans-serif; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #64a4c8; color: #222; font-family: 'Inter', system-ui, sans-serif; }
 
-  .share-root {
+  .sp-root {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 16px 48px;
   }
 
-  .share-header {
-    width: 100%;
-    max-width: 560px;
-    margin-bottom: 20px;
-  }
+  .sp-header { margin-bottom: 24px; }
 
-  .share-logo {
+  .sp-wordmark {
     font-family: 'Jersey 10', sans-serif;
-    font-size: 42px;
+    font-size: clamp(2.8rem, 8vw, 5rem);
     font-weight: 400;
     line-height: 1;
+    letter-spacing: 0.01em;
     color: #222;
     text-decoration: none;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
 
-  .share-logo-guld { color: #ffb800; }
+  .sp-guld { color: #ffb800; }
 
-  .share-logo-sub {
-    font-size: 9px;
+  .sp-header-desc {
+    font-size: 10px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #222;
-    opacity: 0.7;
-    display: block;
-  }
-
-  .share-window {
-    background: #fff;
-    border: 1px solid #222;
-    box-shadow: 4px 4px 0 #222;
-    width: 100%;
-    max-width: 560px;
-  }
-
-  .share-titlebar {
-    background: #222;
-    color: #fff;
-    padding: 5px 8px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .share-wbtn {
-    width: 13px; height: 13px;
-    background: #f4f4f4;
-    border: 1px solid rgba(255,255,255,0.2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 8px; color: #222;
-  }
-
-  .share-title { flex: 1; text-align: center; }
-
-  .share-body { padding: 20px; }
-
-  .share-rank {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    color: #222;
-  }
-
-  .share-card {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-  }
-
-  .share-thumb {
-    width: 150px;
-    height: 150px;
-    flex-shrink: 0;
-    position: relative;
-    overflow: hidden;
-    background: #f4f4f4;
-  }
-
-  .share-info { flex: 1; min-width: 0; }
-
-  .share-handle a {
-    font-size: 16px;
-    font-weight: 700;
-    color: #222;
-    text-decoration: none;
-    display: block;
-    margin-bottom: 2px;
-  }
-
-  .share-handle-sub {
-    font-size: 11px;
-    color: #999;
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .share-handle a:hover { text-decoration: underline; }
-
-  .share-caption {
-    font-size: 12px;
-    color: #555;
-    line-height: 1.5;
-    margin-bottom: 6px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .share-meta {
-    font-size: 10px;
-    color: #999;
     margin-bottom: 12px;
   }
 
-  .share-stats {
+  .sp-header-rule { height: 1px; background: #222; }
+
+  .sp-state {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    padding: 40px 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .sp-meta-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 16px;
+    margin-top: 20px;
   }
 
-  .share-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 4px 8px;
-    background: #f4f4f4;
-    border: 1px solid #ddd;
-    min-width: 52px;
+  .sp-week {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    font-family: 'Inter', sans-serif;
   }
 
-  .share-stat--hi {
-    background: #222;
-    border-color: #222;
-  }
-
-  .share-stat-val {
+  .sp-label {
     font-size: 13px;
     font-weight: 700;
-    color: #222;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
   }
 
-  .share-stat--hi .share-stat-val { color: #fff; }
-
-  .share-stat-lbl {
-    font-size: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #999;
+  .sp-card {
+    background: #fff;
+    border: 1px solid #222;
+    box-shadow: 4px 4px 0 #222;
+    display: flex;
+    gap: 0;
   }
 
-  .share-stat--hi .share-stat-lbl { color: rgba(255,255,255,0.6); }
+  .sp-thumb-wrap {
+    flex-shrink: 0;
+    width: 300px;
+    position: relative;
+    background: #f4f4f4;
+  }
 
-  .share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sp-thumb {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+  }
 
-  .share-action-btn {
+  .sp-thumb-placeholder {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    background: #ddd;
+  }
+
+  .sp-tiktok-btn {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #fff;
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 6px 12px;
+    text-decoration: none;
+    padding: 6px 14px;
+    white-space: nowrap;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .sp-tiktok-btn:hover { background: #000; }
+
+  .sp-info {
+    flex: 1;
+    min-width: 0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .sp-account { margin-bottom: 24px; }
+
+  .sp-account-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #222;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .sp-account-name:hover { text-decoration: underline; }
+  .sp-handle { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
+  .sp-followers { font-size: 11px; color: #999; display: block; margin-bottom: 10px; }
+  .sp-caption { font-size: 13px; color: #555; line-height: 1.5; }
+
+  .sp-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .sp-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 16px;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    flex: 1;
+    min-width: 70px;
+  }
+
+  .sp-stat--hi { background: #222; border-color: #222; }
+
+  .sp-stat-val {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #222;
+    line-height: 1;
+  }
+
+  .sp-stat--hi .sp-stat-val { color: #fff; }
+
+  .sp-stat-lbl {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #999;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .sp-stat--hi .sp-stat-lbl { color: rgba(255,255,255,0.6); }
+
+  .sp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .sp-btn {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 16px;
     text-decoration: none;
     border: 1px solid #222;
-    color: #fff;
     background: #222;
+    color: #fff;
     box-shadow: 2px 2px 0 #999;
   }
 
-  .share-action-btn--sec {
-    background: #fff;
+  .sp-btn--sec { background: #fff; color: #222; }
+  .sp-btn:hover { opacity: 0.85; }
+
+  .sp-footer {
+    margin-top: 32px;
+    font-size: 9px;
     color: #222;
+    letter-spacing: 0.08em;
+    border-top: 1px solid #222;
+    padding-top: 12px;
+    text-transform: uppercase;
+    opacity: 0.6;
   }
 
-  @media (max-width: 480px) {
-    .share-card { flex-direction: column; }
-    .share-thumb { width: 100%; height: 200px; }
+  .sp-footer-link { color: #222; text-decoration: none; }
+  .sp-footer-link:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .sp-card { flex-direction: column; }
+    .sp-thumb-wrap { width: 100%; }
+    .sp-info { padding: 16px; }
+    .sp-account-name { font-size: 18px; }
+    .sp-stat-val { font-size: 18px; }
   }
 `;
