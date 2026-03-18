@@ -87,23 +87,27 @@ export default function VideoSharePage() {
 
                 {video && (
                     <>
-                        <div className="sp-meta-row">
-                            <span className="sp-week">{weekFmt}</span>
-                            <span className="sp-label">{rankLabel(rankNum)}</span>
-                        </div>
-
-                        <div className="sp-nav-row">
-                            {rankNum > 1 && (
-                                <a className="sp-nav-btn" href={`/${week}/top${rankNum - 1}`}>
-                                    ← {rankNum === 2 ? "Guld" : rankNum === 3 ? "Silver" : `Plats ${rankNum - 1}`}
-                                </a>
-                            )}
-                            <div className="sp-nav-spacer" />
-                            {rankNum < 3 && (
-                                <a className="sp-nav-btn" href={`/${week}/top${rankNum + 1}`}>
-                                    {rankNum === 1 ? "Silver" : rankNum === 2 ? "Brons" : `Plats ${rankNum + 1}`} →
-                                </a>
-                            )}
+                        <div className="sp-rank-nav">
+                            <div className="sp-rank-nav-left">
+                                {rankNum > 1 && (
+                                    <a className="sp-nav-btn" href={`/${week}/${rankNum === 2 ? "guld" : rankNum === 3 ? "silver" : `top${rankNum - 1}`}`}>
+                                        <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" strokeWidth="1.5" /></svg>
+                                        {rankNum === 2 ? "Guld" : rankNum === 3 ? "Silver" : `Plats ${rankNum - 1}`}
+                                    </a>
+                                )}
+                            </div>
+                            <div className="sp-rank-nav-center">
+                                <span className="sp-rank-title">{rankNum === 1 ? "Guld" : rankNum === 2 ? "Silver" : rankNum === 3 ? "Brons" : `Plats ${rankNum}`}</span>
+                                <span className="sp-rank-week">{weekFmt}</span>
+                            </div>
+                            <div className="sp-rank-nav-right">
+                                {rankNum < 3 && (
+                                    <a className="sp-nav-btn" href={`/${week}/${rankNum === 1 ? "silver" : rankNum === 2 ? "brons" : `top${rankNum + 1}`}`}>
+                                        {rankNum === 1 ? "Silver" : rankNum === 2 ? "Brons" : `Plats ${rankNum + 1}`}
+                                        <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1L6 6L1 11" stroke="currentColor" strokeWidth="1.5" /></svg>
+                                    </a>
+                                )}
+                            </div>
                         </div>
 
                         <div className="sp-card">
@@ -226,15 +230,15 @@ const css = `
   }
 
   .sp-nav-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    display: none;
   }
 
   .sp-nav-spacer { flex: 1; }
 
   .sp-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -247,29 +251,53 @@ const css = `
     white-space: nowrap;
   }
 
-  .sp-nav-btn:hover {
-    background: rgba(255,255,255,0.25);
-  }
+  .sp-nav-btn:hover { background: rgba(255,255,255,0.25); }
+
+  .sp-rank-nav {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    margin-top: 20px;
+    margin: 20px 0 16px;
+    gap: 8px;
   }
 
-  .sp-week {
-    font-size: 11px;
-    letter-spacing: 0.1em;
+  .sp-rank-nav-left,
+  .sp-rank-nav-right {
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  .sp-rank-nav-right { display: flex; justify-content: flex-end; }
+
+  .sp-rank-nav-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .sp-rank-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .sp-rank-week {
+    font-size: 10px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
+    color: rgba(255,255,255,0.65);
     font-family: 'Inter', sans-serif;
   }
 
+  .sp-week {
+    display: none;
+  }
+
   .sp-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    font-family: 'Montserrat', sans-serif;
+    display: none;
   }
 
   .sp-card {
