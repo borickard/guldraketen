@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Rocket, Eye, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Video {
+interface RawVideo {
   id: string;
   handle: string;
   video_url: string;
@@ -21,616 +18,671 @@ interface Video {
   thumbnail_url: string | null;
   caption: string | null;
   last_updated: string;
-  accounts: { followers: number; display_name?: string | null } | { followers: number; display_name?: string | null }[] | null;
+  accounts:
+  | { followers: number; display_name?: string | null }
+  | { followers: number; display_name?: string | null }[]
+  | null;
 }
 
-type SortKey = "engagement_rate" | "views" | "likes" | "comments" | "shares";
-type SizeFilter = "all" | "small" | "medium" | "large";
-type ViewsFilter = "all" | "under10k" | "10k100k" | "100k1m" | "over1m";
-
-function accountSize(followers: number): SizeFilter {
-  if (followers < 10_000) return "small";
-  if (followers < 100_000) return "medium";
-  return "large";
+interface AccountRow {
+  handle: string;
+  displayName: string;
+  followers: number;
+  bestVideo: RawVideo;       // the top-ranked video
+  bestEngagement: number;    // engagement_rate of best video
+  videoCount: number;
+  videos: RawVideo[];        // all videos, best first
 }
 
-function viewsRange(views: number): ViewsFilter {
-  if (views < 10_000) return "under10k";
-  if (views < 100_000) return "10k100k";
-  if (views < 1_000_000) return "100k1m";
-  return "over1m";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getAccount(v: RawVideo) {
+  const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
+  return acct ?? { followers: 0, display_name: null };
 }
 
 function fmt(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
+  if (n >= 1_000_000)
+    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return Math.round(n / 1_000) + "K";
   return String(n);
 }
 
-function displayName(video: Video): string {
-  const acct = Array.isArray(video.accounts) ? video.accounts[0] : video.accounts;
-  return acct?.display_name || `@${video.handle}`;
+function fmtWeek(w: string): string {
+  const m = w.match(/(\d{4})-W(\d{2})/);
+  if (!m) return w;
+  return `Vecka ${parseInt(m[2])}, ${m[1]}`;
 }
 
-function tiktokEmbedId(url: string): string | null {
-  const m = url.match(/\/video\/(\d+)/);
-  return m ? m[1] : null;
-}
-
-function formatWeek(w: string): string {
-  const [year, week] = w.split("-W");
-  return `Vecka ${parseInt(week)}, ${year}`;
-}
-
-function rowClass(rank: number): string {
-  if (rank === 1) return "video-row video-row--top1";
-  if (rank === 2) return "video-row video-row--top2";
-  if (rank === 3) return "video-row video-row--top3";
-  return "video-row video-row--rest";
-}
-
-// ─── Stat icon ────────────────────────────────────────────────────────────────
-
-function StatIcon({ col }: { col: SortKey }) {
-  const props = { size: 11, strokeWidth: 1.75 };
-  if (col === "engagement_rate") return <Rocket {...props} />;
-  if (col === "views") return <Eye {...props} />;
-  if (col === "likes") return <ThumbsUp {...props} />;
-  if (col === "comments") return <MessageCircle {...props} />;
-  if (col === "shares") return <Share2 {...props} />;
-  return null;
-}
-
-// ─── ShareButton ─────────────────────────────────────────────────────────────
-
-function rankSlug(rank: number): string {
-  if (rank === 1) return "guld";
-  if (rank === 2) return "silver";
-  if (rank === 3) return "brons";
-  return `top${rank}`;
-}
-
-function buildShareText(video: Video, rank: number, shareUrl: string): string {
-  const views = fmt(video.views ?? 0);
-  const likes = fmt(video.likes ?? 0);
-  const comments = fmt(video.comments ?? 0);
-  const shares = fmt(video.shares ?? 0);
-  const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
-  const ordinal = rank === 1 ? "🥇 1:a" : rank === 2 ? "🥈 2:a" : "🥉 3:e";
-
-  return `${ordinal} plats på Guldraketen den här veckan: @${video.handle}
-
-📊 ${er} engagemangsgrad
-👁 ${views} visningar · 👍 ${likes} likes · 💬 ${comments} kommentarer · 🔁 ${shares} delningar
-
-Guldraketen rankar svenska företagskonton på TikTok efter äkta engagemang – där delningar väger tyngst.
-👉 ${shareUrl}`;
-}
-
-function ShareButton({ video, rank, week }: { video: Video; rank: number; week: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const shareUrl = `https://guldraketen.vercel.app/${week}/${rankSlug(rank)}`;
-  const text = buildShareText(video, rank, shareUrl);
-  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-
-  function handleShare() {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    });
-    setTimeout(() => window.open(linkedinUrl, "_blank"), 300);
+function groupByAccount(videos: RawVideo[]): AccountRow[] {
+  const map = new Map<string, RawVideo[]>();
+  for (const v of videos) {
+    const list = map.get(v.handle) ?? [];
+    list.push(v);
+    map.set(v.handle, list);
   }
+  const rows: AccountRow[] = [];
+  for (const [handle, vids] of map) {
+    const acct = getAccount(vids[0]);
+    const sorted = [...vids].sort(
+      (a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0)
+    );
+    const bestVideo = sorted[0];
+    rows.push({
+      handle,
+      displayName: acct.display_name || `@${handle}`,
+      followers: acct.followers ?? 0,
+      bestVideo,
+      bestEngagement: bestVideo.engagement_rate ?? 0,
+      videoCount: vids.length,
+      videos: sorted,
+    });
+  }
+  return rows.sort((a, b) => b.bestEngagement - a.bestEngagement);
+}
 
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
+
+function ChevronRight({ color }: { color: string }) {
   return (
-    <button
-      className={`share-btn${copied ? " share-btn--copied" : ""}`}
-      onClick={handleShare}
-      title="Kopierar text till urklipp och öppnar LinkedIn"
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
     >
-      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ display: "inline-block", verticalAlign: "middle" }}>
-        <rect x="0" y="3.5" width="2.5" height="7.5" fill="currentColor" />
-        <circle cx="1.25" cy="1.25" r="1.25" fill="currentColor" />
-        <path d="M4 3.5h2.3v1s.7-1.2 2.2-1.2c1.8 0 2.5 1.2 2.5 3v4.2H8.5V7c0-1-.3-1.7-1.1-1.7-.9 0-1.2.6-1.2 1.7v4H4V3.5z" fill="currentColor" />
-      </svg>
-      {copied ? "Kopierat!" : "Dela"}
-    </button>
+      <path d="M9 18l6-6-6-6" />
+    </svg>
   );
 }
 
-// ─── HeroSection ─────────────────────────────────────────────────────────────
-
-function HeroSection({ week, onOpenModal }: { week: string; onOpenModal: (video: Video) => void }) {
-  const [top3, setTop3] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!week) return;
-    setLoading(true);
-    fetch(`/api/top3?week=${week}`)
-      .then((r) => r.json())
-      .then((data) => { setTop3(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [week]);
-
-  if (loading) return <div className="hero-loading">Laddar…</div>;
-  if (!top3.length) return null;
-
-  const weekLabel = (() => {
-    const [y, w] = week.split("-W");
-    return `Vecka ${parseInt(w)}, ${y}`;
-  })();
-
+function TrendUp() {
   return (
-    <section className="hero-section">
-      <div className="hero-week-label">{weekLabel} · Topp 3</div>
-      <div className="hero-podium">
-        {top3.map((video, i) => {
-          const rank = i + 1;
-          const er = video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–";
-          return (
-            <div key={video.id} className={`hero-card hero-card--${rank}`}>
-              <a
-                className="hero-thumb"
-                href={week ? `/${week}/${rankSlug(rank)}` : "/"}
-                aria-label={`Se detaljer för ${displayName(video)}`}
-              >
-                {video.thumbnail_url
-                  ? <img src={video.thumbnail_url} alt={displayName(video)} />
-                  : <div className="hero-thumb-placeholder" />
-                }
-                <div className="hero-rank-badge">{rank}</div>
-                <button
-                  className="hero-play"
-                  aria-label="Spela video"
-                  onClick={(e) => { e.preventDefault(); onOpenModal(video); }}
-                >
-                  <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff" /></svg>
-                </button>
-              </a>
-              <div className="hero-card-body">
-                <a className="hero-handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-                  {displayName(video)}
-                </a>
-                <div className="hero-er">
-                  <Rocket size={11} strokeWidth={1.75} />
-                  <span>{er}</span>
-                  <span className="hero-er-label">eng.rate</span>
-                </div>
-                <div className="hero-card-actions">
-                  <ShareButton video={video} rank={rank} week={week} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ─── VideoModal ───────────────────────────────────────────────────────────────
-
-function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
-  const embedId = tiktokEmbedId(video.video_url);
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
-  }, [onClose]);
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <span className="modal-handle">{displayName(video)}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Stäng">×</button>
-        </div>
-        {embedId
-          ? <iframe src={`https://www.tiktok.com/embed/v2/${embedId}`} className="modal-iframe" allowFullScreen allow="autoplay" scrolling="no" />
-          : <div className="modal-fallback"><a href={video.video_url} target="_blank" rel="noopener noreferrer">Öppna på TikTok →</a></div>
-        }
-      </div>
-    </div>
-  );
-}
-
-// ─── SortableHeader ───────────────────────────────────────────────────────────
-
-const ER_TOOLTIP = "Viktad engagemangsgrad: delningar väger tyngst (×10), kommentarer näst (×5), sedan likes (×1). Delningar kräver mest av tittaren – att vilja visa videon för sin närmsta krets. Formel: (likes + comments×5 + shares×10) / views × 100";
-
-function SortableHeader({ col, label, active, onSort }: {
-  col: SortKey; label: string; active: boolean; onSort: (col: SortKey) => void;
-}) {
-  const isER = col === "engagement_rate";
-  return (
-    <span
-      className={`hcell col-stat sortable${active ? " hcell--active" : ""}`}
-      onClick={() => onSort(col)}
-      title={isER ? ER_TOOLTIP : undefined}
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#2E8B55"
+      strokeWidth="2.5"
+      strokeLinecap="round"
     >
-      {label}{" "}
-      <span className="sort-icon">
-        {active
-          ? <svg width="7" height="5" viewBox="0 0 7 5"><polygon points="0,0 7,0 3.5,5" fill="currentColor" /></svg>
-          : <svg width="7" height="8" viewBox="0 0 7 8"><polygon points="0,3 7,3 3.5,0" fill="currentColor" /><polygon points="0,5 7,5 3.5,8" fill="currentColor" /></svg>
-        }
-      </span>
-    </span>
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
   );
 }
 
-// ─── FilterTabs ───────────────────────────────────────────────────────────────
-
-function FilterTabs<T extends string>({ options, value, onChange }: {
-  options: { key: T; label: string }[];
-  value: T;
-  onChange: (key: T) => void;
-}) {
+function TrendDown() {
   return (
-    <div className="filter-tabs">
-      {options.map((o) => (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#9B3A2A"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+const C = {
+  bg: "#EBE7E2",
+  dark: "#1C1B19",
+  gold: "#C8962A",
+  silver: "#8A9299",
+  bronze: "#96614A",
+  cardBg: "#E2DDD7",
+  cardBorder: "rgba(28,27,25,0.16)",
+  line: "rgba(28,27,25,0.08)",
+  muted: "rgba(28,27,25,0.52)",
+  lightText: "rgba(235,231,226,0.92)",
+  lightMuted: "rgba(235,231,226,0.55)",
+  lightStat: "rgba(235,231,226,0.48)",
+  tickerText: "rgba(235,231,226,0.7)",
+};
+
+const RANK_COLORS = [C.gold, C.silver, C.bronze];
+
+function rankColor(i: number) {
+  return RANK_COLORS[i] ?? "rgba(28,27,25,0.11)";
+}
+function rankSize(i: number) {
+  if (i === 0) return "60px";
+  if (i === 1) return "44px";
+  if (i === 2) return "34px";
+  return "26px";
+}
+function companySize(i: number) {
+  if (i === 0) return "26px";
+  if (i === 1) return "20px";
+  if (i === 2) return "17px";
+  return "15px";
+}
+function rowMinHeight(i: number) {
+  if (i === 0) return "82px";
+  if (i === 1) return "70px";
+  return "64px";
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+
+// ─── Reach filter pill ────────────────────────────────────────────────────────
+
+type ReachFilter = "off" | "low" | "high";
+const REACH_OPTIONS: { key: ReachFilter; label: string }[] = [
+  { key: "low", label: "Låg" },
+  { key: "high", label: "Hög" },
+];
+
+function ReachPill({
+  value,
+  onChange,
+}: {
+  value: ReachFilter;
+  onChange: (v: ReachFilter) => void;
+}) {
+  const ref0 = useRef<HTMLButtonElement>(null);
+  const ref1 = useRef<HTMLButtonElement>(null);
+  const btnRefs = [ref0, ref1];
+  const [hlStyle, setHlStyle] = useState({ left: 3, width: 60 });
+
+  useLayoutEffect(() => {
+    const idx = REACH_OPTIONS.findIndex((o) => o.key === value);
+    if (idx === -1) { setHlStyle({ left: -200, width: 0 }); return; }
+    const btn = btnRefs[idx]?.current;
+    const track = btn?.parentElement;
+    if (!btn || !track) return;
+    const trackRect = track.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    setHlStyle({
+      left: btnRect.left - trackRect.left,
+      width: btnRect.width,
+    });
+  }, [value]);
+
+  return (
+    <div className="gr-pill-track">
+      <div
+        className="gr-pill-highlight"
+        style={{ left: hlStyle.left, width: hlStyle.width }}
+      />
+      {REACH_OPTIONS.map((opt, i) => (
         <button
-          key={o.key}
-          className={`filter-tab${value === o.key ? " filter-tab--on" : ""}`}
-          onClick={() => onChange(o.key)}
+          key={opt.key}
+          ref={btnRefs[i]}
+          className={"gr-pill-btn" + (value === opt.key ? " active" : "")}
+          onClick={() => onChange(opt.key)}
         >
-          {o.label}
+          {opt.label}
         </button>
       ))}
     </div>
   );
 }
 
-// ─── VideoRow ─────────────────────────────────────────────────────────────────
-
-function VideoRow({ video, rank, sort, onThumb, week }: {
-  video: Video; rank: number; sort: SortKey; onThumb: () => void; week: string;
-}) {
-  const acctData = Array.isArray(video.accounts) ? video.accounts[0] : video.accounts;
-  const followers = acctData?.followers ?? 0;
-
-  const allStats: { key: SortKey; label: string; value: string }[] = [
-    { key: "engagement_rate", label: "Eng.rate", value: video.engagement_rate != null ? video.engagement_rate.toFixed(2) + "%" : "–" },
-    { key: "views", label: "Views", value: fmt(video.views ?? 0) },
-    { key: "likes", label: "Likes", value: fmt(video.likes ?? 0) },
-    { key: "comments", label: "Comments", value: fmt(video.comments ?? 0) },
-    { key: "shares", label: "Shares", value: fmt(video.shares ?? 0) },
-  ];
-
-  const mobileStats = allStats; // visa alla inkl. eng.rate på mobil
-
-  return (
-    <div className={rowClass(rank)}>
-      {/* ── Desktop: rank ── */}
-      <div className="rcell col-rank desktop-only">
-        <span className="rank-num">{rank}</span>
-      </div>
-
-      {/* ── Thumbnail (both) ── */}
-      <button className="thumb-cell" onClick={onThumb} aria-label="Visa video">
-        <div className="thumb-sq">
-          {video.thumbnail_url
-            ? <Image src={video.thumbnail_url} alt={`@${video.handle}`} fill sizes="150px" style={{ objectFit: "cover", objectPosition: "center top" }} />
-            : <div style={{ width: "100%", height: "100%", background: "var(--bg2)" }} />
-          }
-          <div className="thumb-play-sq">
-            <svg width="8" height="10" viewBox="0 0 8 10"><polygon points="1,1 7,5 1,9" fill="#fff" /></svg>
-          </div>
-        </div>
-      </button>
-
-      {/* ── Desktop: name + stats ── */}
-      <div className="rcell col-name grow desktop-only">
-        <div className="name-inner">
-          <div className="handle-row">
-            <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-              {displayName(video)}
-            </a>
-            <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
-              <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              </svg>
-            </a>
-            <ShareButton video={video} rank={rank} week={week} />
-          </div>
-          {video.caption && <div className="caption-row">{video.caption}</div>}
-          <div className="date-row">
-            {followers > 0 && `${fmt(followers)} followers · `}
-            {new Date(video.published_at).toLocaleDateString("sv-SE")}
-          </div>
-        </div>
-      </div>
-
-      {allStats.map((s) => (
-        <div
-          key={s.key}
-          className="rcell col-stat desktop-only"
-          title={s.key === "engagement_rate" ? ER_TOOLTIP : undefined}
-        >
-          <div className="stat-inline">
-            <span className="stat-icon"><StatIcon col={s.key} /></span>
-            <span className={`stat-val${sort === s.key ? " stat-val--hi" : ""}`}>{s.value}</span>
-          </div>
-        </div>
-      ))}
-
-      {/* ── Mobile: info (flex sibling of thumb) ── */}
-      <div className="mobile-info-cell">
-        <div className="mobile-rank">{rank}</div>
-        <div className="mobile-text">
-          <div className="handle-row">
-            <a className="handle" href={`https://www.tiktok.com/@${video.handle}`} target="_blank" rel="noopener noreferrer">
-              {displayName(video)}
-            </a>
-            <a className="tiktok-link" href={video.video_url} target="_blank" rel="noopener noreferrer" aria-label="Öppna på TikTok">
-              <svg width="9" height="9" viewBox="0 0 9 9" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                <path d="M1 8L8 1M8 1H3M8 1V6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              </svg>
-            </a>
-            <ShareButton video={video} rank={rank} week={week} />
-          </div>
-          {video.caption && <div className="caption-row">{video.caption}</div>}
-          <div className="date-row">
-            {followers > 0 && `${fmt(followers)} followers · `}
-            {new Date(video.published_at).toLocaleDateString("sv-SE")}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mobile: stats row – spans full width via flex-wrap ── */}
-      <div className="mobile-stats-row">
-        {mobileStats.map((s) => (
-          <div key={s.key} className={`mobile-stat${sort === s.key ? " mobile-stat--hi" : ""}`}>
-            <span className="mobile-stat-icon"><StatIcon col={s.key} /></span>
-            <span className="mobile-stat-val">{s.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "engagement_rate", label: "Eng.rate" },
-  { key: "views", label: "Views" },
-  { key: "likes", label: "Likes" },
-  { key: "comments", label: "Comments" },
-  { key: "shares", label: "Shares" },
-];
-
-const SIZE_OPTIONS: { key: SizeFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "small", label: "< 10K" },
-  { key: "medium", label: "10K–100K" },
-  { key: "large", label: "> 100K" },
-];
-
-const VIEWS_OPTIONS: { key: ViewsFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "under10k", label: "< 10K" },
-  { key: "10k100k", label: "10K–100K" },
-  { key: "100k1m", label: "100K–1M" },
-  { key: "over1m", label: "> 1M" },
-];
-
-// ─── Inner page ───────────────────────────────────────────────────────────────
-
-function HomePageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
+export default function Home() {
   const [weeks, setWeeks] = useState<string[]>([]);
-  const [weekState, setWeekState] = useState<string>("");
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loadingWeeks, setLoadingWeeks] = useState(true);
-  const [loadingVideos, setLoadingVideos] = useState(false);
-  const [error, setError] = useState("");
-  const [modal, setModal] = useState<Video | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<string>("");
+  const [videos, setVideos] = useState<RawVideo[]>([]);
+  const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reachFilter, setReachFilter] = useState<"off" | "low" | "high">("off");
+  const wordmarkRef = useRef<HTMLSpanElement>(null);
+  const navLinksRef = useRef<HTMLButtonElement>(null);
 
-  const [sortState, setSortState] = useState<SortKey>(
-    (searchParams.get("sort") as SortKey) || "engagement_rate"
-  );
-  const [sizeState, setSizeState] = useState<SizeFilter>(
-    (searchParams.get("size") as SizeFilter) || "all"
-  );
-  const [viewsState, setViewsState] = useState<ViewsFilter>(
-    (searchParams.get("views") as ViewsFilter) || "all"
-  );
+  // Fit wordmark to available nav width
+  useEffect(() => {
+    const fit = () => {
+      const wm = wordmarkRef.current;
+      const links = navLinksRef.current;
+      if (!wm || !links) return;
+      const navWidth = wm.parentElement?.offsetWidth ?? 0;
+      const linksWidth = links.offsetWidth + 48; // 48 = gap + padding
+      const available = navWidth - linksWidth;
+      let size = 200;
+      wm.style.fontSize = size + "px";
+      while (wm.scrollWidth > available && size > 16) {
+        size -= 1;
+        wm.style.fontSize = size + "px";
+      }
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
 
-  const hasActiveFilters = sizeState !== "all" || viewsState !== "all";
-
-  function updateURL(patch: { week?: string; sort?: SortKey; size?: SizeFilter; views?: ViewsFilter }) {
-    const p = new URLSearchParams(searchParams.toString());
-    if (patch.week !== undefined) p.set("week", patch.week);
-    if (patch.sort !== undefined) p.set("sort", patch.sort);
-    if (patch.size !== undefined) p.set("size", patch.size);
-    if (patch.views !== undefined) p.set("views", patch.views);
-    router.replace(`?${p.toString()}`, { scroll: false });
-  }
-
-  function setWeek(w: string) { setWeekState(w); updateURL({ week: w }); }
-  function setSort(s: SortKey) {
-    const next = s === sortState ? "engagement_rate" : s;
-    setSortState(next); updateURL({ sort: next });
-  }
-  function setSize(s: SizeFilter) {
-    const next = s === sizeState ? "all" : s;
-    setSizeState(next); updateURL({ size: next });
-  }
-  function setViews(v: ViewsFilter) {
-    const next = v === viewsState ? "all" : v;
-    setViewsState(next); updateURL({ views: next });
-  }
-
+  // Fetch available weeks
   useEffect(() => {
     fetch("/api/weeks")
       .then((r) => r.json())
-      .then((data: string[]) => {
-        setWeeks(data);
-        const urlWeek = searchParams.get("week");
-        const initial = urlWeek && data.includes(urlWeek) ? urlWeek : data[0];
-        if (initial) {
-          setWeekState(initial);
-          if (!urlWeek) {
-            const p = new URLSearchParams(searchParams.toString());
-            p.set("week", initial);
-            router.replace(`?${p.toString()}`, { scroll: false });
-          }
-        }
-        setLoadingWeeks(false);
-      })
-      .catch(() => { setError("Kunde inte ladda veckor."); setLoadingWeeks(false); });
+      .then((ws: string[]) => {
+        setWeeks(ws);
+        if (ws.length > 0) setSelectedWeek(ws[0]);
+      });
   }, []);
 
+  // Fetch current + previous week videos
   useEffect(() => {
-    if (!weekState) return;
-    setLoadingVideos(true);
-    setError("");
-    fetch(`/api/videos?week=${weekState}`)
-      .then((r) => r.json())
-      .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoadingVideos(false); })
-      .catch(() => { setError("Kunde inte ladda videos."); setLoadingVideos(false); });
-  }, [weekState]);
+    if (!selectedWeek) return;
+    setLoading(true);
+    setExpanded(null);
 
-  const currentWeekIndex = weeks.indexOf(weekState);
+    const fetchCurrent = fetch(`/api/videos?week=${selectedWeek}`).then((r) =>
+      r.json()
+    );
 
-  const sorted = useMemo(() => {
-    return [...videos]
-      .filter((v) => sizeState === "all" || accountSize(((Array.isArray(v.accounts) ? v.accounts[0] : v.accounts)?.followers) ?? 0) === sizeState)
-      .filter((v) => viewsState === "all" || viewsRange(v.views ?? 0) === viewsState)
-      .sort((a, b) => (b[sortState] ?? 0) - (a[sortState] ?? 0));
-  }, [videos, sortState, sizeState, viewsState]);
+    const weekIdx = weeks.indexOf(selectedWeek);
+    const prevWeek = weekIdx + 1 < weeks.length ? weeks[weekIdx + 1] : null;
+    const fetchPrev = prevWeek
+      ? fetch(`/api/videos?week=${prevWeek}`).then((r) => r.json())
+      : Promise.resolve([]);
 
-  const loading = loadingWeeks || loadingVideos;
+    Promise.all([fetchCurrent, fetchPrev]).then(([curr, prev]) => {
+      setVideos(curr);
+      setPrevVideos(prev);
+      setLoading(false);
+    });
+  }, [selectedWeek, weeks]);
+
+  const accounts = useMemo(() => groupByAccount(videos), [videos]);
+  const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter((acc) => {
+      const v = acc.bestVideo.views ?? 0;
+      if (v < 10_000) return false;
+      if (reachFilter === "off") return true;
+      if (reachFilter === "low") return v < 100_000;
+      if (reachFilter === "high") return v >= 100_000;
+      return true;
+    });
+  }, [accounts, reachFilter]);
+
+  // Map handle -> rank index for previous week
+  const prevRankMap = useMemo(() => {
+    const m = new Map<string, number>();
+    prevAccounts.forEach((a, i) => m.set(a.handle, i));
+    return m;
+  }, [prevAccounts]);
+
+  const toggle = useCallback((handle: string) => {
+    setExpanded((e) => (e === handle ? null : handle));
+  }, []);
+
+  function scrollPanel(handle: string) {
+    const el = document.getElementById(`scroll-${handle}`);
+    if (el) el.scrollBy({ left: 280, behavior: "smooth" });
+  }
+
+  const fSyne = "'Syne', sans-serif";
+  const fMono = "'DM Mono', monospace";
+  const fSans = "'DM Sans', sans-serif";
 
   return (
-    <main className="page-root">
-      {modal && <VideoModal video={modal} onClose={() => setModal(null)} />}
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: ${C.bg}; }
 
-      <header className="header">
-        <div className="header-inner">
-          <h1 className="wordmark"><span className="wordmark-gold">Guld</span>raketen</h1>
-          <p className="header-desc">Sveriges mest engagerande TikTok-konton · 2026</p>
+        .gr-ticker {
+          display: inline-block;
+          animation: gr-tick 32s linear infinite;
+          font-family: ${fMono};
+          font-size: 10px;
+          letter-spacing: .18em;
+          text-transform: uppercase;
+          color: ${C.tickerText};
+        }
+        @keyframes gr-tick {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+
+        .gr-entry { cursor: pointer; transition: background 0.1s; }
+        .gr-entry:hover { background: rgba(28,27,25,.022); }
+        .gr-entry-dark { background: ${C.dark}; }
+        .gr-entry-dark:hover { background: #212019; }
+
+        .gr-vpanel { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(.4,0,.2,1); }
+        .gr-vpanel.open { max-height: 260px; }
+        .gr-entry-dark .gr-vpanel { background: ${C.dark}; }
+
+        .gr-srow { display: flex; gap: 10px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; padding-bottom: 2px; }
+        .gr-srow::-webkit-scrollbar { display: none; }
+
+        .gr-vc {
+          flex-shrink: 0; width: 120px;
+          background: ${C.cardBg};
+          border: 1.5px solid ${C.cardBorder};
+          border-radius: 18px; overflow: hidden;
+          cursor: pointer; text-decoration: none;
+          transition: border-color 0.15s; display: block;
+        }
+        .gr-vc:hover { border-color: rgba(200,150,42,.55); }
+        .gr-entry-dark .gr-vc { background: #2C2926; border-color: rgba(255,255,255,.1); }
+        .gr-entry-dark .gr-vc:hover { border-color: rgba(200,150,42,.45); }
+
+        .gr-chev { transition: transform 0.25s; display: flex; align-items: center; justify-content: center; }
+        .gr-chev.open { transform: rotate(90deg); }
+
+        .gr-arr {
+          position: absolute; right: 6px; top: 50%; transform: translateY(-58%);
+          width: 26px; height: 26px;
+          background: ${C.dark}; border: none; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; opacity: 0; transition: opacity 0.18s;
+        }
+        .gr-vinner:hover .gr-arr { opacity: 0.72; }
+        .gr-arr:hover { opacity: 1 !important; }
+
+        .gr-wk-sel {
+          font-family: ${fMono}; font-size: 10px;
+          background: transparent; border: none;
+          border-bottom: 1px solid ${C.gold};
+          color: ${C.gold}; padding: 2px 4px;
+          letter-spacing: .05em; cursor: pointer; outline: none;
+        }
+        .gr-pill-track {
+          display: flex; position: relative;
+          background: rgba(28,27,25,0.08);
+          border-radius: 100px; padding: 3px;
+        }
+        .gr-pill-highlight {
+          position: absolute; top: 3px;
+          height: calc(100% - 6px);
+          background: ${C.dark};
+          border-radius: 100px;
+          transition: left 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
+          pointer-events: none;
+        }
+        .gr-pill-btn {
+          position: relative; z-index: 1;
+          font-family: ${fMono}; font-size: 10px;
+          letter-spacing: .07em; text-transform: uppercase;
+          border: none; background: transparent;
+          padding: 5px 14px; border-radius: 100px;
+          cursor: pointer; color: rgba(28,27,25,0.45);
+          transition: color 0.25s; white-space: nowrap;
+        }
+        .gr-pill-btn.active { color: ${C.bg}; }
+      `}</style>
+
+      <div style={{ background: C.bg, color: C.dark, fontFamily: fSans, overflow: "hidden", minHeight: "100vh" }}>
+
+        {/* ── NAV ──────────────────────────────────────────────────── */}
+        <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.line}`, gap: "24px", overflow: "hidden" }}>
+          <span ref={wordmarkRef} style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "16px", letterSpacing: ".02em", textTransform: "uppercase", flexShrink: 0, display: "flex", alignItems: "center", lineHeight: 1, whiteSpace: "nowrap" }}>
+            <span style={{ color: C.gold }}>G</span>uldraketen
+          </span>
+          <button ref={navLinksRef} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", flexDirection: "column", gap: "5px", flexShrink: 0, alignSelf: "center" }}>
+            <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
+            <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
+            <span style={{ display: "block", width: "14px", height: "2px", background: C.dark, borderRadius: "2px" }} />
+          </button>
+        </nav>
+
+        {/* ── TICKER ───────────────────────────────────────────────── */}
+        <div style={{ background: C.dark, padding: "8px 0", overflow: "hidden", whiteSpace: "nowrap" }}>
+          <span className="gr-ticker">
+            Vem nådde fram i bruset den här veckan?&nbsp;&middot;&nbsp;Guldraketen&nbsp;&middot;&nbsp;Varje måndag&nbsp;&middot;&nbsp;Likes räknas&nbsp;&middot;&nbsp;Kommentarer väger mer&nbsp;&middot;&nbsp;Delningar väger tyngst&nbsp;&middot;&nbsp;Det är vår måttstock&nbsp;&middot;&nbsp;Sveriges mest engagerande TikTok-konton&nbsp;&middot;&nbsp;{selectedWeek}&nbsp;&middot;&nbsp;
+            Vem nådde fram i bruset den här veckan?&nbsp;&middot;&nbsp;Guldraketen&nbsp;&middot;&nbsp;Varje måndag&nbsp;&middot;&nbsp;Likes räknas&nbsp;&middot;&nbsp;Kommentarer väger mer&nbsp;&middot;&nbsp;Delningar väger tyngst&nbsp;&middot;&nbsp;Det är vår måttstock&nbsp;&middot;&nbsp;Sveriges mest engagerande TikTok-konton&nbsp;&middot;&nbsp;{selectedWeek}&nbsp;&middot;&nbsp;
+          </span>
         </div>
-        <div className="header-rule" />
-      </header>
 
-      {weekState && <HeroSection week={weekState} onOpenModal={setModal} />}
-
-      <div className="os-window">
-        <div className="os-titlebar">
-          <div className="os-wbtn">×</div>
-          <div className="os-wbtn">□</div>
-          <div className="os-titlebar-title">◆ Topplista</div>
-          <div className="os-wbtn">?</div>
+        {/* ── LIST HEADER ──────────────────────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 24px", borderBottom: `1px solid ${C.line}`, gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", flexShrink: 0 }}>
+            <span style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "13px", color: "rgba(28,27,25,.55)", letterSpacing: ".04em", textTransform: "uppercase" }}>Filter</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+              <span style={{ fontFamily: fMono, fontSize: "8px", color: "rgba(28,27,25,.28)", letterSpacing: ".14em", textTransform: "uppercase", textAlign: "center" }}>Visningar</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <ReachPill value={reachFilter} onChange={(v) => { setReachFilter(v === reachFilter ? "off" : v); setExpanded(null); }} />
+                {reachFilter !== "off" && (
+                  <button
+                    onClick={() => { setReachFilter("off"); setExpanded(null); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "5px",
+                      fontFamily: fMono, fontSize: "10px", letterSpacing: ".06em",
+                      textTransform: "uppercase", color: C.dark,
+                      background: C.gold + "22", border: `1px solid ${C.gold}55`,
+                      borderRadius: "100px", padding: "3px 10px 3px 12px",
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {reachFilter === "low" ? "Under 100K" : "Över 100K"}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <select
+            className="gr-wk-sel"
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(e.target.value)}
+          >
+            {weeks.map((w) => (
+              <option key={w} value={w}>{fmtWeek(w)}</option>
+            ))}
+          </select>
         </div>
 
-        <div className="os-body">
-          <div className="top-controls">
-            <div className="week-row">
-              <div className="week-select-wrap">
-                <select
-                  className="week-select"
-                  value={weekState}
-                  onChange={(e) => setWeek(e.target.value)}
-                  disabled={weeks.length === 0}
-                >
-                  {weeks.map((w) => <option key={w} value={w}>{formatWeek(w)}</option>)}
-                  {weeks.length === 0 && <option>Laddar…</option>}
-                </select>
-                <span className="week-select-arrow">▼</span>
-              </div>
-              <div className="nav-group">
-                <button className="nav-btn" disabled={currentWeekIndex >= weeks.length - 1} onClick={() => setWeek(weeks[currentWeekIndex + 1])}>←</button>
-                <button className="nav-btn" disabled={currentWeekIndex <= 0} onClick={() => setWeek(weeks[currentWeekIndex - 1])}>→</button>
-              </div>
-              <button
-                className={`filter-toggle mobile-only${hasActiveFilters ? " filter-toggle--active" : ""}`}
-                onClick={() => setShowFilters(!showFilters)}
+        {/* ── ENTRIES ──────────────────────────────────────────────── */}
+        {loading ? (
+          <div style={{ padding: "40px 24px", fontFamily: fMono, fontSize: "11px", color: C.muted, letterSpacing: ".06em", textTransform: "uppercase" }}>
+            Laddar...
+          </div>
+        ) : (
+          filteredAccounts.map((acc, i) => {
+            const isDark = i === 0;
+            const isOpen = expanded === acc.handle;
+
+            const prevRank = prevRankMap.get(acc.handle);
+            // positive = climbed, negative = dropped, null = new entry
+            const delta = prevRank != null ? prevRank - i : null;
+            const isNew = delta === null && prevVideos.length > 0;
+
+            const textColor = isDark ? C.lightText : C.dark;
+            const metaColor = isDark ? C.lightMuted : C.muted;
+            const statLbl = isDark ? C.lightStat : "rgba(28,27,25,.48)";
+            const statVal = isDark ? C.gold : rankColor(i);
+            const chevColor = isOpen ? C.gold : (isDark ? "rgba(235,231,226,.18)" : "rgba(28,27,25,.2)");
+            const rowBorder = isOpen ? "none" : `1px solid ${isDark ? "rgba(255,255,255,.06)" : C.line}`;
+
+            return (
+              <div
+                key={acc.handle}
+                className={`gr-entry${isDark ? " gr-entry-dark" : ""}`}
               >
-                <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-                  <rect x="0" y="0" width="13" height="1.5" fill="currentColor" />
-                  <rect x="2" y="4" width="9" height="1.5" fill="currentColor" />
-                  <rect x="4" y="8" width="5" height="1.5" fill="currentColor" />
-                </svg>
-                Filters{hasActiveFilters ? " ●" : ""}
-              </button>
-            </div>
+                {/* Row */}
+                <div
+                  onClick={() => toggle(acc.handle)}
+                  style={{ display: "flex", alignItems: "center", padding: "0 24px", gap: "14px", minHeight: rowMinHeight(i), borderBottom: rowBorder }}
+                >
+                  {/* Rank */}
+                  <span style={{ fontFamily: fSyne, fontWeight: 500, fontSize: rankSize(i), color: rankColor(i), lineHeight: 1, flexShrink: 0, width: "76px", textAlign: "right" }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
 
-            <div className="filter-col desktop-only">
-              <div className="filter-group">
-                <span className="filter-label">Followers</span>
-                <FilterTabs options={SIZE_OPTIONS} value={sizeState} onChange={setSize} />
-              </div>
-              <div className="filter-group">
-                <span className="filter-label">Views</span>
-                <FilterTabs options={VIEWS_OPTIONS} value={viewsState} onChange={setViews} />
-              </div>
-            </div>
+                  {/* Name + meta */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: fSyne, fontWeight: 800, fontSize: companySize(i), color: textColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {acc.displayName}
+                    </p>
+                    <p style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, marginTop: "4px", letterSpacing: ".04em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                      Bästa inlägg
+                      {delta !== null && delta > 0 && (
+                        <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "#2E8B55" }}>
+                          <TrendUp />{delta}
+                        </span>
+                      )}
+                      {delta !== null && delta < 0 && (
+                        <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "#9B3A2A" }}>
+                          <TrendDown />{Math.abs(delta)}
+                        </span>
+                      )}
+                      {isNew && (
+                        <span style={{ background: C.gold, color: "#fff", fontSize: "8px", padding: "1px 5px", borderRadius: "3px", letterSpacing: ".05em", fontFamily: fMono }}>
+                          NY
+                        </span>
+                      )}
+                    </p>
+                  </div>
 
-            <div className="mobile-sort-row mobile-only">
-              <span className="filter-label">Sort by</span>
-              <FilterTabs options={SORT_OPTIONS} value={sortState} onChange={setSort} />
-            </div>
+                  {/* Stats — best video only */}
+                  <div style={{ display: "flex", gap: "16px", textAlign: "right", flexShrink: 0 }}>
+                    <div>
+                      <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
+                        {fmt(acc.bestVideo.views)}
+                      </span>
+                      <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
+                        visningar
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ display: "block", fontFamily: fMono, fontSize: "13px", fontWeight: 500, color: statVal }}>
+                        {Number(acc.bestEngagement).toFixed(2)}%
+                      </span>
+                      <span style={{ display: "block", fontFamily: fMono, fontSize: "9px", textTransform: "uppercase", letterSpacing: ".07em", color: statLbl, marginTop: "1px" }}>
+                        eng.rate
+                      </span>
+                    </div>
+                  </div>
 
-            {showFilters && (
-              <div className="filter-col mobile-only">
-                <div className="filter-group">
-                  <span className="filter-label">Followers</span>
-                  <FilterTabs options={SIZE_OPTIONS} value={sizeState} onChange={setSize} />
+                  {/* Chevron */}
+                  <div className={`gr-chev${isOpen ? " open" : ""}`}>
+                    <ChevronRight color={chevColor} />
+                  </div>
                 </div>
-                <div className="filter-group">
-                  <span className="filter-label">Views</span>
-                  <FilterTabs options={VIEWS_OPTIONS} value={viewsState} onChange={setViews} />
+
+                {/* Video panel */}
+                <div className={`gr-vpanel${isOpen ? " open" : ""}`}>
+                  <div className="gr-vinner" style={{ padding: "10px 24px 16px", position: "relative" }}>
+                    {/* Panel summary */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "10px", paddingBottom: "10px", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,.07)" : C.line}` }}>
+                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                        {acc.videoCount} {acc.videoCount === 1 ? "inlägg" : "inlägg"} veckan
+                      </span>
+                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                        {fmt(acc.videos.reduce((s, v) => s + (v.views ?? 0), 0))} visningar totalt
+                      </span>
+                      <span style={{ fontFamily: fMono, fontSize: "10px", color: metaColor, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                        {(() => {
+                          const totalViews = acc.videos.reduce((s, v) => s + (v.views ?? 0), 0);
+                          const wavg = totalViews > 0
+                            ? acc.videos.reduce((s, v) => s + (v.engagement_rate ?? 0) * (v.views ?? 0), 0) / totalViews
+                            : 0;
+                          return wavg.toFixed(2);
+                        })()}% snitt eng.rate
+                      </span>
+                    </div>
+                    <div className="gr-srow" id={`scroll-${acc.handle}`}>
+                      {acc.videos.map((v, vi) => {
+                        const isBest = vi === 0;
+                        const cardBg = isBest
+                          ? (isDark ? "#3A3320" : "#F5EDD8")
+                          : undefined;
+                        const cardBorder = isBest
+                          ? `1.5px solid ${C.gold}`
+                          : undefined;
+                        const titleColor = isDark ? "rgba(235,231,226,.9)" : C.dark;
+                        return (
+                          <a
+                            key={v.id}
+                            href={v.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="gr-vc"
+                            style={{ background: cardBg, border: cardBorder }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Thumbnail */}
+                            <div style={{ width: "120px", height: "120px", borderRadius: "16.5px 16.5px 0 0", overflow: "hidden", position: "relative", background: "rgba(28,27,25,.08)", flexShrink: 0 }}>
+                              {v.thumbnail_url ? (
+                                <Image
+                                  src={v.thumbnail_url}
+                                  alt={v.caption ?? `Video ${vi + 1}`}
+                                  fill
+                                  sizes="120px"
+                                  style={{ objectFit: "cover" }}
+                                  unoptimized
+                                />
+                              ) : (
+                                <span style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "24px", color: "rgba(28,27,25,.09)", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                                  {String(vi + 1).padStart(2, "0")}
+                                </span>
+                              )}
+                              <span style={{ position: "absolute", bottom: "6px", right: "6px", background: C.dark, color: "rgba(235,231,226,.85)", fontFamily: fMono, fontSize: "9px", padding: "2px 6px", borderRadius: "8px", letterSpacing: ".03em" }}>
+                                {fmt(v.views)}
+                              </span>
+                              {isBest && (
+                                <span style={{ position: "absolute", top: "6px", left: "6px", background: C.gold, color: "#fff", fontFamily: fMono, fontSize: "8px", fontWeight: 500, padding: "2px 6px", borderRadius: "4px", letterSpacing: ".06em", textTransform: "uppercase" }}>
+                                  Bäst
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div style={{ padding: "7px 9px 9px" }}>
+                              <p style={{ fontFamily: fSans, fontSize: "11px", fontWeight: 500, color: titleColor, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
+                                {v.caption ?? "Se video"}
+                              </p>
+                              <p style={{ fontFamily: fMono, fontSize: "10px", color: isBest ? C.gold : "rgba(28,27,25,.45)", marginTop: "4px", fontWeight: isBest ? 500 : 400 }}>
+                                {Number(v.engagement_rate).toFixed(2)}% eng.
+                              </p>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+
+                    {/* Scroll arrow */}
+                    {acc.videos.length > 3 && (
+                      <button
+                        className="gr-arr"
+                        onClick={(e) => { e.stopPropagation(); scrollPanel(acc.handle); }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
+            );
+          })
+        )}
+
+        {/* ── FOOTER ───────────────────────────────────────────────── */}
+        <div style={{ background: C.dark, padding: "28px 24px 32px" }}>
+          <div style={{ fontFamily: fSyne, fontWeight: 800, fontSize: "clamp(28px, 5.5vw, 50px)", color: C.lightText, lineHeight: 0.95, textTransform: "uppercase", letterSpacing: "-.01em" }}>
+            Vad är<br />
+            <span style={{ color: C.gold }}>Engagemang?</span>
           </div>
+          <p style={{ fontFamily: fSans, fontSize: "14px", color: "rgba(235,231,226,.55)", marginTop: "20px", lineHeight: 1.7, maxWidth: "400px" }}>
+            Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em style={{ fontStyle: "italic", color: "rgba(235,231,226,.8)" }}>"det här måste du se."</em> Det är vår definition av engagemang.
+          </p>
+          <p style={{ fontFamily: fMono, fontSize: "9px", letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(235,231,226,.18)", marginTop: "24px" }}>
+            Guldraketen&nbsp;&middot;&nbsp;2026
+          </p>
         </div>
 
-        <div className="os-inset">
-          <div className="list-hdr desktop-only">
-            <span className="hcell col-rank">#</span>
-            <span className="hcell col-thumb">Video</span>
-            <span className="hcell col-name grow">Account</span>
-            <SortableHeader col="engagement_rate" label="Eng.rate" active={sortState === "engagement_rate"} onSort={setSort} />
-            <SortableHeader col="views" label="Views" active={sortState === "views"} onSort={setSort} />
-            <SortableHeader col="likes" label="Likes" active={sortState === "likes"} onSort={setSort} />
-            <SortableHeader col="comments" label="Comm." active={sortState === "comments"} onSort={setSort} />
-            <SortableHeader col="shares" label="Shares" active={sortState === "shares"} onSort={setSort} />
-          </div>
-
-          {loading && <p className="state">Laddar…</p>}
-          {error && <p className="state state--err">{error}</p>}
-          {!loading && !error && sorted.length === 0 && <p className="state">Inga videos för den här veckan.</p>}
-
-          {sorted.map((v, i) => (
-            <VideoRow key={v.id} video={v} rank={i + 1} sort={sortState} onThumb={() => setModal(v)} week={weekState} />
-          ))}
-        </div>
-
-        <div className="os-footer">
-          <div className="status-tag">◆ Guldraketen · {weekState ? formatWeek(weekState) : "–"}</div>
-          <span className="ctrl-meta">{!loading && !error ? `${sorted.length} videos` : ""}</span>
-        </div>
       </div>
-
-      <footer className="page-footer">
-        © {new Date().getFullYear()} Guldraketen &nbsp;·&nbsp;
-        <a href="/nominera" className="footer-link">Nominera ett konto</a>
-      </footer>
-    </main>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <Suspense fallback={null}>
-      <HomePageInner />
-    </Suspense>
+    </>
   );
 }
