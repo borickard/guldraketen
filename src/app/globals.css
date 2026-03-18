@@ -1341,4 +1341,306 @@ body {
   .gr-rank-col {
     width: clamp(36px, 8vw, 64px) !important;
   }
+
+  .gr-filter-label {
+    font-size: 10px;
+    letter-spacing: .02em;
+  }
+
+  .gr-filter-group {
+    gap: 8px;
+  }
+
+  .gr-filter-chip {
+    font-size: 9px;
+    padding: 2px 8px 2px 10px;
+  }
+
+  .gr-pill-btn {
+    padding: 4px 10px;
+    font-size: 9px;
+  }
+}
+
+/* ── Entry rows ── */
+.gr-entry-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.gr-entry-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.gr-entry-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  margin-top: 4px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* ── Eng.rate right column ── */
+.gr-entry-rate {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.gr-entry-rate-val {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gr-entry-rate-lbl {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-top: 1px;
+}
+
+/* ── Panel summary ── */
+.gr-vinner {
+  padding: 10px 24px 16px;
+  position: relative;
+}
+
+.gr-panel-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.gr-panel-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ── Thumbnail ── */
+.gr-thumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 16.5px 16.5px 0 0;
+  overflow: hidden;
+  position: relative;
+  background: rgba(28, 27, 25, .08);
+  flex-shrink: 0;
+}
+
+.gr-thumb-views {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: var(--gr-dark);
+  color: rgba(235, 231, 226, .85);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  letter-spacing: .03em;
+}
+
+.gr-thumb-best {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: var(--gr-gold);
+  color: #fff;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ── Video card info ── */
+.gr-vid-info {
+  padding: 7px 9px 9px;
+}
+
+.gr-vid-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── Footer ── */
+.gr-footer {
+  background: var(--gr-dark);
+  padding: 28px 24px 32px;
+}
+
+.gr-footer-heading {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(18px, 5.5vw, 50px);
+  color: var(--gr-light-text);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: -.01em;
+}
+
+.gr-footer-body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: rgba(235, 231, 226, .55);
+  margin-top: 20px;
+  line-height: 1.7;
+  max-width: 400px;
+}
+
+.gr-footer-credit {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(235, 231, 226, .18);
+  margin-top: 24px;
+}
+
+/* ── Nav & wordmark ── */
+.gr-root {
+  background: var(--gr-bg);
+  color: var(--gr-dark);
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+.gr-wordmark {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gr-rank-col {
+  font-family: 'Syne', sans-serif;
+  flex-shrink: 0;
+  width: clamp(36px, 8vw, 64px);
+  text-align: right;
+}
+
+/* ── Filter UI ── */
+.gr-filter-label {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: rgba(28, 27, 25, .55);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.gr-filter-sublabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  color: rgba(28, 27, 25, .28);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.gr-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  border-radius: 100px;
+  padding: 3px 10px 3px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+/* ── Loading state ── */
+.gr-loading {
+  padding: 40px 24px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ── Thumbnail placeholder & video eng ── */
+.gr-thumb-placeholder {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  color: rgba(28, 27, 25, .09);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.gr-vid-eng {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+/* ── Hamburger & filter layout ── */
+.gr-hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.gr-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.gr-filter-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gr-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Footer em ── */
+.gr-footer-em {
+  font-style: italic;
+  color: rgba(235, 231, 226, .8);
 }
