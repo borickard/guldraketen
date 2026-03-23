@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Titan+One&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
   --bg1: #ffffff;
@@ -1140,7 +1140,7 @@ body {
   --gr-light-stat: rgba(235, 231, 226, 0.48);
   --gr-ticker-text: rgba(235, 231, 226, 0.7);
   --gr-mono: 'DM Mono', monospace;
-  --gr-syne: 'Syne', sans-serif;
+  --gr-syne: 'Titan One', sans-serif;
   --gr-sans: 'DM Sans', sans-serif;
 }
 
@@ -1370,8 +1370,7 @@ body {
 }
 
 .gr-entry-name {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  font-family: 'Titan One', sans-serif;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1513,9 +1512,8 @@ body {
 }
 
 .gr-footer-heading {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: clamp(18px, 5.5vw, 50px);
+  font-family: 'Titan One', sans-serif;
+  font-size: clamp(24px, 6vw, 56px);
   color: var(--gr-light-text);
   line-height: 1;
   text-transform: uppercase;
@@ -1553,10 +1551,9 @@ body {
 }
 
 .gr-nav-logo {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: .02em;
+  font-family: 'Titan One', sans-serif;
+  font-size: 20px;
+  letter-spacing: .01em;
   text-transform: uppercase;
   color: var(--gr-dark);
   text-decoration: none;
@@ -1633,7 +1630,7 @@ body {
 }
 
 .gr-wordmark {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Titan One', sans-serif;
   font-weight: 800;
   font-size: 16px;
   letter-spacing: .02em;
@@ -1646,15 +1643,16 @@ body {
 }
 
 .gr-rank-col {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Titan One', sans-serif;
   flex-shrink: 0;
   width: clamp(36px, 8vw, 64px);
   text-align: right;
+  line-height: 1;
 }
 
 /* ── Filter UI ── */
 .gr-filter-label {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Titan One', sans-serif;
   font-weight: 800;
   font-size: 13px;
   color: rgba(28, 27, 25, .55);
@@ -1697,9 +1695,8 @@ body {
 
 /* ── Thumbnail placeholder & video eng ── */
 .gr-thumb-placeholder {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 24px;
+  font-family: 'Titan One', sans-serif;
+  font-size: 28px;
   color: rgba(28, 27, 25, .09);
   display: flex;
   align-items: center;
@@ -1763,19 +1760,17 @@ body {
 }
 
 .gr-page-title {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: clamp(28px, 6vw, 42px);
-  letter-spacing: -0.02em;
+  font-family: 'Titan One', sans-serif;
+  font-size: clamp(32px, 7vw, 52px);
+  letter-spacing: -0.01em;
   margin: 0 0 20px;
   color: var(--gr-dark);
 }
 
 .gr-page-subtitle {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: -0.01em;
+  font-family: 'Titan One', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0;
   margin: 36px 0 12px;
   color: var(--gr-dark);
 }
@@ -1857,9 +1852,8 @@ body {
 }
 
 .gr-weight-name {
-  font-family: 'Syne', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
+  font-family: 'Titan One', sans-serif;
+  font-size: 16px;
   color: var(--gr-dark);
   margin-bottom: 4px;
 }
@@ -1938,9 +1932,8 @@ body {
 }
 
 .gr-score-rank {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 13px;
+  font-family: 'Titan One', sans-serif;
+  font-size: 16px;
   color: rgba(28,27,25,.3);
   width: 32px;
   text-align: right;
@@ -1954,9 +1947,8 @@ body {
 }
 
 .gr-score-pts {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 15px;
+  font-family: 'Titan One', sans-serif;
+  font-size: 20px;
   color: var(--gr-dark);
   text-align: right;
   white-space: nowrap;
@@ -2024,9 +2016,8 @@ body {
 }
 
 .gr-raket-name {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 14px;
+  font-family: 'Titan One', sans-serif;
+  font-size: 15px;
   margin-bottom: 4px;
 }
 
