@@ -65,6 +65,11 @@ export default function OmEngagemang() {
         <p className="gr-page-body">
           Det är ett medvetet val: vi vill belöna genomslagskraft, inte flitig publicering.
         </p>
+
+        <h2 className="gr-page-subtitle">Tävlingar filtreras bort</h2>
+        <p className="gr-page-body">
+          Vi exkluderar videor som uppmanar till engagemang via tävlingar — &ldquo;tagga en vän för att vinna&rdquo;, &ldquo;kommentera för att delta&rdquo; och liknande. Det engagemang de genererar är inte spontant: det drivs av ett egenintresse snarare än av att innehållet faktiskt nådde fram. Vi mäter äkta reaktioner.
+        </p>
       </div>
     </main>
   );

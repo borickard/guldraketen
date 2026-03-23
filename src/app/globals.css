@@ -22,7 +22,7 @@
 
 html,
 body {
-  background: #F28B8C;
+  background: #EBE7E2;
   color: var(--ink);
   font-family: 'Inter', sans-serif;
 }
@@ -1126,22 +1126,22 @@ body {
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --gr-bg: #F28B8C;
-  --gr-dark: #221818;
+  --gr-bg: #EBE7E2;
+  --gr-dark: #1C1B19;
   --gr-gold: #C8962A;
   --gr-silver: #8A9299;
   --gr-bronze: #96614A;
-  --gr-card: #E87476;
-  --gr-card-bg: #E87476;
-  --gr-card-border: rgba(34, 24, 24, 0.16);
-  --gr-line: rgba(34, 24, 24, 0.12);
-  --gr-muted: rgba(34, 24, 24, 0.52);
-  --gr-light-text: rgba(242, 139, 140, 0.92);
+  --gr-card: #E2DDD7;
+  --gr-card-bg: #E2DDD7;
+  --gr-card-border: rgba(28, 27, 25, 0.16);
+  --gr-line: rgba(28, 27, 25, 0.08);
+  --gr-muted: rgba(28, 27, 25, 0.52);
+  --gr-light-text: rgba(235, 231, 226, 0.92);
   --gr-light-muted: rgba(235, 231, 226, 0.55);
   --gr-light-stat: rgba(235, 231, 226, 0.48);
   --gr-ticker-text: rgba(235, 231, 226, 0.7);
   --gr-mono: 'DM Mono', monospace;
-  --gr-syne: 'Titan One', sans-serif;
+  --gr-syne: 'Space Mono', sans-serif;
   --gr-sans: 'DM Sans', sans-serif;
 }
 
@@ -1371,7 +1371,7 @@ body {
 }
 
 .gr-entry-name {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1513,7 +1513,7 @@ body {
 }
 
 .gr-footer-heading {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: clamp(24px, 6vw, 56px);
   color: var(--gr-light-text);
   line-height: 1;
@@ -1552,7 +1552,7 @@ body {
 }
 
 .gr-nav-logo {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 20px;
   letter-spacing: .01em;
   text-transform: uppercase;
@@ -1631,7 +1631,7 @@ body {
 }
 
 .gr-wordmark {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-weight: 800;
   font-size: 16px;
   letter-spacing: .02em;
@@ -1644,7 +1644,7 @@ body {
 }
 
 .gr-rank-col {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   flex-shrink: 0;
   width: clamp(36px, 8vw, 64px);
   text-align: right;
@@ -1653,7 +1653,7 @@ body {
 
 /* ── Filter UI ── */
 .gr-filter-label {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-weight: 800;
   font-size: 13px;
   color: rgba(28, 27, 25, .55);
@@ -1696,7 +1696,7 @@ body {
 
 /* ── Thumbnail placeholder & video eng ── */
 .gr-thumb-placeholder {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 28px;
   color: rgba(28, 27, 25, .09);
   display: flex;
@@ -1761,7 +1761,7 @@ body {
 }
 
 .gr-page-title {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: clamp(32px, 7vw, 52px);
   letter-spacing: -0.01em;
   margin: 0 0 20px;
@@ -1769,7 +1769,7 @@ body {
 }
 
 .gr-page-subtitle {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 22px;
   letter-spacing: 0;
   margin: 36px 0 12px;
@@ -1853,7 +1853,7 @@ body {
 }
 
 .gr-weight-name {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 16px;
   color: var(--gr-dark);
   margin-bottom: 4px;
@@ -1933,7 +1933,7 @@ body {
 }
 
 .gr-score-rank {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 16px;
   color: rgba(28,27,25,.3);
   width: 32px;
@@ -1948,7 +1948,7 @@ body {
 }
 
 .gr-score-pts {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 20px;
   color: var(--gr-dark);
   text-align: right;
@@ -2017,7 +2017,7 @@ body {
 }
 
 .gr-raket-name {
-  font-family: 'Titan One', sans-serif;
+  font-family: 'Space Mono', sans-serif;
   font-size: 15px;
   margin-bottom: 4px;
 }

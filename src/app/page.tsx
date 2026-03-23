@@ -342,7 +342,7 @@ function HomeInner() {
 
         {/* ── PAGE TITLE ───────────────────────────────────────────── */}
         <div style={{ padding: "20px 24px 4px" }}>
-          <h1 style={{ fontFamily: "'Titan One', sans-serif", fontSize: "clamp(26px, 5vw, 36px)", letterSpacing: "-0.01em", margin: 0, color: C.dark }}>
+          <h1 style={{ fontFamily: "'Space Mono', monospace", fontSize: "clamp(26px, 5vw, 36px)", letterSpacing: "-0.01em", margin: 0, color: C.dark }}>
             Veckans raket
           </h1>
         </div>

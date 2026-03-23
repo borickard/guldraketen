@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     .select(fields)
     .gte("published_at", start.toISOString())
     .lt("published_at", end.toISOString())
+    .or("is_contest.eq.false,contest_approved.eq.true")
     .order("engagement_rate", { ascending: false })
     .limit(200);
 

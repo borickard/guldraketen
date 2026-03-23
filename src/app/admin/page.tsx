@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 
+interface ContestVideo {
+  id: string;
+  handle: string;
+  video_url: string;
+  caption: string | null;
+  views: number | null;
+  published_at: string | null;
+  contest_approved: boolean;
+  accounts: { display_name: string | null } | { display_name: string | null }[] | null;
+}
+
 interface Account {
   id: string;
   handle: string;
@@ -23,6 +34,8 @@ export default function AdminPage() {
   const [daysBack, setDaysBack] = useState(14);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMsg, setBackfillMsg] = useState("");
+  const [contestVideos, setContestVideos] = useState<ContestVideo[]>([]);
+  const [loadingContests, setLoadingContests] = useState(true);
 
   async function fetchAccounts() {
     const res = await fetch("/api/accounts");
@@ -31,7 +44,14 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchAccounts(); }, []);
+  async function fetchContestVideos() {
+    const res = await fetch("/api/admin/contest-videos");
+    const data = await res.json();
+    setContestVideos(Array.isArray(data) ? data : []);
+    setLoadingContests(false);
+  }
+
+  useEffect(() => { fetchAccounts(); fetchContestVideos(); }, []);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -86,6 +106,15 @@ export default function AdminPage() {
         : `Fel: ${data.error}`
     );
     setScraping(false);
+  }
+
+  async function handleContestToggle(video: ContestVideo) {
+    await fetch("/api/admin/contest-videos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: video.id, contest_approved: !video.contest_approved }),
+    });
+    await fetchContestVideos();
   }
 
   async function handleBackfill() {
@@ -219,6 +248,54 @@ export default function AdminPage() {
             {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
           </button>
           {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
+        </div>
+
+        {/* Contest videos */}
+        <div className="scrape-section">
+          <h2 className="scrape-title">Tävlingar</h2>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
+            Videor som flaggats som tävlingar baserat på caption-nyckelord. Godkänn en video om den felaktigt flaggats — den tas då med i rankingen.
+          </p>
+          {loadingContests ? (
+            <p className="loading">Laddar…</p>
+          ) : contestVideos.length === 0 ? (
+            <p className="loading">Inga flaggade videor.</p>
+          ) : (
+            <ul className="account-list">
+              {contestVideos.map((v) => {
+                const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
+                const name = acct?.display_name ?? `@${v.handle}`;
+                return (
+                  <li key={v.id} className={`account-row ${v.contest_approved ? "" : "account-row--inactive"}`}>
+                    <div className="account-info">
+                      <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                        {name}
+                      </a>
+                      {v.caption && (
+                        <span className="account-meta" style={{ fontStyle: "italic" }}>
+                          {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
+                        </span>
+                      )}
+                      <span className="account-meta">
+                        {v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : ""}
+                        {v.views ? ` · ${v.views.toLocaleString("sv-SE")} visningar` : ""}
+                      </span>
+                    </div>
+                    <span className={`status-badge ${v.contest_approved ? "status-badge--active" : ""}`}>
+                      {v.contest_approved ? "Godkänd" : "Filtrerad"}
+                    </span>
+                    <button
+                      className="scrape-btn"
+                      style={{ fontSize: 10, padding: "0.3rem 0.75rem", boxShadow: "none", flexShrink: 0 }}
+                      onClick={() => handleContestToggle(v)}
+                    >
+                      {v.contest_approved ? "Återflagga" : "Godkänn"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </>

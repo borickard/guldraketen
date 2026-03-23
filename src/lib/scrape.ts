@@ -112,6 +112,8 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             it?.caption ||
             null;
 
+        const captionTrimmed = caption ? caption.slice(0, 500) : null;
+
         videoRows.push({
             handle,
             video_url: videoUrl,
@@ -121,7 +123,8 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             comments: comments ?? 0,
             shares: shares ?? 0,
             thumbnail_url: thumbnailUrl,
-            caption: caption ? caption.slice(0, 500) : null,
+            caption: captionTrimmed,
+            is_contest: detectContest(captionTrimmed),
             last_updated: new Date().toISOString(),
         });
 
@@ -163,6 +166,16 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
     };
 }
 
+// ─── Contest detection ────────────────────────────────────────────────────────
+
+const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare"];
+
+function detectContest(caption: string | null): boolean {
+    if (!caption) return false;
+    const lower = caption.toLowerCase();
+    return CONTEST_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ScrapeResult {
@@ -182,6 +195,7 @@ interface VideoRow {
     shares: number;
     thumbnail_url: string | null;
     caption: string | null;
+    is_contest: boolean;
     last_updated: string;
 }
 
