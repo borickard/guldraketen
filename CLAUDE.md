@@ -32,11 +32,15 @@ Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, deln
 ```
 src/
   app/
-    page.tsx                          – startsida (topplista, ny design)
-    layout.tsx                        – Google Fonts (Syne 400/700/800, DM Mono, DM Sans)
-    globals.css                       – all CSS (bakgrund #EBE7E2, gammal blå borttagen)
+    page.tsx                          – startsida (topplista)
+    layout.tsx                        – Google Fonts (Space Mono, DM Mono, DM Sans)
+    globals.css                       – all CSS (bakgrund #EBE7E2)
+    hall-of-fame/
+      page.tsx                        – Hall of Fame (Raketer + Konton-flikar)
     nominera/
       page.tsx                        – nomineringsformuläret
+    om-engagemang/
+      page.tsx                        – förklaring av engagemangsformeln
     admin/
       page.tsx                        – admin-UI
     [week]/
@@ -51,9 +55,14 @@ src/
       videos/route.ts                 – topplista med veckofilter (ISO-veckobaserad)
       video/route.ts                  – enskild video per rank (för share-sidor)
       weeks/route.ts                  – tillgängliga veckor (exkl. nuvarande + föregående)
-      top3/route.ts                   – topp 3 för en vecka (legacy, används av gamla hero)
+      tidigare-raketer/route.ts       – tidigare vinnare per vecka (Hall of Fame)
+      topplistan/route.ts             – ackumulerade poäng per konto (Hall of Fame)
+      admin/
+        contest-videos/route.ts       – GET flaggade videor, PATCH godkänn/återflagga
+        backfill-thumbnails/route.ts  – ladda upp TikTok-thumbnails till Supabase Storage
   lib/
-    scrape.ts                         – startScrape + processScrapeResults
+    scrape.ts                         – startScrape + processScrapeResults + detectContest
+    thumbnails.ts                     – uploadThumbnail + uploadThumbnailsBatch
     supabaseAdmin.ts
     validation.ts
 vercel.json                           – Cron: måndagar kl 07 UTC
@@ -78,22 +87,24 @@ created_at           timestamptz default now()
 
 ### `videos`
 ```sql
-id              uuid primary key default gen_random_uuid()
-handle          text not null references accounts(handle) on delete cascade
-video_url       text not null unique
-published_at    timestamptz
-views           integer
-likes           integer
-comments        integer
-shares          integer
-thumbnail_url   text
-caption         text
-engagement_rate numeric generated always as (
-                  case when views > 0
-                    then round(((likes + comments * 5 + shares * 10)::numeric / views) * 100, 4)
-                  else null end
-                ) stored
-last_updated    timestamptz default now()
+id               uuid primary key default gen_random_uuid()
+handle           text not null references accounts(handle) on delete cascade
+video_url        text not null unique
+published_at     timestamptz
+views            integer
+likes            integer
+comments         integer
+shares           integer
+thumbnail_url    text
+caption          text
+is_contest       boolean not null default false   -- auto-flaggad via caption-nyckelord
+contest_approved boolean not null default false   -- manuellt godkänd i admin trots flagg
+engagement_rate  numeric generated always as (
+                   case when views > 0
+                     then round(((likes + comments * 5 + shares * 10)::numeric / views) * 100, 4)
+                   else null end
+                 ) stored
+last_updated     timestamptz default now()
 ```
 
 ---
@@ -130,6 +141,7 @@ Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
   → POST /api/scrape/webhook
   → processScrapeResults(datasetId)
       – upsertar videos inkl. thumbnail_url och caption
+      – sätter is_contest=true om caption innehåller tävlingsnyckelord
       – uppdaterar followers på accounts
 ```
 
@@ -218,6 +230,7 @@ Brödtext:
 - Lägg till/ta bort/aktivera/avaktivera konton
 - Redigera `display_name` och `category` inline
 - Manuell scraping med valbart `daysBack`
+- Tävlingsgranskare: lista flaggade videor, godkänn felaktigt flaggade
 
 ---
 
@@ -234,11 +247,6 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ---
 
 ## TODO
-
-### Hall of Fame
-- Poängsystem: 1:a = 3p, 2:a = 2p, 3:e = 1p per vecka
-- Ackumulerat per konto, egen sida `/hall-of-fame`
-- Vid årets slut utses vinnare baserat på ackumulerade poäng
 
 ### Kategorier på konton
 - Kolumn `category` behöver läggas till i Supabase `accounts`-tabellen
@@ -287,7 +295,7 @@ const { data } = await supabaseAdmin.from("videos").select(fields)...
 
 ---
 
-## Senaste ändringar (2026-03-18)
+## Senaste ändringar (2026-03-24)
 
 - **Ny design på startsidan** — editorial estetik: sandbeige bakgrund, Syne 800, DM Mono, mörk #1-rad, ticker, footer
 - **Rankinglogik** — bästa enskilda videons eng.rate, min 10K visningar krävs
@@ -304,3 +312,7 @@ const { data } = await supabaseAdmin.from("videos").select(fields)...
 - **CSS** — all `.gr-`-CSS utlyft från page.tsx till globals.css med CSS custom properties (`--gr-*`)
 - **globals.css** — Syne/DM Mono/DM Sans importeras, gamla klasser bevarade för admin/share-sidor
 - **TypeScript-fix** — `navLinksRef` typad som `HTMLButtonElement`
+- **Font** — Titan One ersatt med Space Mono (400/700) i hela sajten
+- **Tävlingsfiltrering** — `is_contest`/`contest_approved` på `videos`-tabellen; `detectContest()` i scrape.ts flaggar nyckelorden tävling/tävla/vinn/vinnare; alla ranking-routes filtrerar bort flaggade videor; admin-UI för granskning och godkännande
+- **Hall of Fame** — `/hall-of-fame` med flikarna Raketer (tidigare vinnare) och Konton (ackumulerade poäng: 1:a=15p, 2:a=10p, 3:e=5p)
+- **Thumbnails** — Supabase Storage bucket "thumbnails"; backfill-knapp i admin; `uploadThumbnailsBatch()` körs vid varje scrape

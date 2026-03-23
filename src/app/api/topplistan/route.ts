@@ -39,6 +39,7 @@ export async function GET() {
     .from("videos")
     .select("handle, views, engagement_rate, published_at, accounts(display_name)")
     .not("published_at", "is", null)
+    .or("is_contest.eq.false,contest_approved.eq.true")
     .order("published_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
