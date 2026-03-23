@@ -1,23 +1,23 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { isStoredThumbnail, uploadThumbnail } from "@/lib/thumbnails";
+import { uploadThumbnail } from "@/lib/thumbnails";
 import { NextResponse } from "next/server";
 
 const BATCH_SIZE = 50; // videos per call — call multiple times to process all
 
 export async function POST() {
-  // Fetch videos that still have TikTok CDN URLs
+  // Fetch videos that still have TikTok CDN URLs (not yet uploaded to Storage)
+  const supabaseUrl = process.env.SUPABASE_URL ?? "";
   const { data, error } = await supabaseAdmin
     .from("videos")
     .select("id, video_url, thumbnail_url")
     .not("thumbnail_url", "is", null)
+    .not("thumbnail_url", "ilike", `${supabaseUrl}%`)
     .order("last_updated", { ascending: false })
     .limit(BATCH_SIZE);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const videos = (data ?? []).filter(
-    (v) => v.thumbnail_url && !isStoredThumbnail(v.thumbnail_url)
-  );
+  const videos = data ?? [];
 
   let uploaded = 0;
   let failed = 0;
