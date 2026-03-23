@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { uploadThumbnailsBatch } from "@/lib/thumbnails";
 
 const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
@@ -129,6 +130,9 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
             followerMap[handle] = fans;
         }
     }
+
+    // Ladda upp thumbnails till Supabase Storage
+    await uploadThumbnailsBatch(videoRows);
 
     // Upserta videos i batchar om 100
     const BATCH = 100;

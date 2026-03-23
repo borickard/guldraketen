@@ -21,6 +21,8 @@ export default function AdminPage() {
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState("");
   const [daysBack, setDaysBack] = useState(14);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState("");
 
   async function fetchAccounts() {
     const res = await fetch("/api/accounts");
@@ -84,6 +86,19 @@ export default function AdminPage() {
         : `Fel: ${data.error}`
     );
     setScraping(false);
+  }
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    setBackfillMsg("");
+    const res = await fetch("/api/admin/backfill-thumbnails", { method: "POST" });
+    const data = await res.json();
+    setBackfillMsg(
+      res.ok
+        ? `Uppladdade: ${data.uploaded} · Misslyckades: ${data.failed} · ${data.remaining}`
+        : `Fel: ${data.error}`
+    );
+    setBackfilling(false);
   }
 
   const active = accounts.filter((a) => a.is_active);
@@ -192,6 +207,18 @@ export default function AdminPage() {
             </button>
           </div>
           {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
+        </div>
+
+        {/* Backfill thumbnails */}
+        <div className="scrape-section">
+          <h2 className="scrape-title">Thumbnails</h2>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
+            Laddar upp thumbnails från TikTok CDN till Supabase Storage (50 st per körning). Kör flera gånger tills allt är klart.
+          </p>
+          <button className="scrape-btn" onClick={handleBackfill} disabled={backfilling}>
+            {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
+          </button>
+          {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
         </div>
       </div>
     </>
