@@ -1,121 +1,132 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-
-type Platform = "tiktok" | "instagram";
 
 export default function NomineraPage() {
-    const [platform, setPlatform] = useState<Platform>("tiktok");
-    const [handle, setHandle] = useState("");
-    const [email, setEmail] = useState("");
-    const [submitting, setSubmitting] = useState(false);
-    const [done, setDone] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [handle, setHandle] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    async function onSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
-        setSubmitting(true);
-        try {
-            const res = await fetch("/api/nominate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ platform, handle, email }),
-            });
-            const text = await res.text();
-            let json: { ok?: boolean; error?: string } | null = null;
-            try { json = JSON.parse(text); } catch { /* noop */ }
-            if (!res.ok || !json?.ok) {
-                setError(json?.error || `API-fel (${res.status}): ${text.slice(0, 120)}`);
-                return;
-            }
-            setDone(true);
-        } catch {
-            setError("Något gick fel. Försök igen.");
-        } finally {
-            setSubmitting(false);
-        }
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/nominate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: "tiktok", handle, email }),
+      });
+      const text = await res.text();
+      let json: { ok?: boolean; error?: string } | null = null;
+      try { json = JSON.parse(text); } catch { /* noop */ }
+      if (!res.ok || !json?.ok) {
+        setError(json?.error || `Något gick fel (${res.status})`);
+        return;
+      }
+      setDone(true);
+    } catch {
+      setError("Något gick fel. Försök igen.");
+    } finally {
+      setSubmitting(false);
     }
+  }
 
-    return (
-        <main style={{ maxWidth: 920, margin: "0 auto", padding: "40px 16px", fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" }}>
-            <header style={{ marginBottom: 28 }}>
-                <a href="/" style={{ fontSize: 13, color: "#888", textDecoration: "none", display: "inline-block", marginBottom: 16 }}>← Tillbaka</a>
-                <h1 style={{ fontSize: 42, margin: "0 0 10px 0", letterSpacing: -0.5 }}>Nominera</h1>
-                <p style={{ fontSize: 18, margin: 0, lineHeight: 1.55, opacity: 0.9 }}>
-                    Nominera ett konto till Guldraketen.
-                </p>
-            </header>
+  const linkedInText = encodeURIComponent(
+    "Koll på vilka svenska företag som faktiskt når fram på TikTok? Sociala raketer rankar de mest engagerande kontona varje vecka — baserat på likes, kommentarer och delningar. Kolla in det här 👇"
+  );
+  const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://guldraketen.vercel.app")}&summary=${linkedInText}`;
 
-            {!done ? (
-                <section style={{ border: "1px solid #e9e9e9", borderRadius: 18, padding: 22 }}>
-                    <h2 style={{ fontSize: 22, margin: "0 0 14px 0" }}>Nominera ditt konto</h2>
-                    <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-                        <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontSize: 14 }}>Plattform</span>
-                            <select value={platform} onChange={(e) => setPlatform(e.target.value as Platform)}
-                                style={{ padding: 12, borderRadius: 12, border: "1px solid #ddd", background: "white" }}>
-                                <option value="tiktok">TikTok</option>
-                                <option value="instagram">Instagram</option>
-                            </select>
-                        </label>
-                        <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontSize: 14 }}>Användarnamn</span>
-                            <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@dittkonto"
-                                autoComplete="off" style={{ padding: 12, borderRadius: 12, border: "1px solid #ddd" }} />
-                        </label>
-                        <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontSize: 14 }}>Jobbmail</span>
-                            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="namn@foretag.se"
-                                autoComplete="email" inputMode="email" style={{ padding: 12, borderRadius: 12, border: "1px solid #ddd" }} />
-                        </label>
-                        <div style={{ fontSize: 12.5, opacity: 0.85, lineHeight: 1.55 }}>
-                            <strong>Integritet</strong>: När du nominerar sparar vi plattform, handle och jobbmail för att hantera
-                            nomineringen och kontakta dig vid behov. Rättslig grund är berättigat intresse. Du kan när som helst
-                            invända och be oss radera dina uppgifter genom att maila <strong>info@guldraketen.se</strong>.
-                        </div>
-                        {error && <div style={{ color: "crimson", fontSize: 14 }}>{error}</div>}
-                        <button type="submit" disabled={submitting}
-                            style={{
-                                padding: "12px 14px", borderRadius: 14, border: "none", background: "black", color: "white",
-                                cursor: submitting ? "not-allowed" : "pointer", fontSize: 16, fontWeight: 600, marginTop: 4
-                            }}>
-                            {submitting ? "Skickar..." : "Skicka nominering"}
-                        </button>
-                    </form>
-                </section>
-            ) : (
-                <section style={{ border: "1px solid #e9e9e9", borderRadius: 18, padding: 22 }}>
-                    <h2 style={{ fontSize: 22, margin: "0 0 8px 0" }}>Tack!</h2>
-                    <p style={{ marginTop: 0, lineHeight: 1.55, opacity: 0.9 }}>Vi har tagit emot din nominering.</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginTop: 12 }}>
-                        <SocialIcon label="TikTok" href="#" src="/icons/tiktok.png" />
-                        <SocialIcon label="Instagram" href="#" src="/icons/instagram.png" />
-                        <SocialIcon label="LinkedIn" href="#" src="/icons/linkedin.png" />
-                    </div>
-                    <button onClick={() => { setDone(false); setHandle(""); setEmail(""); setPlatform("tiktok"); setError(null); }}
-                        style={{
-                            marginTop: 18, padding: "10px 12px", borderRadius: 12, border: "1px solid #ddd",
-                            background: "white", cursor: "pointer", fontSize: 14
-                        }}>
-                        Nominera ett till konto
-                    </button>
-                </section>
-            )}
-            <footer style={{ marginTop: 30, fontSize: 12.5, opacity: 0.7 }}>© {new Date().getFullYear()} Guldraketen</footer>
-        </main>
-    );
-}
+  return (
+    <main className="gr-root gr-page">
+      <div className="gr-page-content">
+        <h1 className="gr-page-title">Nominera</h1>
+        <p className="gr-page-lead">
+          Känner du ett svenskt företag eller organisation som skapar engagerande innehåll på TikTok? Tipsa oss så tar vi en titt.
+        </p>
 
-function SocialIcon({ label, href, src }: { label: string; href: string; src: string }) {
-    return (
-        <a href={href} aria-label={label} style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            padding: "10px 12px", borderRadius: 14, border: "1px solid #e5e5e5", textDecoration: "none", color: "black", background: "white"
-        }}>
-            <Image src={src} alt="" width={22} height={22} />
-            <span style={{ fontSize: 14 }}>{label}</span>
-        </a>
-    );
+        {!done ? (
+          <div style={{ background: "var(--gr-card)", border: "1.5px solid var(--gr-line)", borderRadius: 18, padding: "24px" }}>
+            <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
+                  TikTok-handle
+                </span>
+                <input
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                  placeholder="@kontot"
+                  autoComplete="off"
+                  required
+                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
+                  Din e-post (valfri)
+                </span>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="namn@foretag.se"
+                  autoComplete="email"
+                  inputMode="email"
+                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
+                />
+              </label>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, lineHeight: 1.6, opacity: 0.5 }}>
+                Vi sparar handle och eventuell e-post för att hantera nomineringen. Rättslig grund: berättigat intresse. Kontakta <strong>info@socialraketer.se</strong> för att begära radering.
+              </div>
+              {error && <div style={{ color: "crimson", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>{error}</div>}
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ padding: "14px", borderRadius: 14, border: "none", background: "var(--gr-dark)", color: "#EBE7E2", cursor: submitting ? "not-allowed" : "pointer", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: ".04em", textTransform: "uppercase" }}
+              >
+                {submitting ? "Skickar..." : "Skicka nominering"}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div style={{ background: "var(--gr-card)", border: "1.5px solid var(--gr-line)", borderRadius: 18, padding: "28px 24px" }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 22, marginBottom: 10, color: "var(--gr-dark)" }}>
+              Tack!
+            </div>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, lineHeight: 1.65, opacity: 0.75, margin: "0 0 28px" }}>
+              Vi har tagit emot din nominering och kollar in kontot.
+            </p>
+
+            <div style={{ borderTop: "1px solid var(--gr-line)", paddingTop: 24 }}>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 8, color: "var(--gr-dark)" }}>
+                Dela projektet på LinkedIn
+              </div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.6, opacity: 0.65, margin: "0 0 16px" }}>
+                Hjälp oss nå fler — dela Sociala raketer med ditt nätverk.
+              </p>
+              <a
+                href={linkedInUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 18px", borderRadius: 12, background: "#0A66C2", color: "#fff", textDecoration: "none", fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                Dela på LinkedIn
+              </a>
+            </div>
+
+            <button
+              onClick={() => { setDone(false); setHandle(""); setEmail(""); setError(null); }}
+              style={{ marginTop: 20, padding: "10px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "transparent", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--gr-dark)", opacity: 0.6 }}
+            >
+              Nominera ett till
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }

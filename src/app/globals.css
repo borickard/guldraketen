@@ -1540,6 +1540,89 @@ body {
   margin-top: 24px;
 }
 
+/* ── Shared NavBar ── */
+.gr-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--gr-line);
+  background: var(--gr-bg);
+  gap: 24px;
+}
+
+.gr-nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  text-decoration: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.gr-nav-links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.gr-nav-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  text-decoration: none;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.gr-nav-link:hover,
+.gr-nav-link--active {
+  opacity: 1;
+}
+
+.gr-nav-mobile {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--gr-bg);
+  border-bottom: 1px solid var(--gr-line);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.gr-nav-mobile-link {
+  padding: 14px 24px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gr-line);
+  opacity: 0.55;
+}
+
+.gr-nav-mobile-link:hover,
+.gr-nav-mobile-link--active {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .gr-nav-links { display: none; }
+}
+
+@media (min-width: 641px) {
+  .gr-nav .gr-hamburger { display: none; }
+}
+
 /* ── Nav & wordmark ── */
 .gr-root {
   background: var(--gr-bg);
@@ -1666,4 +1749,250 @@ body {
 .gr-footer-em {
   font-style: italic;
   color: rgba(235, 231, 226, .8);
+}
+
+/* ── Inner pages (om-engagemang, topplistan, tidigare-raketer) ── */
+.gr-page {
+  padding-bottom: 80px;
+}
+
+.gr-page-content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.gr-page-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 6vw, 42px);
+  letter-spacing: -0.02em;
+  margin: 0 0 20px;
+  color: var(--gr-dark);
+}
+
+.gr-page-subtitle {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  margin: 36px 0 12px;
+  color: var(--gr-dark);
+}
+
+.gr-page-lead {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--gr-dark);
+  opacity: 0.85;
+  margin: 0 0 32px;
+}
+
+.gr-page-body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--gr-dark);
+  opacity: 0.75;
+  margin: 0 0 16px;
+}
+
+.gr-formula-box {
+  background: var(--gr-dark);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.gr-formula {
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(11px, 2.5vw, 14px);
+  letter-spacing: .04em;
+  color: rgba(235, 231, 226, .9);
+  line-height: 1.6;
+}
+
+.gr-formula-divider {
+  display: block;
+  font-size: 18px;
+  margin: 4px 0;
+  color: var(--gr-gold);
+}
+
+.gr-formula-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gr-gold);
+  margin: 10px 0 0;
+}
+
+.gr-weight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.gr-weight-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.gr-weight-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--gr-dark);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(235, 231, 226, .8);
+  margin-top: 2px;
+}
+
+.gr-weight-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gr-dark);
+  margin-bottom: 4px;
+}
+
+.gr-weight-mult {
+  font-family: 'DM Mono', monospace;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--gr-gold);
+  margin-left: 6px;
+}
+
+.gr-weight-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--gr-dark);
+  opacity: 0.65;
+}
+
+/* ── Topplistan page ── */
+.gr-score-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.gr-score-table th {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,.4);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gr-line);
+}
+
+.gr-score-table th:not(:first-child) { text-align: right; }
+
+.gr-score-row td {
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--gr-line);
+  vertical-align: middle;
+}
+
+.gr-score-rank {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: rgba(28,27,25,.3);
+  width: 32px;
+  text-align: right;
+}
+
+.gr-score-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gr-dark);
+}
+
+.gr-score-pts {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--gr-dark);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.gr-score-medals {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: rgba(28,27,25,.5);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Tidigare raketer grid ── */
+.gr-raketer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.gr-raket-card {
+  background: var(--gr-card);
+  border-radius: 18px;
+  border: 1.5px solid var(--gr-line);
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--gr-dark);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.gr-raket-card:hover {
+  border-color: var(--gr-gold);
+}
+
+.gr-raket-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--gr-line);
+  overflow: hidden;
+}
+
+.gr-raket-info {
+  padding: 12px 14px 14px;
+}
+
+.gr-raket-week {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,.4);
+  margin-bottom: 4px;
+}
+
+.gr-raket-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.gr-raket-eng {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--gr-gold);
 }

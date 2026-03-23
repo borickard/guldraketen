@@ -258,29 +258,6 @@ function HomeInner() {
     return () => window.removeEventListener("resize", check);
   }, []);
   const [reachFilter, setReachFilter] = useState<"off" | "low" | "high">("off");
-  const wordmarkRef = useRef<HTMLSpanElement>(null);
-  const navLinksRef = useRef<HTMLButtonElement>(null);
-
-  // Fit wordmark to available nav width
-  useEffect(() => {
-    const fit = () => {
-      const wm = wordmarkRef.current;
-      const links = navLinksRef.current;
-      if (!wm || !links) return;
-      const navWidth = wm.parentElement?.offsetWidth ?? 0;
-      const linksWidth = links.offsetWidth + 48; // 48 = gap + padding
-      const available = navWidth - linksWidth;
-      let size = 48;
-      wm.style.fontSize = size + "px";
-      while (wm.scrollWidth > available && size > 14) {
-        size -= 1;
-        wm.style.fontSize = size + "px";
-      }
-    };
-    fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, []);
 
   // Fetch available weeks
   useEffect(() => {
@@ -354,24 +331,11 @@ function HomeInner() {
     <>
       <div className="gr-root">
 
-        {/* ── NAV ──────────────────────────────────────────────────── */}
-        <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.line}`, gap: "24px", overflow: "hidden" }}>
-          <span ref={wordmarkRef} className="gr-wordmark">
-            <span style={{ color: C.gold }}>G</span>uldraketen
-          </span>
-          <button ref={navLinksRef} className="gr-hamburger">
-            <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
-            <span style={{ display: "block", width: "22px", height: "2px", background: C.dark, borderRadius: "2px" }} />
-            <span style={{ display: "block", width: "14px", height: "2px", background: C.dark, borderRadius: "2px" }} />
-          </button>
-        </nav>
-
-        {/* ── TICKER ───────────────────────────────────────────────── */}
-        <div style={{ background: C.dark, padding: "8px 0", overflow: "hidden", whiteSpace: "nowrap" }}>
-          <span className="gr-ticker">
-            Vem nådde fram i bruset den här veckan?&nbsp;&middot;&nbsp;Guldraketen&nbsp;&middot;&nbsp;Varje måndag&nbsp;&middot;&nbsp;Likes räknas&nbsp;&middot;&nbsp;Kommentarer väger mer&nbsp;&middot;&nbsp;Delningar väger tyngst&nbsp;&middot;&nbsp;Det är vår måttstock&nbsp;&middot;&nbsp;Sveriges mest engagerande TikTok-konton&nbsp;&middot;&nbsp;{selectedWeek}&nbsp;&middot;&nbsp;
-            Vem nådde fram i bruset den här veckan?&nbsp;&middot;&nbsp;Guldraketen&nbsp;&middot;&nbsp;Varje måndag&nbsp;&middot;&nbsp;Likes räknas&nbsp;&middot;&nbsp;Kommentarer väger mer&nbsp;&middot;&nbsp;Delningar väger tyngst&nbsp;&middot;&nbsp;Det är vår måttstock&nbsp;&middot;&nbsp;Sveriges mest engagerande TikTok-konton&nbsp;&middot;&nbsp;{selectedWeek}&nbsp;&middot;&nbsp;
-          </span>
+        {/* ── PAGE TITLE ───────────────────────────────────────────── */}
+        <div style={{ padding: "20px 24px 4px" }}>
+          <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "clamp(22px, 5vw, 32px)", letterSpacing: "-0.01em", margin: 0, color: C.dark }}>
+            Veckans raket
+          </h1>
         </div>
 
         {/* ── LIST HEADER ──────────────────────────────────────────── */}
