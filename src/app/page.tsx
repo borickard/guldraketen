@@ -277,7 +277,6 @@ function HomeInner() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-  const [reachFilter, setReachFilter] = useState<"off" | "low" | "high">("off");
 
   // Fetch available weeks
   useEffect(() => {
@@ -320,16 +319,6 @@ function HomeInner() {
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((acc) => {
-      const v = acc.bestVideo.views ?? 0;
-      if (reachFilter === "off") return true;
-      if (reachFilter === "low") return v < 100_000;
-      if (reachFilter === "high") return v >= 100_000;
-      return true;
-    });
-  }, [accounts, reachFilter]);
-
   // Map handle -> rank index for previous week
   const prevRankMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -360,27 +349,6 @@ function HomeInner() {
 
         {/* ── LIST HEADER ──────────────────────────────────────────── */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 24px", borderBottom: `1px solid ${C.line}`, gap: "16px" }}>
-          <div className="gr-filter-group">
-            <span className="gr-filter-label">Filter</span>
-            <div className="gr-filter-col">
-              <span className="gr-filter-sublabel">Visningar</span>
-              <div className="gr-filter-row">
-                <ReachPill value={reachFilter} onChange={(v) => { setReachFilter(v === reachFilter ? "off" : v); setExpanded(null); }} />
-                {reachFilter !== "off" && (
-                  <button
-                    onClick={() => { setReachFilter("off"); setExpanded(null); }}
-                    className="gr-filter-chip"
-                    style={{ background: C.gold + "22", border: `1px solid ${C.gold}55` }}
-                  >
-                    {reachFilter === "low" ? "Under 100K" : "Över 100K"}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
           <select
             className="gr-wk-sel"
             value={selectedWeek}
@@ -401,7 +369,7 @@ function HomeInner() {
             Laddar...
           </div>
         ) : (
-          filteredAccounts.map((acc, i) => {
+          accounts.map((acc, i) => {
             const isDark = i === 0;
             const isOpen = expanded === acc.handle;
 
