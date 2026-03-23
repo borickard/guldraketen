@@ -28,6 +28,32 @@ function fmt(n: number): string {
   return String(n);
 }
 
+function Thumb({ src, name }: { src: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 28, color: "rgba(28,27,25,.1)" }}>
+          {name[0]}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={name}
+      fill
+      sizes="200px"
+      style={{ objectFit: "cover" }}
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function TidigareRaketerPage() {
   const [data, setData] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +66,7 @@ export default function TidigareRaketerPage() {
 
   return (
     <main className="gr-root gr-page">
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px" }}>
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 24px" }}>
         <h1 className="gr-page-title">Tidigare raketer</h1>
         <p className="gr-page-lead" style={{ marginBottom: 32 }}>
           Veckans vinnare — kontot med högst engagemangsgrad på sin bästa video.
@@ -61,23 +87,8 @@ export default function TidigareRaketerPage() {
                 className="gr-raket-card"
               >
                 <div className="gr-raket-thumb">
-                  {w.bestVideo.thumbnail_url ? (
-                    <Image
-                      src={w.bestVideo.thumbnail_url}
-                      alt={w.bestVideo.caption ?? w.displayName}
-                      fill
-                      sizes="240px"
-                      style={{ objectFit: "cover" }}
-                      unoptimized
-                    />
-                  ) : (
-                    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 32, color: "rgba(28,27,25,.1)" }}>
-                        {w.displayName[0]}
-                      </span>
-                    </div>
-                  )}
-                  <span className="gr-thumb-views" style={{ bottom: 8, right: 8 }}>
+                  <Thumb src={w.bestVideo.thumbnail_url} name={w.displayName} />
+                  <span className="gr-thumb-views">
                     {fmt(w.bestVideo.views)}
                   </span>
                 </div>
