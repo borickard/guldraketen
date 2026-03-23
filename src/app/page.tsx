@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect, Suspense } from "react";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,9 @@ function groupByAccount(videos: RawVideo[]): AccountRow[] {
   const rows: AccountRow[] = [];
   for (const [handle, vids] of map) {
     const acct = getAccount(vids[0]);
-    const sorted = [...vids].sort(
+    const qualifying = vids.filter((v) => (v.views ?? 0) >= 10_000);
+    if (qualifying.length === 0) continue;
+    const sorted = [...qualifying].sort(
       (a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0)
     );
     const bestVideo = sorted[0];
@@ -237,7 +240,9 @@ function ReachPill({
   );
 }
 
-export default function Home() {
+function HomeInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [weeks, setWeeks] = useState<string[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [videos, setVideos] = useState<RawVideo[]>([]);
@@ -283,7 +288,12 @@ export default function Home() {
       .then((r) => r.json())
       .then((ws: string[]) => {
         setWeeks(ws);
-        if (ws.length > 0) setSelectedWeek(ws[0]);
+        const urlWeek = searchParams.get("week");
+        if (urlWeek && ws.includes(urlWeek)) {
+          setSelectedWeek(urlWeek);
+        } else if (ws.length > 0) {
+          setSelectedWeek(ws[0]);
+        }
       });
   }, []);
 
@@ -316,7 +326,6 @@ export default function Home() {
   const filteredAccounts = useMemo(() => {
     return accounts.filter((acc) => {
       const v = acc.bestVideo.views ?? 0;
-      if (v < 10_000) return false;
       if (reachFilter === "off") return true;
       if (reachFilter === "low") return v < 100_000;
       if (reachFilter === "high") return v >= 100_000;
@@ -391,7 +400,10 @@ export default function Home() {
           <select
             className="gr-wk-sel"
             value={selectedWeek}
-            onChange={(e) => setSelectedWeek(e.target.value)}
+            onChange={(e) => {
+              setSelectedWeek(e.target.value);
+              router.replace(`?week=${e.target.value}`, { scroll: false });
+            }}
           >
             {weeks.map((w) => (
               <option key={w} value={w}>{isMobile ? fmtWeekShort(w) : fmtWeek(w)}</option>
@@ -530,6 +542,20 @@ export default function Home() {
                               <span className="gr-thumb-views">
                                 {fmt(v.views)}
                               </span>
+                              <div className="gr-thumb-stats">
+                                <span>
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+                                  {fmt(v.likes)}
+                                </span>
+                                <span>
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z"/></svg>
+                                  {fmt(v.comments)}
+                                </span>
+                                <span>
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg>
+                                  {fmt(v.shares)}
+                                </span>
+                              </div>
                               {isBest && (
                                 <span className="gr-thumb-best">
                                   Bäst
@@ -585,5 +611,13 @@ export default function Home() {
 
       </div>
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeInner />
+    </Suspense>
   );
 }
