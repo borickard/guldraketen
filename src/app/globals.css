@@ -22,7 +22,7 @@
 
 html,
 body {
-  background: #EBE7E2;
+  background: #F28B8C;
   color: var(--ink);
   font-family: 'Inter', sans-serif;
 }
@@ -1126,16 +1126,17 @@ body {
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --gr-bg: #EBE7E2;
-  --gr-dark: #1C1B19;
+  --gr-bg: #F28B8C;
+  --gr-dark: #221818;
   --gr-gold: #C8962A;
   --gr-silver: #8A9299;
   --gr-bronze: #96614A;
-  --gr-card-bg: #E2DDD7;
-  --gr-card-border: rgba(28, 27, 25, 0.16);
-  --gr-line: rgba(28, 27, 25, 0.08);
-  --gr-muted: rgba(28, 27, 25, 0.52);
-  --gr-light-text: rgba(235, 231, 226, 0.92);
+  --gr-card: #E87476;
+  --gr-card-bg: #E87476;
+  --gr-card-border: rgba(34, 24, 24, 0.16);
+  --gr-line: rgba(34, 24, 24, 0.12);
+  --gr-muted: rgba(34, 24, 24, 0.52);
+  --gr-light-text: rgba(242, 139, 140, 0.92);
   --gr-light-muted: rgba(235, 231, 226, 0.55);
   --gr-light-stat: rgba(235, 231, 226, 0.48);
   --gr-ticker-text: rgba(235, 231, 226, 0.7);
