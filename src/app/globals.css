@@ -1880,6 +1880,37 @@ body {
   opacity: 0.65;
 }
 
+/* ── Hall of Fame tabs ── */
+.gr-hof-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--gr-line);
+  border-radius: 12px;
+  padding: 3px;
+  width: fit-content;
+}
+
+.gr-hof-tab {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--gr-dark);
+  opacity: 0.45;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gr-hof-tab--active {
+  background: var(--gr-bg);
+  opacity: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
 /* ── Topplistan page ── */
 .gr-score-table {
   width: 100%;

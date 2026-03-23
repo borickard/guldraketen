@@ -194,6 +194,26 @@ const REACH_OPTIONS: { key: ReachFilter; label: string }[] = [
   { key: "high", label: "Hög" },
 ];
 
+function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; fallback: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <span className="gr-thumb-placeholder">{fallback}</span>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes="120px"
+      style={{ objectFit: "cover" }}
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function ReachPill({
   value,
   onChange,
@@ -489,20 +509,11 @@ function HomeInner() {
                           >
                             {/* Thumbnail */}
                             <div className="gr-thumb">
-                              {v.thumbnail_url ? (
-                                <Image
-                                  src={v.thumbnail_url}
-                                  alt={v.caption ?? `Video ${vi + 1}`}
-                                  fill
-                                  sizes="120px"
-                                  style={{ objectFit: "cover" }}
-                                  unoptimized
-                                />
-                              ) : (
-                                <span className="gr-thumb-placeholder">
-                                  {String(vi + 1).padStart(2, "0")}
-                                </span>
-                              )}
+                              <VideoThumb
+                                src={v.thumbnail_url}
+                                alt={v.caption ?? `Video ${vi + 1}`}
+                                fallback={String(vi + 1).padStart(2, "0")}
+                              />
                               <span className="gr-thumb-views">
                                 {fmt(v.views)}
                               </span>

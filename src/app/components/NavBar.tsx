@@ -6,8 +6,7 @@ import { useState } from "react";
 
 const links = [
   { href: "/", label: "Veckans raket" },
-  { href: "/topplistan", label: "Topplistan" },
-  { href: "/tidigare-raketer", label: "Tidigare raketer" },
+  { href: "/hall-of-fame", label: "Hall of Fame" },
   { href: "/nominera", label: "Nominera" },
   { href: "/om-engagemang", label: "Om engagemang" },
 ];
