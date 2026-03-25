@@ -325,6 +325,18 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 - Alternativ att utvärdera: vit/svart editorial, mörk bas (nattläge-estetik), alternativ accentfärg utöver guld
 - Bör beslutas i ett sammanhang, inte bit för bit
 
+### Scraping — felhantering och notifieringar
+- Om en schemalagd scrape misslyckas behöver Rickard notifieras via e-post så att ingen veckas data går förlorad
+- Förslag på retry-logik: kör om efter 1h, sedan 12h, sedan 24h tills det lyckas
+- E-postnotifiering vid misslyckande (och ev. bekräftelse vid lyckat retry)
+- Vercel Cron kan inte hantera retries nativt — lösning kan vara att lagra scrape-status i Supabase och ha ett separat cron-jobb som kollar och kör om vid behov, eller använda Vercel Cron med flera scheman + statusflagga
+
+### Scraping — utvärdera alternativ till Apify (framtida)
+- Nuvarande volym (fåtal konton, veckovis) ryms troligen inom Apifys gratisnivå ($5 kredit/mån)
+- Om antalet konton växer till 100+: utvärdera **tikwm** eller **Tokapi** via RapidAPI — liknande svarssschema, minimal migrering (bara byta HTTP-anrop i scrape.ts), troligen under $5/mån
+- Om projektet skalas upp seriöst: self-host på Hetzner eller liknande — scraping-logiken i Apify kan extraheras till ett fristående Node.js-skript på ett cron-jobb
+- Risk med Apify: vid 300–400 konton med veckoscrapes börjar $29 Starter-planen bli aktuell
+
 ### Lösenordsskydd på `/admin`
 - Supabase Auth
 
