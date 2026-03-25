@@ -174,6 +174,8 @@ export default function AdminPage() {
     if (res.ok) await fetchAccounts();
   }
 
+  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator">("konton");
+
   const active = accounts.filter((a) => a.is_active);
   const inactive = accounts.filter((a) => !a.is_active);
 
@@ -183,122 +185,146 @@ export default function AdminPage() {
       <div className="admin-root">
         <div className="admin-header">
           <span className="admin-eyebrow">Guldraketen · Admin</span>
-          <h1 className="admin-title">Konton</h1>
-          <p className="admin-sub">{active.length} aktiva · {inactive.length} inaktiva</p>
+          <h1 className="admin-title">Admin</h1>
         </div>
 
-        {/* Add form */}
-        <form className="add-form" onSubmit={handleAdd}>
-          <div className="input-row">
-            <span className="at-sign">@</span>
-            <input
-              className="handle-input"
-              type="text"
-              placeholder="tiktokhandle"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={adding}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button className="add-btn" type="submit" disabled={adding || !input.trim()}>
-              {adding ? "Lägger till…" : "Lägg till"}
+        <div className="admin-tabs">
+          {([
+            { key: "konton", label: "Konton", meta: `${active.length} aktiva` },
+            { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.length} flaggade` },
+            { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              className={`admin-tab${activeSection === tab.key ? " admin-tab--active" : ""}`}
+              onClick={() => setActiveSection(tab.key)}
+            >
+              {tab.label}
+              <span className="admin-tab-meta">{tab.meta}</span>
             </button>
+          ))}
+        </div>
+
+        {/* ── Section 1: Spårade konton ── */}
+        {activeSection === "konton" && <div className="admin-section">
+          <div className="admin-section-hdr">
+            <h2 className="admin-section-title">Spårade konton</h2>
+            <span className="admin-section-meta">{active.length} aktiva · {inactive.length} inaktiva</span>
           </div>
-          {error && <p className="form-error">{error}</p>}
-        </form>
 
-        {/* Account list */}
-        {loading ? (
-          <p className="loading">Laddar…</p>
-        ) : accounts.length === 0 ? (
-          <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
-        ) : (
-          <ul className="account-list">
-            {accounts.map((a) => (
-              <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
-                <label className="toggle-label">
-                  <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
-                  <span className="toggle-track"><span className="toggle-thumb" /></span>
-                </label>
-                <div className="account-info">
-                  <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
-                    @{a.handle}
-                  </a>
-                  <input
-                    className="display-name-input"
-                    type="text"
-                    placeholder="Visningsnamn (t.ex. Lidl Sverige)"
-                    defaultValue={a.display_name ?? ""}
-                    onBlur={async (e) => {
-                      const val = e.target.value.trim();
-                      if (val !== (a.display_name ?? "")) {
-                        await fetch("/api/accounts", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: a.id, display_name: val }),
-                        });
-                        await fetchAccounts();
-                      }
-                    }}
-                  />
-                  {a.followers && (
-                    <span className="account-meta">
-                      {a.followers.toLocaleString("sv-SE")} följare
-                      {a.followers_updated_at && (
-                        <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
-                      )}
-                    </span>
-                  )}
-                </div>
-                <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
-                  {a.is_active ? "Aktiv" : "Pausad"}
-                </span>
-                <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Scraping */}
-        <div className="scrape-section">
-          <h2 className="scrape-title">Scraping</h2>
-          <div className="scrape-row">
-            <div className="days-input-wrap">
+          <form className="add-form" onSubmit={handleAdd}>
+            <div className="input-row">
+              <span className="at-sign">@</span>
               <input
-                className="days-input"
-                type="number"
-                min={1}
-                max={90}
-                value={daysBack}
-                onChange={(e) => setDaysBack(Number(e.target.value))}
+                className="handle-input"
+                type="text"
+                placeholder="tiktokhandle"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={adding}
+                autoComplete="off"
+                spellCheck={false}
               />
-              <span className="days-label">dagar bakåt</span>
+              <button className="add-btn" type="submit" disabled={adding || !input.trim()}>
+                {adding ? "Lägger till…" : "Lägg till"}
+              </button>
             </div>
-            <button className="scrape-btn" onClick={handleScrape} disabled={scraping}>
-              {scraping ? "Startar…" : "Kör scraping nu"}
-            </button>
+            {error && <p className="form-error">{error}</p>}
+          </form>
+
+          {loading ? (
+            <p className="loading">Laddar…</p>
+          ) : accounts.length === 0 ? (
+            <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
+          ) : (
+            <ul className="account-list">
+              {accounts.map((a) => (
+                <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
+                  <label className="toggle-label">
+                    <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
+                    <span className="toggle-track"><span className="toggle-thumb" /></span>
+                  </label>
+                  <div className="account-info">
+                    <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
+                      @{a.handle}
+                    </a>
+                    <input
+                      className="display-name-input"
+                      type="text"
+                      placeholder="Visningsnamn (t.ex. Lidl Sverige)"
+                      defaultValue={a.display_name ?? ""}
+                      onBlur={async (e) => {
+                        const val = e.target.value.trim();
+                        if (val !== (a.display_name ?? "")) {
+                          await fetch("/api/accounts", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: a.id, display_name: val }),
+                          });
+                          await fetchAccounts();
+                        }
+                      }}
+                    />
+                    {a.followers && (
+                      <span className="account-meta">
+                        {a.followers.toLocaleString("sv-SE")} följare
+                        {a.followers_updated_at && (
+                          <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
+                    {a.is_active ? "Aktiv" : "Pausad"}
+                  </span>
+                  <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="admin-tools">
+            <div className="admin-tool">
+              <p className="admin-tool-label">Scraping</p>
+              <div className="scrape-row">
+                <div className="days-input-wrap">
+                  <input
+                    className="days-input"
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={daysBack}
+                    onChange={(e) => setDaysBack(Number(e.target.value))}
+                  />
+                  <span className="days-label">dagar bakåt</span>
+                </div>
+                <button className="scrape-btn" onClick={handleScrape} disabled={scraping}>
+                  {scraping ? "Startar…" : "Kör scraping nu"}
+                </button>
+              </div>
+              {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
+            </div>
+            <div className="admin-tool">
+              <p className="admin-tool-label">Thumbnails</p>
+              <p className="admin-tool-desc">Laddar upp thumbnails från TikTok CDN till Supabase Storage (50 st per körning).</p>
+              <button className="scrape-btn" onClick={handleBackfill} disabled={backfilling}>
+                {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
+              </button>
+              {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
+            </div>
           </div>
-          {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
         </div>
 
-        {/* Backfill thumbnails */}
-        <div className="scrape-section">
-          <h2 className="scrape-title">Thumbnails</h2>
-          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
-            Laddar upp thumbnails från TikTok CDN till Supabase Storage (50 st per körning). Kör flera gånger tills allt är klart.
-          </p>
-          <button className="scrape-btn" onClick={handleBackfill} disabled={backfilling}>
-            {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
-          </button>
-          {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
-        </div>
+        }
 
-        {/* Contest videos */}
-        <div className="scrape-section">
-          <h2 className="scrape-title">Tävlingar</h2>
-          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
-            Videor som flaggats som tävlingar baserat på caption-nyckelord. Godkänn en video om den felaktigt flaggats — den tas då med i rankingen.
+        {/* ── Section 2: Tävlingsvideor ── */}
+        {activeSection === "tavlingar" && <div className="admin-section">
+          <div className="admin-section-hdr">
+            <h2 className="admin-section-title">Tävlingsvideor</h2>
+            <span className="admin-section-meta">Flaggade via caption-nyckelord</span>
+          </div>
+          <p className="admin-section-desc">
+            Godkänn en video om den felaktigt flaggats — den tas då med i rankingen.
           </p>
           {loadingContests ? (
             <p className="loading">Laddar…</p>
@@ -341,11 +367,17 @@ export default function AdminPage() {
             </ul>
           )}
         </div>
-        {/* Calculator tests */}
-        <div className="scrape-section">
-          <h2 className="scrape-title">Kalkylator-tester</h2>
-          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
-            Videor som testats i kalkylatorn. Klicka "Lägg till" för att börja tracka ett konto.
+
+        }
+
+        {/* ── Section 3: Kalkylator-tester ── */}
+        {activeSection === "kalkylator" && <div className="admin-section">
+          <div className="admin-section-hdr">
+            <h2 className="admin-section-title">Kalkylator-tester</h2>
+            <span className="admin-section-meta">{calcTests.length} videor</span>
+          </div>
+          <p className="admin-section-desc">
+            Videor som testats via kalkylatorn. Klicka "Lägg till" för att börja tracka ett konto.
           </p>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
             {[
@@ -435,6 +467,7 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        }
       </div>
     </>
   );
@@ -683,6 +716,107 @@ const styles = `
   }
 
   .delete-btn:hover { color: #a33; }
+
+  /* Tabs */
+  .admin-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }
+
+  .admin-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.75rem 1.25rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
+  }
+
+  .admin-tab:hover { color: var(--ink); }
+
+  .admin-tab--active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
+  .admin-tab-meta {
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--muted);
+  }
+
+  /* Section */
+  .admin-section {
+    margin-top: 0;
+  }
+
+  .admin-section-hdr {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .admin-section-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .admin-section-meta {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .admin-section-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* Tools area inside konton section */
+  .admin-tools {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-light);
+    padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .admin-tool-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+  }
+
+  .admin-tool-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.02em;
+  }
 
   /* Scraping section */
   .scrape-section {
