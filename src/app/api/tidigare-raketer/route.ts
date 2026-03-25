@@ -30,7 +30,7 @@ function currentAndPreviousWeek(): [string, string] {
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("videos")
-    .select("handle, views, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, followers)")
+    .select("handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, followers)")
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .order("published_at", { ascending: false });
@@ -58,6 +58,9 @@ export async function GET() {
       thumbnail_url: string | null;
       caption: string | null;
       views: number;
+      likes: number;
+      comments: number;
+      shares: number;
       engagement_rate: number;
     };
   }[] = [];
@@ -100,6 +103,9 @@ export async function GET() {
         thumbnail_url: winner.bestVideo.thumbnail_url,
         caption: winner.bestVideo.caption,
         views: winner.bestVideo.views ?? 0,
+        likes: winner.bestVideo.likes ?? 0,
+        comments: winner.bestVideo.comments ?? 0,
+        shares: winner.bestVideo.shares ?? 0,
         engagement_rate: winner.bestVideo.engagement_rate ?? 0,
       },
     });

@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+interface CalcTest {
+  id: string;
+  handle: string | null;
+  video_url: string | null;
+  video_id: string | null;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  engagement_rate: number | null;
+  tested_at: string;
+}
+
 interface ContestVideo {
   id: string;
   handle: string;
@@ -36,6 +49,11 @@ export default function AdminPage() {
   const [backfillMsg, setBackfillMsg] = useState("");
   const [contestVideos, setContestVideos] = useState<ContestVideo[]>([]);
   const [loadingContests, setLoadingContests] = useState(true);
+  const [calcTests, setCalcTests] = useState<CalcTest[]>([]);
+  const [calcSort, setCalcSort] = useState("newest");
+  const [loadingCalcTests, setLoadingCalcTests] = useState(true);
+  const [addingHandle, setAddingHandle] = useState<string | null>(null);
+  const [addFeedback, setAddFeedback] = useState<Record<string, string>>({});
 
   async function fetchAccounts() {
     const res = await fetch("/api/accounts");
@@ -51,7 +69,16 @@ export default function AdminPage() {
     setLoadingContests(false);
   }
 
-  useEffect(() => { fetchAccounts(); fetchContestVideos(); }, []);
+  async function fetchCalcTests(sort = "newest") {
+    setLoadingCalcTests(true);
+    const res = await fetch(`/api/admin/calculator-tests?sort=${sort}`);
+    const data = await res.json();
+    setCalcTests(Array.isArray(data) ? data : []);
+    setLoadingCalcTests(false);
+  }
+
+  useEffect(() => { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); }, []);
+  useEffect(() => { fetchCalcTests(calcSort); }, [calcSort]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -128,6 +155,23 @@ export default function AdminPage() {
         : `Fel: ${data.error}`
     );
     setBackfilling(false);
+  }
+
+  async function handleAddToTracking(handle: string) {
+    if (!handle) return;
+    setAddingHandle(handle);
+    const res = await fetch("/api/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle }),
+    });
+    const data = await res.json();
+    setAddFeedback((prev) => ({
+      ...prev,
+      [handle]: res.ok ? "Tillagd!" : data.error ?? "Fel",
+    }));
+    setAddingHandle(null);
+    if (res.ok) await fetchAccounts();
   }
 
   const active = accounts.filter((a) => a.is_active);
@@ -295,6 +339,100 @@ export default function AdminPage() {
                 );
               })}
             </ul>
+          )}
+        </div>
+        {/* Calculator tests */}
+        <div className="scrape-section">
+          <h2 className="scrape-title">Kalkylator-tester</h2>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: "1rem", letterSpacing: "0.02em" }}>
+            Videor som testats i kalkylatorn. Klicka "Lägg till" för att börja tracka ett konto.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+            {[
+              { key: "newest", label: "Senaste" },
+              { key: "oldest", label: "Äldsta" },
+              { key: "er", label: "Eng.rate" },
+              { key: "handle", label: "Handle" },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                className="scrape-btn"
+                style={{
+                  fontSize: 9,
+                  padding: "0.3rem 0.75rem",
+                  boxShadow: calcSort === opt.key ? "none" : "2px 2px 0 var(--border)",
+                  opacity: calcSort === opt.key ? 1 : 0.5,
+                }}
+                onClick={() => setCalcSort(opt.key)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {loadingCalcTests ? (
+            <p className="loading">Laddar…</p>
+          ) : calcTests.length === 0 ? (
+            <p className="loading">Inga tester ännu.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Handle</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Visningar</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
+                    <th style={{ padding: "6px 8px" }}></th>
+                    <th style={{ padding: "6px 8px" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calcTests.map((t) => {
+                    const alreadyTracked = accounts.some((a) => a.handle === t.handle);
+                    const feedback = t.handle ? addFeedback[t.handle] : undefined;
+                    return (
+                      <tr key={t.id} style={{ borderBottom: "1px solid var(--border-light)" }}>
+                        <td style={{ padding: "6px 8px", fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                          {t.views != null ? t.views.toLocaleString("sv-SE") : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                          {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "var(--muted)" }}>
+                          {new Date(t.tested_at).toLocaleDateString("sv-SE")}
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>
+                          {t.video_url && (
+                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--blue)", fontSize: 10, textDecoration: "underline" }}>
+                              Video
+                            </a>
+                          )}
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>
+                          {t.handle && (
+                            feedback ? (
+                              <span style={{ fontSize: 9, color: feedback === "Tillagd!" ? "green" : "#a33" }}>{feedback}</span>
+                            ) : alreadyTracked ? (
+                              <span style={{ fontSize: 9, color: "var(--muted)" }}>Trackas</span>
+                            ) : (
+                              <button
+                                className="scrape-btn"
+                                style={{ fontSize: 9, padding: "0.2rem 0.6rem", boxShadow: "none" }}
+                                disabled={addingHandle === t.handle}
+                                onClick={() => handleAddToTracking(t.handle!)}
+                              >
+                                {addingHandle === t.handle ? "…" : "Lägg till"}
+                              </button>
+                            )
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

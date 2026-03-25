@@ -270,6 +270,8 @@ function HomeInner() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [weekOpen, setWeekOpen] = useState(false);
+  const wkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 600);
@@ -277,6 +279,18 @@ function HomeInner() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Close week picker on outside click
+  useEffect(() => {
+    if (!weekOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (wkRef.current && !wkRef.current.contains(e.target as Node)) {
+        setWeekOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [weekOpen]);
 
   // Fetch available weeks
   useEffect(() => {
@@ -340,34 +354,61 @@ function HomeInner() {
     <>
       <div className="gr-root">
 
-        {/* ── PAGE TITLE ───────────────────────────────────────────── */}
-        <div style={{ padding: "20px 24px 4px" }}>
-          <h1 style={{ fontFamily: "'Space Mono', monospace", fontSize: "clamp(26px, 5vw, 36px)", letterSpacing: "-0.01em", margin: 0, color: C.dark }}>
+        {/* ── PAGE HEADER ──────────────────────────────────────────── */}
+        <div className="gr-page-hdr">
+          <h1 className="gr-page-title">
             Veckans raket
+            {selectedWeek && (
+              <span className="gr-wk-inline" ref={wkRef}>
+                <button
+                  className={"gr-wk-pill" + (weekOpen ? " open" : "")}
+                  onClick={() => setWeekOpen((v) => !v)}
+                >
+                  {fmtWeekShort(selectedWeek)}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="gr-wk-chev">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                {weekOpen && (
+                  <div className="gr-wk-drop">
+                    {weeks.map((w) => (
+                      <button
+                        key={w}
+                        className={"gr-wk-opt" + (w === selectedWeek ? " active" : "")}
+                        onClick={() => {
+                          setSelectedWeek(w);
+                          router.replace(`?week=${w}`, { scroll: false });
+                          setWeekOpen(false);
+                        }}
+                      >
+                        {fmtWeek(w)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </span>
+            )}
           </h1>
         </div>
 
-        {/* ── LIST HEADER ──────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 24px", borderBottom: `1px solid ${C.line}`, gap: "16px" }}>
-          <select
-            className="gr-wk-sel"
-            value={selectedWeek}
-            onChange={(e) => {
-              setSelectedWeek(e.target.value);
-              router.replace(`?week=${e.target.value}`, { scroll: false });
-            }}
-          >
-            {weeks.map((w) => (
-              <option key={w} value={w}>{isMobile ? fmtWeekShort(w) : fmtWeek(w)}</option>
-            ))}
-          </select>
-        </div>
+        {/* ── MAIN GRID (list + CTA sidebar) ──────────────────────── */}
+        <div className="gr-content-grid">
+        <div className="gr-content-main">
 
         {/* ── ENTRIES ──────────────────────────────────────────────── */}
         {loading ? (
-          <div className="gr-loading">
-            Laddar...
-          </div>
+          <>
+            {[1, 2, 3, 4, 5].map((_, i) => (
+              <div key={i} className={`gr-skel-row${i === 0 ? " gr-skel-row-dark" : ""}`}>
+                <span className="gr-skel-rank" />
+                <div className="gr-skel-main">
+                  <span className="gr-skel-name" style={{ width: `${140 - i * 12}px` }} />
+                  <span className="gr-skel-meta" />
+                </div>
+                <span className="gr-skel-rate" />
+              </div>
+            ))}
+          </>
         ) : (
           accounts.map((acc, i) => {
             const isDark = i === 0;
@@ -465,57 +506,63 @@ function HomeInner() {
                           ? `1.5px solid ${C.gold}`
                           : undefined;
                         const titleColor = isDark ? "rgba(235,231,226,.9)" : C.dark;
+                        const vid = v.video_url.match(/\/video\/(\d+)/)?.[1];
                         return (
-                          <a
+                          <div
                             key={v.id}
-                            href={v.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="gr-vc"
                             style={{ background: cardBg, border: cardBorder }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {/* Thumbnail */}
-                            <div className="gr-thumb">
-                              <VideoThumb
-                                src={v.thumbnail_url}
-                                alt={v.caption ?? `Video ${vi + 1}`}
-                                fallback={String(vi + 1).padStart(2, "0")}
-                              />
-                              <span className="gr-thumb-views">
-                                {fmt(v.views)}
-                              </span>
-                              <div className="gr-thumb-stats">
-                                <span>
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
-                                  {fmt(v.likes)}
+                            <a
+                              href={v.video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="gr-vc-link"
+                            >
+                              {/* Thumbnail */}
+                              <div className="gr-thumb">
+                                <VideoThumb
+                                  src={v.thumbnail_url}
+                                  alt={v.caption ?? `Video ${vi + 1}`}
+                                  fallback={String(vi + 1).padStart(2, "0")}
+                                />
+                                <span className="gr-thumb-views">
+                                  {fmt(v.views)}
                                 </span>
-                                <span>
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z"/></svg>
-                                  {fmt(v.comments)}
-                                </span>
-                                <span>
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg>
-                                  {fmt(v.shares)}
-                                </span>
+                                <div className="gr-thumb-stats">
+                                  <span>
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+                                    {fmt(v.likes)}
+                                  </span>
+                                  <span>
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z"/></svg>
+                                    {fmt(v.comments)}
+                                  </span>
+                                  <span>
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg>
+                                    {fmt(v.shares)}
+                                  </span>
+                                </div>
+                                {isBest && (
+                                  <span className="gr-thumb-best">
+                                    Bäst
+                                  </span>
+                                )}
                               </div>
-                              {isBest && (
-                                <span className="gr-thumb-best">
-                                  Bäst
-                                </span>
-                              )}
-                            </div>
 
-                            {/* Info */}
-                            <div className="gr-vid-info">
-                              <p className="gr-vid-title" style={{ color: titleColor }}>
-                                {v.caption ?? "Se video"}
-                              </p>
-                              <p className="gr-vid-eng" style={{ color: isBest ? C.gold : "rgba(28,27,25,.45)", fontWeight: isBest ? 500 : 400 }}>
-                                {Number(v.engagement_rate).toFixed(2)}% eng.
-                              </p>
-                            </div>
-                          </a>
+                              {/* Info */}
+                              <div className="gr-vid-info">
+                                <p className="gr-vid-title" style={{ color: titleColor }}>
+                                  {v.caption ?? "Se video"}
+                                </p>
+                                <p className="gr-vid-eng" style={{ color: isBest ? C.gold : "rgba(28,27,25,.45)", fontWeight: isBest ? 500 : 400 }}>
+                                  {Number(v.engagement_rate).toFixed(2)}% eng.
+                                </p>
+                              </div>
+                            </a>
+
+                          </div>
                         );
                       })}
                     </div>
@@ -538,6 +585,25 @@ function HomeInner() {
           })
         )}
 
+        </div>{/* end gr-content-main */}
+
+        {/* ── CTA SIDEBAR ──────────────────────────────────────────── */}
+        <div className="gr-content-aside">
+          <div className="gr-cta">
+            <p className="gr-cta-label">För företag och organisationer</p>
+            <h2 className="gr-cta-heading">Syns ditt bolag<br />i listan?</h2>
+            <p className="gr-cta-body">
+              Rankingen följer svenska företag och organisationer — inte kreatörer eller influencers. Vi letar efter innehåll som gör något med folk. Som stoppar tummen. Som väcker en reaktion. Som får någon att skicka vidare.
+            </p>
+            <p className="gr-cta-body">
+              Om du skapar TikTok-innehåll för ett bolag eller en organisation: testa din bästa video i kalkylatorn. Håller engagemanget? Då kanske ni redan borde vara med.
+            </p>
+            <a href="/kalkylator" className="gr-cta-btn">Testa kalkylatorn</a>
+          </div>
+        </div>
+
+        </div>{/* end gr-content-grid */}
+
         {/* ── FOOTER ───────────────────────────────────────────────── */}
         <div className="gr-footer">
           <div className="gr-footer-heading">
@@ -548,7 +614,7 @@ function HomeInner() {
             Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em className="gr-footer-em">"det här måste du se."</em> Det är vår definition av engagemang.
           </p>
           <p className="gr-footer-credit">
-            Guldraketen&nbsp;&middot;&nbsp;2026
+            Guldraketen&nbsp;&middot;&nbsp;2026&nbsp;&middot;&nbsp;<a href="/kalkylator" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "3px" }}>Kalkylator</a>
           </p>
         </div>
 
