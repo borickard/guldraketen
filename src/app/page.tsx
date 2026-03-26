@@ -498,11 +498,9 @@ function HomeInner() {
 
             {/* Manifest */}
             <div className="gr-hero-manifest">
-              <p className="gr-hero-manifest-lead">De flesta företag finns på sociala medier.</p>
-              <p className="gr-hero-manifest-lead">Färre lyckas skapa innehåll som faktiskt berör.</p>
+              <p className="gr-hero-manifest-lead">De flesta företag finns på sociala medier.<br className="gr-manifest-br" /> Få skapar innehåll som faktiskt berör.</p>
               <p className="gr-hero-manifest-body">
-                De flesta nöjer sig med envägskommunikation — de pratar, men ingen lyssnar.
-                Sociala Raketer belyser de som går längre: företag och organisationer som
+                De flesta nöjer sig med envägskommunikation — de pratar, men ingen lyssnar. <strong style={{ color: "#1C1B19" }}>Sociala Raketer</strong> belyser de som går längre: företag och organisationer som
                 förstår sin målgrupp, skapar innehåll som engagerar och förtjänar den
                 uppmärksamhet de får.
               </p>

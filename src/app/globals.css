@@ -3129,6 +3129,9 @@ body {
 }
 
 /* Manifest */
+.gr-manifest-br { display: none; }
+@media (min-width: 641px) { .gr-manifest-br { display: block; } }
+
 .gr-hero-manifest {
   max-width: 760px;
   margin-bottom: 40px;
