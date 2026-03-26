@@ -27,6 +27,22 @@ function currentAndPreviousWeek(): [string, string] {
   return [curr, prev];
 }
 
+type VideoEntry = {
+  rank: number;
+  handle: string;
+  displayName: string;
+  bestVideo: {
+    video_url: string;
+    thumbnail_url: string | null;
+    caption: string | null;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    engagement_rate: number;
+  };
+};
+
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("videos")
@@ -49,21 +65,7 @@ export async function GET() {
     byWeek.set(week, list);
   }
 
-  const winners: {
-    week: string;
-    handle: string;
-    displayName: string;
-    bestVideo: {
-      video_url: string;
-      thumbnail_url: string | null;
-      caption: string | null;
-      views: number;
-      likes: number;
-      comments: number;
-      shares: number;
-      engagement_rate: number;
-    };
-  }[] = [];
+  const weekGroups: { week: string; entries: VideoEntry[] }[] = [];
 
   for (const [week, videos] of byWeek) {
     const byAccount = new Map<string, typeof data>();
@@ -76,7 +78,7 @@ export async function GET() {
 
     if (byAccount.size < MIN_ACCOUNTS_PER_WEEK) continue;
 
-    // Find #1 account
+    // Rank top accounts by best video engagement_rate
     const ranked = [...byAccount.entries()]
       .map(([handle, vids]) => {
         const best = vids.reduce((a, b) =>
@@ -93,26 +95,28 @@ export async function GET() {
 
     if (ranked.length === 0) continue;
 
-    const winner = ranked[0];
-    winners.push({
+    weekGroups.push({
       week,
-      handle: winner.handle,
-      displayName: winner.displayName,
-      bestVideo: {
-        video_url: winner.bestVideo.video_url,
-        thumbnail_url: winner.bestVideo.thumbnail_url,
-        caption: winner.bestVideo.caption,
-        views: winner.bestVideo.views ?? 0,
-        likes: winner.bestVideo.likes ?? 0,
-        comments: winner.bestVideo.comments ?? 0,
-        shares: winner.bestVideo.shares ?? 0,
-        engagement_rate: winner.bestVideo.engagement_rate ?? 0,
-      },
+      entries: ranked.slice(0, 3).map((r, i) => ({
+        rank: i + 1,
+        handle: r.handle,
+        displayName: r.displayName,
+        bestVideo: {
+          video_url: r.bestVideo.video_url,
+          thumbnail_url: r.bestVideo.thumbnail_url,
+          caption: r.bestVideo.caption,
+          views: r.bestVideo.views ?? 0,
+          likes: r.bestVideo.likes ?? 0,
+          comments: r.bestVideo.comments ?? 0,
+          shares: r.bestVideo.shares ?? 0,
+          engagement_rate: r.bestVideo.engagement_rate ?? 0,
+        },
+      })),
     });
   }
 
   // Sort newest week first
-  winners.sort((a, b) => (b.week > a.week ? 1 : -1));
+  weekGroups.sort((a, b) => (b.week > a.week ? 1 : -1));
 
-  return NextResponse.json(winners);
+  return NextResponse.json(weekGroups);
 }

@@ -14,6 +14,7 @@ const links = [
 export default function NavBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -27,11 +28,19 @@ export default function NavBar() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 60);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Close on route change
   useEffect(() => { setOpen(false); }, [pathname]);
 
   return (
-    <nav className="gr-nav" ref={navRef}>
+    <nav className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")} ref={navRef}>
       <Link href="/" className="gr-nav-logo">
         <span style={{ color: "#C8962A" }}>S</span>ociala raketer
       </Link>

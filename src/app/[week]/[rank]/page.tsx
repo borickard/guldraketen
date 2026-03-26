@@ -175,7 +175,7 @@ export default function VideoSharePage() {
                 )}
 
                 <footer className="sp-footer">
-                    © {new Date().getFullYear()} Guldraketen &nbsp;·&nbsp;
+                    © {new Date().getFullYear()} Sociala Raketer &nbsp;·&nbsp;
                     <Link href="/nominera" className="sp-footer-link">Nominera ett konto</Link>
                 </footer>
             </main>

@@ -1,14 +1,14 @@
-# Guldraketen – CLAUDE.md
+# Sociala Raketer – CLAUDE.md
 
 ## Syfte
 
-Guldraketen identifierar och uppmärksammar svenska företag och organisationer som skapar exceptionellt engagerande innehåll på TikTok. Projektet kombinerar automatiserad datainsamling, engagemangsanalys och en webbplats för presentation.
+Sociala Raketer identifierar och uppmärksammar svenska företag och organisationer som skapar exceptionellt engagerande innehåll på TikTok. Projektet kombinerar automatiserad datainsamling, engagemangsanalys och en webbplats för presentation.
 
 ---
 
 ## Kärnidé
 
-Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Fokus är på svenska företagskonton på TikTok. Engagement rate-formeln: `(likes + comments×5 + shares×10) / views × 100` – delningar väger tyngst eftersom de kräver mest av tittaren.
+Sociala Raketer fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Fokus är på svenska företagskonton på TikTok. Engagement rate-formeln: `(likes + comments×5 + shares×10) / views × 100` – delningar väger tyngst eftersom de kräver mest av tittaren.
 
 **Rankinglogik:** Topplistan rankar konton baserat på deras **bästa enskilda video** den veckan (högst engagement_rate). Det är ett medvetet designbeslut: ett konto vinner på sin starkaste prestation, inte på volym. Statistiken som visas i listan (visningar, eng.rate) tillhör just den bästa videon.
 
@@ -20,7 +20,7 @@ Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, deln
 |---|---|
 | Webbramverk | Next.js (App Router) |
 | Hosting | Vercel |
-| Databas | Supabase (PostgreSQL) |
+| Databas | Supabase (PostgreSQL + Storage) |
 | Scraping | Apify (`clockworks~tiktok-profile-scraper`) |
 | Schemalagda jobb | Vercel Cron Jobs |
 | Ikoner | lucide-react |
@@ -32,15 +32,17 @@ Guldraketen fokuserar på faktiskt publikengagemang – likes, kommentarer, deln
 ```
 src/
   app/
-    page.tsx                          – startsida (topplista)
+    page.tsx                          – startsida (hero + strip-karusell + promo + topplista)
     layout.tsx                        – Google Fonts (Space Mono, DM Mono, DM Sans)
     globals.css                       – all CSS (bakgrund #EBE7E2)
+    components/
+      NavBar.tsx                      – sticky nav som krymper vid scroll
     hall-of-fame/
       page.tsx                        – Hall of Fame (Raketer vänster + Konton höger, split grid)
     kalkylator/
       page.tsx                        – Engagemangskalkylator
     nominera/
-      page.tsx                        – nomineringsformuläret
+      page.tsx                        – nomineringsformuläret (dold, ej länkad)
     om-engagemang/
       page.tsx                        – förklaring av engagemangsformeln
     admin/
@@ -57,7 +59,8 @@ src/
       videos/route.ts                 – topplista med veckofilter (ISO-veckobaserad)
       video/route.ts                  – enskild video per rank (för share-sidor)
       weeks/route.ts                  – tillgängliga veckor (exkl. nuvarande + föregående)
-      tidigare-raketer/route.ts       – tidigare vinnare per vecka (Hall of Fame)
+      stats/route.ts                  – { video_count, account_count } för hero social proof
+      tidigare-raketer/route.ts       – top 3 per vecka, grupperat (Hall of Fame)
       topplistan/route.ts             – ackumulerade poäng per konto (Hall of Fame)
       benchmark/route.ts              – percentildata för kalkylatorns jämförelse
       fetch-video/
@@ -66,10 +69,11 @@ src/
       admin/
         contest-videos/route.ts       – GET flaggade videor, PATCH godkänn/återflagga
         backfill-thumbnails/route.ts  – ladda upp TikTok-thumbnails till Supabase Storage
+        backfill-avatars/route.ts     – hämta + spara profilbilder för konton
         calculator-tests/route.ts     – GET calculator_tests med sortering
   lib/
-    scrape.ts                         – startScrape + processScrapeResults + detectContest
-    thumbnails.ts                     – uploadThumbnail + uploadThumbnailsBatch
+    scrape.ts                         – startScrape + processScrapeResults + detectContest + avatar-upload
+    thumbnails.ts                     – uploadThumbnail + uploadThumbnailsBatch + uploadAvatar
     supabaseAdmin.ts
     validation.ts
 vercel.json                           – Cron: måndagar kl 07 UTC
@@ -89,6 +93,7 @@ category             text                        -- branschkategori, t.ex. "Mat 
 is_active            boolean not null default true
 followers            integer
 followers_updated_at timestamptz
+avatar_url           text                        -- Supabase Storage URL: avatars/{handle}.jpg
 created_at           timestamptz default now()
 ```
 
@@ -146,6 +151,12 @@ tested_at        timestamptz default now()
 - Behåller `.gte("views", 5000)` för att ge rimliga share-sidor
 - Returnerar `data[rank - 1]`
 
+### `tidigare-raketer/route.ts`
+- Returnerar `[{ week, entries: [{rank, handle, displayName, bestVideo}] }]`
+- **Top 3 per vecka**, grupperat på vecka — inte längre bara #1
+- Exkluderar innevarande + föregående vecka
+- Kräver min 5 konton per vecka för att veckan ska inkluderas
+
 **Kritisk skillnad:** Den gamla `videos/route.ts` använde en rullande 14-dagars cutoff och ignorerade `week`-parametern. Nu använder båda routes `weekBounds()`-funktionen för ISO-veckobaserad filtrering.
 
 ### `weekBounds(weekStr)` — delad logik
@@ -164,6 +175,7 @@ Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
       – upsertar videos inkl. thumbnail_url och caption
       – sätter is_contest=true om caption innehåller tävlingsnyckelord
       – uppdaterar followers på accounts
+      – hämtar och sparar avatar_url per konto till Supabase Storage
 ```
 
 `daysBack` = 14 för Cron. Valbart i admin-UI.
@@ -183,24 +195,24 @@ Webhook fungerar bara i produktion (Vercel).
 
 ### Färgpalett
 - **Bakgrund:** `#EBE7E2` (varm sandbeige)
-- **Mörk:** `#1C1B19` (nästan svart — används för #1-raden och footer)
+- **Mörk:** `#1C1B19` (nästan svart — används för #1-raden, nav, footer)
 - **Guld:** `#C8962A`
 - **Silver:** `#8A9299`
 - **Brons:** `#96614A`
 - **Kort:** `#E2DDD7` (något mörkare än bakgrund)
 
 ### Typsnitt
-- **Syne 800** — rankingssiffror, rubriker, wordmark
+- **Space Mono** — rubriker, hero H1, wordmark, vecko-labels
 - **DM Mono** — statistik, etiketter, meta-info
-- **DM Sans** — brödtext, video-captions
+- **DM Sans** — brödtext, video-captions, korttext
 
 ### Designprinciper
 - Rankingshierarki kommuniceras via **typografisk skala**, inte grid-linjer
 - **#1-raden** inverteras till mörk bakgrund för visuell tyngd
 - **Videokort** med 18px radius, 1.5px border — konsekvent rounding
 - **Ticker** med scrollande text i mörk bakgrund
-- **Wordmark** fyller tillgänglig bredd via JavaScript resize-observer
-- Footer: mörk bakgrund, stor Syne 800-text
+- Footer: mörk bakgrund (TODO: personlig text om Rickard + kontakt)
+- Nav: sticky, krymper från `padding: 18px` till `9px` och logga från 20px till 15px efter 60px scroll
 
 ### Topplistan
 - Rankar på **bästa enskilda videons** engagement_rate
@@ -212,49 +224,41 @@ Webhook fungerar bara i produktion (Vercel).
   - Horisontell scroll-rad med videokort
   - Bästa videokortet highlightas med guldborder + "Bäst"-badge
 - Trend (↑/↓) jämförs mot föregående veckas ranking
-
-### Räckviddsfilter (sliding pill)
-- Lägen: **Av** (default), **Låg** (under 100K), **Hög** (100K+)
-- Filtrar på bästa videons visningar
-- Pill-komponenten `ReachPill` använder `useLayoutEffect` + `getBoundingClientRect()` för att animera en highlight-ruta organiskt mellan knapparna
-- Aktivt filter visas som ett chip med kryss-knapp — kan stängas av via chipet eller genom att klicka på aktiv knapp igen
-- Label "FILTER" (Syne 800 13px) + sublabel "VISNINGAR" (DM Mono 8px) ovanför pillen
+- Räckviddsfilter borttaget från startsidan
 
 ---
 
 ## Webbplats
 
 ### Startsida (`/`)
-- Nav: wordmark (Syne 800, fyller bredden via JS resize-loop), hamburgarmeny utan funktion (3 streck, kortast underst)
-- **G** i GULDRAKETEN är guld (`#C8962A`), resten mörk
-- Ticker: mörk bakgrund med scrollande redaktionell text (se nedan)
-- Räckviddsfilter med sliding pill ovanför listan
-- Topplista med expanderbara rader och videokort
-- Vecko-dropdown i höger kant av list-headern *(planeras ersättas med inline pill i rubriken)*
-- CTA-sektion ("Syns ditt bolag i listan?") mellan listan och footern — förklarar att sajten är för bolag/org, inte kreatörer, länkar till kalkylatorn
-- Footer: "VAD ÄR ENGAGEMANG?" + förklaringstext + signaturen Guldraketen · 2026
+Strukturen uppifrån och ned:
+1. **NavBar** — sticky, krymper vid scroll (se ovan)
+2. **Strip-karusell** — 185px hög rad med TikTok-thumbnails, scrollar automatiskt, tonas ut i kanterna. Fast höjd även före laddning.
+3. **Hero** — stor H1, manifest (2 rader Space Mono + brödtext), URL-input-form som skickar till `/kalkylator?v={id}&h={handle}`, social proof (avatarer + räknare), scroll-CTA
+4. **Promo-grid** — två kolumner: "Veckans bästa på TikTok" (mörk, top 3) + "Bäst engagemang över tid" (ljus, Hall of Fame top 3)
+5. **Info-kolumner** — tre kort: Hur räknar vi / Veckans topplista / Testa ditt innehåll
+6. **Topplista** — id="topplistan", veckoväljare, expanderbara rader med videokort
+7. **FAB** — fixed bottom-right, kalkylator-länk, expanderar till pill på hover (desktop)
+8. **Footer** — TODO: personlig text
 
 ### Kalkylator (`/kalkylator`)
-- URL-param `?v={videoId}` — delas med andra, videon laddas direkt
+- URL-param `?v={videoId}&h={handle}` — delas med andra, videon laddas och statistik hämtas direkt
+- Auto-fetch triggas en gång vid mount om `?v=` finns i URL
 - Thumbnail hämtas via TikTok oEmbed; klick öppnar lightbox med iframe-embed
 - "Hämta statistik automatiskt" — kollar DB först, startar Apify-körning om inte funnen, pollar var 3:e sekund i upp till 120s
-- Varje hämtning loggas till `calculator_tests`-tabellen (video_url med `/@handle/`, stats, ER)
-- Benchmark-visualisering: percentilutrop ("Bättre än X% av svenska företagsvideor") + progress bar
-  - Jämförelse baseras på samma vikter som användaren valt (uppdateras live)
-  - Percentilberäkning: p90/p75/median som ankarpunkter; under median skalas linjärt mot 0
-  - Jämförelsedata från `/api/benchmark` (föregående månad, min 1000 visningar)
+- Varje hämtning loggas till `calculator_tests`-tabellen
+- Benchmark-visualisering: percentilutrop + progress bar, baseras på användarens valda vikter
 - Anpassningsbara vikter (±-knappar, 0–20), formelförhandsvisning, återställningsknapp
-- Enter i URL-fältet triggar automatisk hämtning
-- Layout: vänster = embed/länk, höger = resultat → statistik → vikter
-- `/nominera` är dold (ej länkad) — ersätts framöver av calculator_tests-flödet
 
 ### Hall of Fame (`/hall-of-fame`)
-- Split-grid layout (`gr-content-grid`): Raketer vänster (2fr), Konton höger (1fr)
-- **Raketer**: vertikal lista med vinnare per vecka — thumbnail, namn, vecka, likes/kommentarer/delningar, eng.rate
-  - Sorteringsalternativ: Nyaste / Äldsta / Eng.rate
-  - Klick öppnar videon på TikTok
-- **Konton**: poängtabell med rang, namn, medaljer (SVG-prickar i guld/silver/brons), totalpoäng
-  - Medaljer visas som `N× ●` med färgad SVG-cirkel (`MedalDot`-komponent)
+- Split-grid layout (`gr-content-grid`): Raketer vänster (2fr), Konton höger (1fr), 40px gap
+- **Raketer**: veckogrupper med mörk rubrikrad (veckonamn) + 3 videokort i en rad
+  - Korten återanvänder `.gr-vc`/`.gr-thumb` från topplistan, med `aspect-ratio: 9/16`
+  - Rank-badge (#1/#2/#3) i guld/silver/brons-färg överst på kortet
+  - Sektionsrubrik "Raketer" + sorterpills är sticky (top: 34px)
+  - Veckokorten omsluts av `.gr-hof-weeks-wrap` med `padding: 24px` för korrekt marginaler
+- **Konton**: sticky poängtabell (top 10), sticky (top: 34px, align-self: start)
+  - Medaljer som SVG-färgprickar (`MedalDot`)
   - Poäng: 1:a=15p, 2:a=10p, 3:e=5p
 - Data från `/api/tidigare-raketer` (Raketer) och `/api/topplistan` (Konton)
 - Exkluderar innevarande + föregående vecka (kräver min 5 konton per vecka)
@@ -264,21 +268,13 @@ Webhook fungerar bara i produktion (Vercel).
 - Server-renderade med OG-metadata för LinkedIn-delning
 - Inbäddad TikTok-spelare
 
-### Ticker-text
-> Vem nådde fram i bruset den här veckan? · Guldraketen · Varje måndag · Likes räknas · Kommentarer väger mer · Delningar väger tyngst · Det är vår måttstock · Sveriges mest engagerande TikTok-konton · [vecka]
-
-### Footer-filosofi
-Rubrik: **VAD ÄR ENGAGEMANG?**
-
-Brödtext:
-> Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: *"det här måste du se."* Det är vår definition av engagemang.
-
 ### Admin (`/admin`)
 - Lägg till/ta bort/aktivera/avaktivera konton
 - Redigera `display_name` och `category` inline
 - Manuell scraping med valbart `daysBack`
 - Tävlingsgranskare: lista flaggade videor, godkänn felaktigt flaggade
-- Kalkylator-tester: sorterbar tabell över `calculator_tests` (handle, views, eng.rate, datum, videolänk) med knapp för att lägga till handle i tracked accounts
+- Kalkylator-tester: sorterbar tabell över `calculator_tests`
+- "Hämta avatarer"-knapp: kör `/api/admin/backfill-avatars` för att hämta profilbilder
 
 ---
 
@@ -296,11 +292,10 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ## TODO
 
-### Startsida — presentation och CTA (nästa prioritet)
-- **Intro-text** — hur presenterar vi projektet för en ny besökare? Vad är Guldraketen, varför finns det, vad kan man göra här?
-- **Fokus på företag** — tydliggör tidigt att sajten rankar företags- och organisationskonton, inte privata kreatörer; CTA-texten ("Syns ditt bolag i listan?") är ett steg men kanske inte tillräckligt
-- **Kalkylator-CTA** — hur prominent ska knappen/länken till `/kalkylator` vara? Ska den synas i toppen, i nav, eller bara i höger kolumn? Nuvarande placering i aside-kolumnen riskerar att missas
-- **Ton och röst** — ska startsidan vara mer editorial (berättande) eller mer funktionell (direktiv)? Balans mellan engagemangsfilosofi och praktisk information
+### Footer — personlig presentation (nästa prioritet)
+- Skriv om footern så den berättar om Rickard: varför han skapade sajten, vad han jobbar med, hur man kontaktar honom
+- Ton: personlig och direkt, inte marknadsförings-fluff
+- Inkludera länk till LinkedIn eller e-post
 
 ### Snabba fixes
 - **Mobil nav** — hamburgarmenyns länkar saknar funktion, behöver wiras upp
@@ -309,7 +304,6 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ### Veckoväljare — redesign
 - Ersätt `<select>` med inline-rubrik: **"Veckans raket Vecka 11"** där "Vecka 11" är en klickbar pill
 - Pillen öppnar en popover/dropdown med tillgängliga veckor
-- Veckan känns som en egenskap hos vyn, inte ett filterkontroll
 
 ### Delning från listan
 - Share-ikoner på expanderade videokort → `/[week]/[rank]`-URL:er
@@ -318,24 +312,11 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 - `category`-kolumnen finns i schemat men används inte i UI
 - Admin-UI behöver inmatningsfält
 - Visas i meta-raden i topplistan (t.ex. "Mat & dryck · Bästa inlägg")
-- Möjlig filterpill bredvid räckviddsfiltret
-
-### Färgschema — revidera
-- Nuvarande sandbeige (`#EBE7E2`) är behagligt men inte distinkt
-- Alternativ att utvärdera: vit/svart editorial, mörk bas (nattläge-estetik), alternativ accentfärg utöver guld
-- Bör beslutas i ett sammanhang, inte bit för bit
 
 ### Scraping — felhantering och notifieringar
-- Om en schemalagd scrape misslyckas behöver Rickard notifieras via e-post så att ingen veckas data går förlorad
-- Förslag på retry-logik: kör om efter 1h, sedan 12h, sedan 24h tills det lyckas
-- E-postnotifiering vid misslyckande (och ev. bekräftelse vid lyckat retry)
-- Vercel Cron kan inte hantera retries nativt — lösning kan vara att lagra scrape-status i Supabase och ha ett separat cron-jobb som kollar och kör om vid behov, eller använda Vercel Cron med flera scheman + statusflagga
-
-### Scraping — utvärdera alternativ till Apify (framtida)
-- Nuvarande volym (fåtal konton, veckovis) ryms troligen inom Apifys gratisnivå ($5 kredit/mån)
-- Om antalet konton växer till 100+: utvärdera **tikwm** eller **Tokapi** via RapidAPI — liknande svarssschema, minimal migrering (bara byta HTTP-anrop i scrape.ts), troligen under $5/mån
-- Om projektet skalas upp seriöst: self-host på Hetzner eller liknande — scraping-logiken i Apify kan extraheras till ett fristående Node.js-skript på ett cron-jobb
-- Risk med Apify: vid 300–400 konton med veckoscrapes börjar $29 Starter-planen bli aktuell
+- Om en schemalagd scrape misslyckas behöver Rickard notifieras via e-post
+- Förslag på retry-logik: kör om efter 1h, sedan 12h, sedan 24h
+- Vercel Cron kan inte hantera retries nativt — lagra scrape-status i Supabase + separat check-cron
 
 ### Lösenordsskydd på `/admin`
 - Supabase Auth
@@ -368,41 +349,43 @@ Grupperar videos per konto, rankar på `max(engagement_rate)`, returnerar `bestV
 Tecken som ↗ ← → ◆ kan ge blå renderingsbug i vissa browsers. Använd alltid SVG-ikoner eller Lucide istället.
 
 ### CSS-arkitektur
-All `.gr-`-CSS (ticker, entries, videokort, pill, mobilregler) ligger i `globals.css` under rubriken "GULDRAKETEN — ny design". CSS custom properties (`--gr-bg`, `--gr-dark`, `--gr-gold` etc.) definieras i `:root`. Dynamisk styling (per-rad-färger, isDark, rankColor) sitter kvar som inline styles i `page.tsx` eftersom de beror på runtime-state.
+All `.gr-`-CSS ligger i `globals.css`. CSS custom properties (`--gr-bg`, `--gr-dark`, `--gr-gold` etc.) definieras i `:root`. Dynamisk styling (per-rad-färger, isDark, rankColor) sitter kvar som inline styles i `page.tsx` eftersom de beror på runtime-state.
+- `/* HERO & LANDING */` — hero, strip-karusell, promo-grid, info-grid, FAB
+- `/* ── Hall of Fame ── */` — HoF-specifika klasser inkl. `.gr-hof-weeks-wrap`, `.gr-hof-card-row`
 
 ### Delad kolumnlayout (`gr-content-grid`)
-Används av både startsidan och Hall of Fame:
+Används av Hall of Fame:
 - Mobil: 1 kolumn
-- Desktop (≥840px): `2fr 1fr`
-- `.gr-content-main` — vänster/bred kolumn (lista)
-- `.gr-content-aside` — höger/smal kolumn (CTA eller Konton); har `border-left` och `padding: 32px 24px` som default
-- HoF overridar `padding` på aside med inline style (`padding: 0 0 32px`) så sektionsrubriken fluktar med Raketer-rubriken
+- Desktop (≥840px): `2fr 1fr`, gap `40px`
+- `.gr-content-main` — vänster/bred kolumn
+- `.gr-content-aside` — höger/smal kolumn; `border-left` och `padding: 32px 24px` som default
+
+### Sticky i CSS Grid
+För att `position: sticky` ska fungera på ett grid-item måste det ha `align-self: start`. Det räcker inte med `align-items: start` på containern.
 
 ### Backtick-problem i route.ts
-`.select()` i Supabase-queries ska använda en vanlig strängvariabel, inte template literals:
-```ts
-const fields = "id, handle, video_url, ...";
-const { data } = await supabaseAdmin.from("videos").select(fields)...
-```
+`.select()` i Supabase-queries ska använda en vanlig strängvariabel, inte template literals.
 
 ---
 
-## Senaste ändringar (2026-03-25)
+## Senaste ändringar (2026-03-26)
 
-- **calculator_tests** — ny Supabase-tabell; loggas vid varje kalkylator-hämtning (DB-träff och Apify); URL-format `/@handle/video/id`; `await` används (inte fire-and-forget) p.g.a. serverless-begränsningar
-- **Kalkylator** — benchmark jämför nu med användarens valda vikter (inte låst till standardformel); percentilberäkning använder median som golv (inte average); Enter-tangent triggar hämtning; vikter = horisontella ±-knappar
-- **Admin kalkylator-tester** — sorterbar tabell i `/admin`; `GET /api/admin/calculator-tests?sort=...`; knapp för att lägga till handle i tracked accounts
-- **Hall of Fame** — omdesignad till split-grid (Raketer vänster, Konton höger); sorterpills; likes/kommentarer/delningar i Raketer-rader; medaljer som SVG-färgprickar (`MedalDot`); delar `.gr-content-grid`-klassen med startsidan
-- **Startsida layout** — CTA-sektion flyttad till höger kolumn (`.gr-content-aside`) i `.gr-content-grid` på desktop (≥840px)
-- **CSS type scale** — `--gr-fs-label` (9px) genom `--gr-fs-2xl` (clamp) definierade i `:root`
-- **Vecko-pill** — streck borttaget, `align-items: center` på `.gr-page-title` och `.gr-wk-inline`
-- **tidigare-raketer/route.ts** — returnerar nu även `likes`, `comments`, `shares` per vinnarvideo
+- **Ny startsida** — hero med URL-input + manifest, strip-karusell (185px, 6 repetitioner, fade-mask), promo-grid (2 kolumner), info-kolumner (3 kolumner), FAB (kalkylator-länk, expanderar på hover)
+- **Kalkylator auto-fetch** — `?v={id}&h={handle}` från startsidan triggar automatisk statistikhämtning vid sidladdning
+- **Avatarer** — `avatar_url` i accounts-tabellen; hämtas vid scrape via `authorMeta.avatar`; backfill-endpoint i admin; visas som runda bilder i hero social proof
+- **Hall of Fame redesign** — top 3 per vecka i kortformat (`.gr-vc` + `aspect-ratio: 9/16`), veckogrupper med mörk rubrikrad, sticky sektion- och kontorubriker, top 10 konton
+- **NavBar sticky** — krymper padding och logga-storlek efter 60px scroll; `scrolled`-state i NavBar.tsx
+- **Räckviddsfilter borttaget** från startsidan
+- **Varumärke** — "Guldraketen" bytt till "Sociala Raketer" i UI (domän/repo-namn oförändrat)
+- **`/om-engagemang`** — omskriven med ny rubrik och CTA till kalkylatorn
+
+### Äldre ändringar (2026-03-25)
+- **calculator_tests** — ny Supabase-tabell; loggas vid varje kalkylator-hämtning
+- **Kalkylator** — benchmark med användarens valda vikter; Enter triggar hämtning
+- **Admin kalkylator-tester** — sorterbar tabell; knapp för att lägga till handle
 
 ### Äldre ändringar (2026-03-24)
-- **Ny design på startsidan** — editorial estetik: sandbeige bakgrund, Syne 800, DM Mono, mörk #1-rad, ticker, footer
+- **Ny design på startsidan** — editorial estetik: sandbeige bakgrund, Space Mono, DM Mono, mörk #1-rad, ticker
 - **Rankinglogik** — bästa enskilda videons eng.rate, min 10K visningar krävs
-- **videos/route.ts** — ISO-veckobaserad filtrering via `weekBounds()`, inget views-filter, limit 200
-- **video/route.ts** — samma `weekBounds()`-logik, views ≥ 5000, används av share-sidor
-- **Tävlingsfiltrering** — `is_contest`/`contest_approved`; `detectContest()` flaggar nyckelord; admin-UI för granskning
-- **Hall of Fame** — `/hall-of-fame` lanserad med Raketer + Konton (poäng: 1:a=15p, 2:a=10p, 3:e=5p)
-- **Thumbnails** — Supabase Storage bucket "thumbnails"; backfill-knapp i admin; `uploadThumbnailsBatch()` körs vid scrape
+- **Hall of Fame** — `/hall-of-fame` lanserad
+- **Thumbnails** — Supabase Storage bucket "thumbnails"

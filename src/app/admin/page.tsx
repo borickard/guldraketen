@@ -47,6 +47,8 @@ export default function AdminPage() {
   const [daysBack, setDaysBack] = useState(14);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMsg, setBackfillMsg] = useState("");
+  const [backfillingAvatars, setBackfillingAvatars] = useState(false);
+  const [backfillAvatarsMsg, setBackfillAvatarsMsg] = useState("");
   const [contestVideos, setContestVideos] = useState<ContestVideo[]>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [calcTests, setCalcTests] = useState<CalcTest[]>([]);
@@ -157,6 +159,24 @@ export default function AdminPage() {
     setBackfilling(false);
   }
 
+  async function handleBackfillAvatars() {
+    setBackfillingAvatars(true);
+    setBackfillAvatarsMsg("Kör Apify — kan ta upp till 2 min…");
+    const res = await fetch("/api/admin/backfill-avatars", { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      const debugLines = Object.entries(data.debug as Record<string, string>)
+        .map(([h, s]) => `${h}: ${s}`)
+        .join(" · ");
+      setBackfillAvatarsMsg(
+        `Konton: ${data.handles} · Items: ${data.items_returned} · Avatarer hittade: ${data.avatars_found} · Sparade: ${data.saved} · Fel: ${data.failed}${debugLines ? ` — ${debugLines}` : ""}`
+      );
+    } else {
+      setBackfillAvatarsMsg(`Fel: ${data.error}`);
+    }
+    setBackfillingAvatars(false);
+  }
+
   async function handleAddToTracking(handle: string) {
     if (!handle) return;
     setAddingHandle(handle);
@@ -184,7 +204,7 @@ export default function AdminPage() {
       <style>{styles}</style>
       <div className="admin-root">
         <div className="admin-header">
-          <span className="admin-eyebrow">Guldraketen · Admin</span>
+          <span className="admin-eyebrow">Sociala Raketer · Admin</span>
           <h1 className="admin-title">Admin</h1>
         </div>
 
@@ -311,6 +331,14 @@ export default function AdminPage() {
                 {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
               </button>
               {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
+            </div>
+            <div className="admin-tool">
+              <p className="admin-tool-label">Avatarer</p>
+              <p className="admin-tool-desc">Hämtar profilavatarer för alla aktiva konton via ett minimalt Apify-anrop (1 item/konto) och sparar till Supabase Storage.</p>
+              <button className="scrape-btn" onClick={handleBackfillAvatars} disabled={backfillingAvatars}>
+                {backfillingAvatars ? "Hämtar…" : "Hämta avatarer"}
+              </button>
+              {backfillAvatarsMsg && <p className="scrape-msg">{backfillAvatarsMsg}</p>}
             </div>
           </div>
         </div>

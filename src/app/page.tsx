@@ -29,10 +29,19 @@ interface AccountRow {
   handle: string;
   displayName: string;
   followers: number;
-  bestVideo: RawVideo;       // the top-ranked video
-  bestEngagement: number;    // engagement_rate of best video
+  bestVideo: RawVideo;
+  bestEngagement: number;
   videoCount: number;
-  videos: RawVideo[];        // all videos, best first
+  videos: RawVideo[];
+}
+
+interface HofScore {
+  handle: string;
+  displayName: string;
+  totalPoints: number;
+  gold: number;
+  silver: number;
+  bronze: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -40,6 +49,21 @@ interface AccountRow {
 function getAccount(v: RawVideo) {
   const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
   return acct ?? { followers: 0, display_name: null };
+}
+
+function displayName(v: RawVideo): string {
+  const acct = getAccount(v);
+  return acct.display_name || `@${v.handle}`;
+}
+
+function extractVideoId(url: string): string | null {
+  const m = url.match(/\/video\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+function extractHandle(url: string): string | null {
+  const m = url.match(/\/@([^/?]+)\/video/);
+  return m ? m[1] : null;
 }
 
 function fmt(n: number): string {
@@ -140,7 +164,13 @@ function TrendDown() {
   );
 }
 
-
+function MedalDot({ color }: { color: string }) {
+  return (
+    <svg width="8" height="8" viewBox="0 0 8 8" fill={color} style={{ flexShrink: 0 }}>
+      <circle cx="4" cy="4" r="4" />
+    </svg>
+  );
+}
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -183,10 +213,7 @@ function rowMinHeight(i: number) {
   return "64px";
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-
-// ─── Reach filter pill ────────────────────────────────────────────────────────
+// ─── Reach filter ─────────────────────────────────────────────────────────────
 
 type ReachFilter = "off" | "low" | "high";
 const REACH_OPTIONS: { key: ReachFilter; label: string }[] = [
@@ -194,12 +221,12 @@ const REACH_OPTIONS: { key: ReachFilter; label: string }[] = [
   { key: "high", label: "Hög" },
 ];
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; fallback: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
-    return (
-      <span className="gr-thumb-placeholder">{fallback}</span>
-    );
+    return <span className="gr-thumb-placeholder">{fallback}</span>;
   }
   return (
     <Image
@@ -260,9 +287,13 @@ function ReachPill({
   );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Topplista state
   const [weeks, setWeeks] = useState<string[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [videos, setVideos] = useState<RawVideo[]>([]);
@@ -272,6 +303,13 @@ function HomeInner() {
   const [isMobile, setIsMobile] = useState(false);
   const [weekOpen, setWeekOpen] = useState(false);
   const wkRef = useRef<HTMLDivElement>(null);
+
+  // Landing state
+  const [heroUrl, setHeroUrl] = useState("");
+  const [heroUrlError, setHeroUrlError] = useState(false);
+  const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
+  const [hofScores, setHofScores] = useState<HofScore[]>([]);
+  const [heroAvatars, setHeroAvatars] = useState<Array<{ handle: string; avatar_url: string; display_name: string | null }>>([]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 600);
@@ -291,6 +329,21 @@ function HomeInner() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [weekOpen]);
+
+  // Fetch site stats + HoF scores + avatars on mount
+  useEffect(() => {
+    fetch("/api/stats").then((r) => r.json()).then(setSiteStats).catch(() => {});
+    fetch("/api/topplistan").then((r) => r.json()).then(setHofScores).catch(() => {});
+    fetch("/api/accounts")
+      .then((r) => r.json())
+      .then((accounts: Array<{ handle: string; avatar_url?: string | null; display_name?: string | null; is_active: boolean }>) => {
+        const withAvatar = accounts
+          .filter((a) => a.is_active && a.avatar_url)
+          .map((a) => ({ handle: a.handle, avatar_url: a.avatar_url!, display_name: a.display_name ?? null }));
+        setHeroAvatars(withAvatar.slice(0, 5));
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch available weeks
   useEffect(() => {
@@ -313,9 +366,7 @@ function HomeInner() {
     setLoading(true);
     setExpanded(null);
 
-    const fetchCurrent = fetch(`/api/videos?week=${selectedWeek}`).then((r) =>
-      r.json()
-    );
+    const fetchCurrent = fetch(`/api/videos?week=${selectedWeek}`).then((r) => r.json());
 
     const weekIdx = weeks.indexOf(selectedWeek);
     const prevWeek = weekIdx + 1 < weeks.length ? weeks[weekIdx + 1] : null;
@@ -333,6 +384,13 @@ function HomeInner() {
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
+  const carouselVideos = useMemo(() => {
+    return videos
+      .filter((v) => v.thumbnail_url)
+      .sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0))
+      .slice(0, 12);
+  }, [videos]);
+
   // Map handle -> rank index for previous week
   const prevRankMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -349,13 +407,284 @@ function HomeInner() {
     if (el) el.scrollBy({ left: 280, behavior: "smooth" });
   }
 
+  // Info column data (static)
+  const infoColumns = [
+    {
+      title: "Hur räknar vi?",
+      body: "Alla interaktioner är inte likvärdiga. En delning kräver mer av tittaren än en like — och betyder mer. Vår formel premierar delningar högst, kommentarer i mitten och likes sist.",
+      link: "/om-engagemang",
+      linkText: "Läs om formeln",
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3v18h18" />
+          <path d="M18 17l-5-5-4 4-3-3" />
+        </svg>
+      ),
+    },
+    {
+      title: "Vilka mäter vi?",
+      body: "Svenska företag och organisationer som skapar innehåll som faktiskt berör. Inte privata kreatörer — utan de som använder sociala medier som en del av sitt kommunikationsarbete.",
+      link: "/#topplistan",
+      linkText: "Se topplistan",
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6" />
+          <line x1="8" y1="12" x2="21" y2="12" />
+          <line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" />
+          <line x1="3" y1="12" x2="3.01" y2="12" />
+          <line x1="3" y1="18" x2="3.01" y2="18" />
+        </svg>
+      ),
+    },
+    {
+      title: "Testa ditt innehåll",
+      body: "Hur står sig din video mot de bästa i branschen? Klistra in en länk så räknar vi ut engagemangsgraden på några sekunder.",
+      link: "/kalkylator",
+      linkText: "Öppna kalkylatorn",
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2" />
+          <line x1="8" y1="6" x2="16" y2="6" />
+          <line x1="8" y1="10" x2="10" y2="10" />
+          <line x1="14" y1="10" x2="16" y2="10" />
+          <line x1="8" y1="14" x2="10" y2="14" />
+          <line x1="14" y1="14" x2="16" y2="14" />
+        </svg>
+      ),
+    },
+  ];
 
   return (
     <>
       <div className="gr-root">
 
-        {/* ── PAGE HEADER ──────────────────────────────────────────── */}
-        <div className="gr-page-hdr">
+        {/* ── FAB ──────────────────────────────────────────────────────── */}
+        <a href="/kalkylator" className="gr-fab" aria-label="Öppna kalkylatorn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <line x1="8" y1="6" x2="16" y2="6" />
+            <line x1="8" y1="10" x2="10" y2="10" />
+            <line x1="14" y1="10" x2="16" y2="10" />
+            <line x1="8" y1="14" x2="10" y2="14" />
+            <line x1="14" y1="14" x2="16" y2="14" />
+            <line x1="8" y1="18" x2="10" y2="18" />
+            <line x1="14" y1="18" x2="16" y2="18" />
+          </svg>
+          <span className="gr-fab-label">Räkna ut din engagemangsgrad</span>
+        </a>
+
+        {/* ── STRIP CAROUSEL ───────────────────────────────────────────── */}
+        <div className="gr-strip-carousel">
+          {carouselVideos.length > 0 && (
+            <div className="gr-strip-row">
+              {Array.from({ length: 6 }, () => carouselVideos).flat().map((v, i) => (
+                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-strip-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v.thumbnail_url!} alt="" className="gr-strip-thumb" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── HERO ─────────────────────────────────────────────────────── */}
+        <section className="gr-hero">
+          <div className="gr-hero-inner">
+            <p className="gr-hero-eyebrow">SOCIALA RAKETER</p>
+            <h1 className="gr-hero-h1">
+              Vad <span style={{ color: "var(--gr-gold)" }}>engagerar</span> på TikTok?
+            </h1>
+
+            {/* Manifest */}
+            <div className="gr-hero-manifest">
+              <p className="gr-hero-manifest-lead">De flesta företag finns på sociala medier.</p>
+              <p className="gr-hero-manifest-lead">Färre lyckas skapa innehåll som faktiskt berör.</p>
+              <p className="gr-hero-manifest-body">
+                De flesta nöjer sig med envägskommunikation — de pratar, men ingen lyssnar.
+                Sociala Raketer belyser de som går längre: företag och organisationer som
+                förstår sin målgrupp, skapar innehåll som engagerar och förtjänar den
+                uppmärksamhet de får.
+              </p>
+            </div>
+
+            <p className="gr-hero-sub">Testa engagemanget på din TikTok-video</p>
+
+            <form
+              className="gr-hero-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const id = extractVideoId(heroUrl);
+                if (!id) { setHeroUrlError(true); return; }
+                const handle = extractHandle(heroUrl);
+                const params = new URLSearchParams({ v: id });
+                if (handle) params.set("h", handle);
+                window.location.href = `/kalkylator?${params}`;
+              }}
+            >
+              <input
+                className={"gr-hero-input" + (heroUrlError ? " error" : "")}
+                type="url"
+                placeholder="Klistra in länk till TikTok-video här"
+                value={heroUrl}
+                onChange={(e) => { setHeroUrl(e.target.value); setHeroUrlError(false); }}
+              />
+              <button className="gr-hero-btn" type="submit">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </form>
+
+            {/* Social proof */}
+            <div className="gr-hero-proof">
+              <div className="gr-hero-avatars">
+                {(heroAvatars.length > 0 ? heroAvatars : [
+                  { handle: "M", avatar_url: null, display_name: null },
+                  { handle: "L", avatar_url: null, display_name: null },
+                  { handle: "P", avatar_url: null, display_name: null },
+                  { handle: "H", avatar_url: null, display_name: null },
+                ]).map((acct, i) => (
+                  acct.avatar_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={acct.handle}
+                      src={acct.avatar_url}
+                      alt={acct.display_name ?? acct.handle}
+                      className="gr-hero-avatar gr-hero-avatar--img"
+                      style={{ marginLeft: i === 0 ? 0 : -8 }}
+                    />
+                  ) : (
+                    <svg
+                      key={acct.handle}
+                      className="gr-hero-avatar"
+                      width="36"
+                      height="36"
+                      viewBox="0 0 36 36"
+                      style={{ marginLeft: i === 0 ? 0 : -8 }}
+                    >
+                      <circle cx="18" cy="18" r="18" fill={["#4A6FA5", "#6B9E78", "#C8962A", "#8A6B9E"][i % 4]} />
+                      <text x="18" y="23" textAnchor="middle" fill="white" fontSize="14" fontFamily="'DM Mono', monospace" fontWeight="500">
+                        {acct.handle[0].toUpperCase()}
+                      </text>
+                    </svg>
+                  )
+                ))}
+              </div>
+              <span className="gr-hero-live-dot" />
+              <p className="gr-hero-proof-text">
+                {siteStats
+                  ? `${siteStats.video_count.toLocaleString("sv-SE")} videor utvärderade hittills`
+                  : "..."}
+              </p>
+            </div>
+
+            {/* Scroll CTA */}
+            <a href="#topplistan" className="gr-hero-scroll">
+              <span>Lär dig mer om engagemang</span>
+              <svg className="gr-hero-scroll-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 5v14M5 12l7 7 7-7" />
+              </svg>
+            </a>
+          </div>
+        </section>
+
+        {/* ── CAROUSEL ─────────────────────────────────────────────────── */}
+        {carouselVideos.length > 0 && (
+          <div className="gr-carousel-wrap">
+            <div className="gr-carousel-row gr-carousel-row--fwd">
+              {[...carouselVideos, ...carouselVideos].map((v, i) => (
+                <a
+                  key={i}
+                  href={v.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="gr-carousel-card"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
+                  <div className="gr-carousel-info">
+                    <span className="gr-carousel-name">{displayName(v)}</span>
+                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div className="gr-carousel-row gr-carousel-row--rev">
+              {[...carouselVideos, ...carouselVideos].map((v, i) => (
+                <a
+                  key={i}
+                  href={v.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="gr-carousel-card"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
+                  <div className="gr-carousel-info">
+                    <span className="gr-carousel-name">{displayName(v)}</span>
+                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── PROMO GRID ───────────────────────────────────────────────── */}
+        <div className="gr-promo-grid">
+          {/* Veckans topplista — dark */}
+          <div className="gr-promo-box gr-promo-box--dark">
+            <p className="gr-promo-eyebrow">VECKANS TOPPLISTA</p>
+            <h2 className="gr-promo-title">Veckans bästa på TikTok</h2>
+            <ol className="gr-promo-list">
+              {accounts.slice(0, 3).map((row, i) => (
+                <li key={row.handle} className="gr-promo-item">
+                  <MedalDot color={[C.gold, C.silver, C.bronze][i]} />
+                  <span className="gr-promo-name">{row.displayName}</span>
+                  <span className="gr-promo-er">{Number(row.bestEngagement).toFixed(2)}%</span>
+                </li>
+              ))}
+            </ol>
+            <a href="#topplistan" className="gr-promo-btn">Se hela listan</a>
+          </div>
+
+          {/* Hall of Fame — light */}
+          <div className="gr-promo-box gr-promo-box--light">
+            <p className="gr-promo-eyebrow">HALL OF FAME</p>
+            <h2 className="gr-promo-title">Bäst engagemang över tid</h2>
+            <ol className="gr-promo-list">
+              {hofScores.slice(0, 3).map((s, i) => (
+                <li key={s.handle} className="gr-promo-item">
+                  <MedalDot color={[C.gold, C.silver, C.bronze][i]} />
+                  <span className="gr-promo-name">{s.displayName}</span>
+                  <span className="gr-promo-er">{s.totalPoints}p</span>
+                </li>
+              ))}
+            </ol>
+            <a href="/hall-of-fame" className="gr-promo-btn">Utforska Hall of Fame</a>
+          </div>
+        </div>
+
+        {/* ── INFO COLUMNS ─────────────────────────────────────────────── */}
+        <div className="gr-info-grid">
+          {infoColumns.map(({ title, body, link, linkText, icon }) => (
+            <a key={title} href={link} className="gr-info-box">
+              <div className="gr-info-icon">{icon}</div>
+              <h3 className="gr-info-title">{title}</h3>
+              <p className="gr-info-body">{body}</p>
+              <span className="gr-info-link">
+                {linkText}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </span>
+            </a>
+          ))}
+        </div>
+
+        {/* ── TOPPLISTA HEADER ─────────────────────────────────────────── */}
+        <div className="gr-page-hdr" id="topplistan">
           <h1 className="gr-page-title">
             Veckans raket
             {selectedWeek && (
@@ -389,13 +718,10 @@ function HomeInner() {
               </span>
             )}
           </h1>
+
         </div>
 
-        {/* ── MAIN GRID (list + CTA sidebar) ──────────────────────── */}
-        <div className="gr-content-grid">
-        <div className="gr-content-main">
-
-        {/* ── ENTRIES ──────────────────────────────────────────────── */}
+        {/* ── ENTRIES ──────────────────────────────────────────────────── */}
         {loading ? (
           <>
             {[1, 2, 3, 4, 5].map((_, i) => (
@@ -415,7 +741,6 @@ function HomeInner() {
             const isOpen = expanded === acc.handle;
 
             const prevRank = prevRankMap.get(acc.handle);
-            // positive = climbed, negative = dropped, null = new entry
             const delta = prevRank != null ? prevRank - i : null;
             const isNew = delta === null && prevVideos.length > 0;
 
@@ -506,7 +831,6 @@ function HomeInner() {
                           ? `1.5px solid ${C.gold}`
                           : undefined;
                         const titleColor = isDark ? "rgba(235,231,226,.9)" : C.dark;
-                        const vid = v.video_url.match(/\/video\/(\d+)/)?.[1];
                         return (
                           <div
                             key={v.id}
@@ -561,7 +885,6 @@ function HomeInner() {
                                 </p>
                               </div>
                             </a>
-
                           </div>
                         );
                       })}
@@ -585,27 +908,8 @@ function HomeInner() {
           })
         )}
 
-        </div>{/* end gr-content-main */}
-
-        {/* ── CTA SIDEBAR ──────────────────────────────────────────── */}
-        <div className="gr-content-aside">
-          <div className="gr-cta">
-            <p className="gr-cta-label">För företag och organisationer</p>
-            <h2 className="gr-cta-heading">Syns ditt bolag<br />i listan?</h2>
-            <p className="gr-cta-body">
-              Rankingen följer svenska företag och organisationer — inte kreatörer eller influencers. Vi letar efter innehåll som gör något med folk. Som stoppar tummen. Som väcker en reaktion. Som får någon att skicka vidare.
-            </p>
-            <p className="gr-cta-body">
-              Om du skapar TikTok-innehåll för ett bolag eller en organisation: testa din bästa video i kalkylatorn. Håller engagemanget? Då kanske ni redan borde vara med.
-            </p>
-            <a href="/kalkylator" className="gr-cta-btn">Testa kalkylatorn</a>
-          </div>
-        </div>
-
-        </div>{/* end gr-content-grid */}
-
-        {/* ── FOOTER ───────────────────────────────────────────────── */}
-        <div className="gr-footer">
+        {/* ── FOOTER ───────────────────────────────────────────────────── */}
+        <div className="gr-footer" id="engagemang">
           <div className="gr-footer-heading">
             Vad är<br />
             <span style={{ color: C.gold }}>Engagemang?</span>
@@ -614,7 +918,7 @@ function HomeInner() {
             Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em className="gr-footer-em">"det här måste du se."</em> Det är vår definition av engagemang.
           </p>
           <p className="gr-footer-credit">
-            Guldraketen&nbsp;&middot;&nbsp;2026&nbsp;&middot;&nbsp;<a href="/kalkylator" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "3px" }}>Kalkylator</a>
+            Sociala Raketer&nbsp;&middot;&nbsp;2026&nbsp;&middot;&nbsp;<a href="/kalkylator" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "3px" }}>Kalkylator</a>
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { uploadThumbnailsBatch } from "@/lib/thumbnails";
+import { uploadThumbnailsBatch, uploadAvatar, isStoredThumbnail } from "@/lib/thumbnails";
 
 const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
@@ -83,6 +83,7 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
 
     const videoRows: VideoRow[] = [];
     const followerMap: Record<string, number> = {};
+    const avatarMap: Record<string, string> = {};
     let skipped = 0;
 
     for (const it of items) {
@@ -132,6 +133,16 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         if (fans !== null && !(handle in followerMap)) {
             followerMap[handle] = fans;
         }
+
+        const avatarUrl =
+            it?.authorMeta?.avatar ||
+            it?.authorMeta?.avatarLarger ||
+            it?.authorMeta?.avatarMedium ||
+            it?.authorMeta?.avatarThumb ||
+            null;
+        if (avatarUrl && !(handle in avatarMap)) {
+            avatarMap[handle] = avatarUrl;
+        }
     }
 
     // Ladda upp thumbnails till Supabase Storage
@@ -149,13 +160,32 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         upserted += batch.length;
     }
 
-    // Uppdatera följarantal
+    // Uppdatera följarantal + avatar
     const now = new Date().toISOString();
     for (const [handle, followers] of Object.entries(followerMap)) {
         await supabaseAdmin
             .from("accounts")
             .update({ followers, followers_updated_at: now })
             .eq("handle", handle);
+    }
+
+    // Ladda upp avatarer till Supabase Storage och spara URL
+    for (const [handle, rawAvatarUrl] of Object.entries(avatarMap)) {
+        if (isStoredThumbnail(rawAvatarUrl)) {
+            // Redan i Storage — spara direkt
+            await supabaseAdmin
+                .from("accounts")
+                .update({ avatar_url: rawAvatarUrl })
+                .eq("handle", handle);
+        } else {
+            const stored = await uploadAvatar(handle, rawAvatarUrl);
+            if (stored) {
+                await supabaseAdmin
+                    .from("accounts")
+                    .update({ avatar_url: stored })
+                    .eq("handle", handle);
+            }
+        }
     }
 
     return {
@@ -200,7 +230,7 @@ interface VideoRow {
 }
 
 interface ApifyItem {
-    authorMeta?: { name?: string; fans?: number };
+    authorMeta?: { name?: string; fans?: number; avatar?: string; avatarLarger?: string; avatarMedium?: string; avatarThumb?: string };
     author?: { uniqueId?: string };
     authorUniqueId?: string;
     authorStats?: { followerCount?: number };

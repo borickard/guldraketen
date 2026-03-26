@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { Suspense } from "react";
 
-interface Winner {
-  week: string;
+interface VideoEntry {
+  rank: number;
   handle: string;
   displayName: string;
   bestVideo: {
@@ -18,6 +18,11 @@ interface Winner {
     shares: number;
     engagement_rate: number;
   };
+}
+
+interface WeekGroup {
+  week: string;
+  entries: VideoEntry[];
 }
 
 interface ScoreEntry {
@@ -57,7 +62,7 @@ function Thumb({ src, name }: { src: string | null; name: string }) {
       src={src}
       alt={name}
       fill
-      sizes="52px"
+      sizes="(max-width:640px) 33vw, 200px"
       style={{ objectFit: "cover" }}
       unoptimized
       onError={() => setFailed(true)}
@@ -83,6 +88,8 @@ function MedalBadges({ gold, silver, bronze }: { gold: number; silver: number; b
     </span>
   );
 }
+
+const RANK_COLORS = ["#C8962A", "#8A9299", "#96614A"];
 
 type SortOrder = "newest" | "oldest" | "er";
 const SORT_OPTS: { key: SortOrder; label: string }[] = [
@@ -116,7 +123,7 @@ function ShareIcon() {
 }
 
 function HallOfFameInner() {
-  const [winners, setWinners] = useState<Winner[]>([]);
+  const [weekGroups, setWeekGroups] = useState<WeekGroup[]>([]);
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [loadingWinners, setLoadingWinners] = useState(true);
   const [loadingScores, setLoadingScores] = useState(true);
@@ -125,18 +132,20 @@ function HallOfFameInner() {
   useEffect(() => {
     fetch("/api/tidigare-raketer")
       .then((r) => r.json())
-      .then((d) => { setWinners(d); setLoadingWinners(false); });
+      .then((d) => { setWeekGroups(d); setLoadingWinners(false); });
     fetch("/api/topplistan")
       .then((r) => r.json())
       .then((d) => { setScores(d); setLoadingScores(false); });
   }, []);
 
-  const sortedWinners = useMemo(() => {
-    const list = [...winners];
+  const sortedGroups = useMemo(() => {
+    const list = [...weekGroups];
     if (sort === "oldest") return list.reverse();
-    if (sort === "er") return list.sort((a, b) => b.bestVideo.engagement_rate - a.bestVideo.engagement_rate);
+    if (sort === "er") return list.sort((a, b) =>
+      (b.entries[0]?.bestVideo.engagement_rate ?? 0) - (a.entries[0]?.bestVideo.engagement_rate ?? 0)
+    );
     return list;
-  }, [winners, sort]);
+  }, [weekGroups, sort]);
 
   return (
     <main className="gr-root gr-page">
@@ -151,7 +160,7 @@ function HallOfFameInner() {
 
         {/* ── Left: Raketer ── */}
         <div className="gr-content-main">
-          <div className="gr-hof-section-hdr">
+          <div className="gr-hof-section-hdr gr-hof-sticky-hdr">
             <span className="gr-hof-section-title">Raketer</span>
             <div className="gr-sort-pills">
               {SORT_OPTS.map((opt) => (
@@ -168,66 +177,51 @@ function HallOfFameInner() {
 
           {loadingWinners ? (
             <div className="gr-loading" style={{ padding: "24px" }}>Laddar...</div>
-          ) : sortedWinners.length === 0 ? (
+          ) : sortedGroups.length === 0 ? (
             <p style={{ padding: "24px", color: "var(--gr-muted)", fontFamily: "var(--gr-mono)", fontSize: "var(--gr-fs-xs)" }}>Inga vinnare ännu.</p>
           ) : (
-            <>
-              {sortedWinners.map((w) => (
-                <a
-                  key={w.week}
-                  href={w.bestVideo.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="gr-raket-row"
-                >
-                  {/* Thumbnail */}
-                  <div className="gr-raket-thumb-sm">
-                    <Thumb src={w.bestVideo.thumbnail_url} name={w.displayName} />
+            <div className="gr-hof-weeks-wrap">
+              {sortedGroups.map((group) => (
+                <div key={group.week} className="gr-hof-week-group">
+                  <p className="gr-hof-week-label">{fmtWeek(group.week)}</p>
+                  <div className="gr-hof-card-row">
+                    {group.entries.map((entry) => (
+                      <a
+                        key={entry.handle}
+                        href={entry.bestVideo.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="gr-vc"
+                      >
+                        <div className="gr-thumb">
+                          <Thumb src={entry.bestVideo.thumbnail_url} name={entry.displayName} />
+                          <span className="gr-thumb-views">{fmt(entry.bestVideo.views)}</span>
+                          <div className="gr-thumb-stats">
+                            <span><HeartIcon />{fmt(entry.bestVideo.likes)}</span>
+                            <span><CommentIcon />{fmt(entry.bestVideo.comments)}</span>
+                            <span><ShareIcon />{fmt(entry.bestVideo.shares)}</span>
+                          </div>
+                          <span className="gr-thumb-best" style={{ background: RANK_COLORS[entry.rank - 1] }}>
+                            #{entry.rank}
+                          </span>
+                        </div>
+                        <div className="gr-vid-info">
+                          <p className="gr-vid-title">{entry.bestVideo.caption ?? entry.displayName}</p>
+                          <p className="gr-vid-eng" style={{ color: entry.rank === 1 ? "#C8962A" : "rgba(28,27,25,.45)" }}>
+                            {Number(entry.bestVideo.engagement_rate).toFixed(2)}% eng.
+                          </p>
+                        </div>
+                      </a>
+                    ))}
                   </div>
-
-                  {/* Name + week */}
-                  <div className="gr-entry-main">
-                    <p className="gr-entry-name" style={{ fontSize: "15px", color: "var(--gr-dark)" }}>
-                      {w.displayName}
-                    </p>
-                    <p className="gr-entry-meta" style={{ color: "var(--gr-muted)" }}>
-                      {fmtWeek(w.week)}
-                    </p>
-                  </div>
-
-                  {/* Likes · Comments · Shares */}
-                  <div className="gr-raket-stats">
-                    <span className="gr-raket-stat">
-                      <HeartIcon />
-                      {fmt(w.bestVideo.likes)}
-                    </span>
-                    <span className="gr-raket-stat">
-                      <CommentIcon />
-                      {fmt(w.bestVideo.comments)}
-                    </span>
-                    <span className="gr-raket-stat">
-                      <ShareIcon />
-                      {fmt(w.bestVideo.shares)}
-                    </span>
-                  </div>
-
-                  {/* Eng.rate */}
-                  <div className="gr-entry-rate">
-                    <span className="gr-entry-rate-val" style={{ color: "var(--gr-gold)" }}>
-                      {Number(w.bestVideo.engagement_rate).toFixed(2)}%
-                    </span>
-                    <span className="gr-entry-rate-lbl" style={{ color: "rgba(28,27,25,.48)" }}>
-                      eng.rate
-                    </span>
-                  </div>
-                </a>
+                </div>
               ))}
-            </>
+            </div>
           )}
         </div>
 
         {/* ── Right: Konton ── */}
-        <div className="gr-content-aside" style={{ padding: "0 0 32px" }}>
+        <div className="gr-content-aside gr-hof-aside-sticky" style={{ padding: "0 0 32px" }}>
           <div className="gr-hof-section-hdr">
             <span className="gr-hof-section-title">Konton</span>
           </div>
@@ -248,7 +242,7 @@ function HallOfFameInner() {
                 </tr>
               </thead>
               <tbody>
-                {scores.map((entry, i) => (
+                {scores.slice(0, 10).map((entry, i) => (
                   <tr key={entry.handle} className="gr-score-row">
                     <td className="gr-score-rank">{i + 1}</td>
                     <td className="gr-score-name">{entry.displayName}</td>

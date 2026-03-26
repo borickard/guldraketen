@@ -39,6 +39,36 @@ export async function uploadThumbnail(
   }
 }
 
+/** Upload a profile avatar from a remote URL to Supabase Storage.
+ *  Returns the permanent public URL, or null if the upload failed. */
+export async function uploadAvatar(
+  handle: string,
+  sourceUrl: string
+): Promise<string | null> {
+  try {
+    const path = `avatars/${handle}.jpg`;
+
+    const res = await fetch(sourceUrl, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+
+    const buffer = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+
+    const { error } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, buffer, { contentType, upsert: true });
+
+    if (error) return null;
+
+    const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+}
+
 /** Upload thumbnails for an array of video rows concurrently (max 5 at a time).
  *  Mutates each row's thumbnail_url in place if upload succeeds. */
 export async function uploadThumbnailsBatch(

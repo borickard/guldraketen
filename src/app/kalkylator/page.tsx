@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef, Suspense } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 
@@ -115,9 +115,13 @@ function KalkylatorPage() {
   // URL + embed
   const [url, setUrl] = useState(() => {
     const v = searchParams.get("v");
-    return v ? `https://www.tiktok.com/video/${v}` : "";
+    const h = searchParams.get("h");
+    if (v && h) return `https://www.tiktok.com/@${h}/video/${v}`;
+    if (v) return `https://www.tiktok.com/video/${v}`;
+    return "";
   });
   const [videoId, setVideoId] = useState<string | null>(null);
+  const autoFetchRef = useRef(!!searchParams.get("v"));
   const [urlError, setUrlError] = useState(false);
 
   // Stats
@@ -227,7 +231,7 @@ function KalkylatorPage() {
     if (data.shares != null) setShares(String(data.shares));
   }
 
-  async function handleFetchStats() {
+  const handleFetchStats = useCallback(async function handleFetchStats() {
     if (!videoId) return;
     const handle = extractHandle(url);
     if (!handle) {
@@ -299,7 +303,16 @@ function KalkylatorPage() {
       setFetchStatus("error");
       setFetchError("Kunde inte kontakta servern.");
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId, url, fetchStatus]);
+
+  // Auto-fetch when arriving from homepage with pre-filled video
+  useEffect(() => {
+    if (autoFetchRef.current && videoId && fetchStatus === "idle") {
+      autoFetchRef.current = false;
+      handleFetchStats();
+    }
+  }, [videoId, fetchStatus, handleFetchStats]);
 
   return (
     <div className="gr-root">
@@ -430,7 +443,12 @@ function KalkylatorPage() {
           <div className="gr-kalky-right">
             {/* Result card */}
             <div className="gr-kalky-result">
-              {engagementRate !== null ? (
+              {fetchStatus === "loading" ? (
+                <>
+                  <p className="gr-kalky-result-label">Hämtar statistik...</p>
+                  <div className="gr-kalky-result-spinner" />
+                </>
+              ) : engagementRate !== null ? (
                 <>
                   <p className="gr-kalky-result-label">Engagement rate</p>
                   <p className="gr-kalky-result-er">
@@ -548,7 +566,7 @@ function KalkylatorPage() {
           Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset, rört något, och fått dem att säga: <em className="gr-footer-em">"det här måste du se."</em> Det är vår definition av engagemang.
         </p>
         <p className="gr-footer-credit">
-          Guldraketen&nbsp;&middot;&nbsp;2026
+          Sociala Raketer&nbsp;&middot;&nbsp;2026
         </p>
       </div>
     </div>
