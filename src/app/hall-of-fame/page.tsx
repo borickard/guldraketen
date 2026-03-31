@@ -51,7 +51,7 @@ function Thumb({ src, name }: { src: string | null; name: string }) {
   if (!src || failed) {
     return (
       <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 14, color: "rgba(28,27,25,.12)" }}>
+        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, color: "rgba(28,27,25,.12)" }}>
           {name[0]}
         </span>
       </div>

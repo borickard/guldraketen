@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
+const APIFY_ACTOR_ID = "clockworks~tiktok-video-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
+
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -15,58 +18,87 @@ export async function POST(req: NextRequest) {
   // 1. DB lookup first
   const { data: dbVideo } = await supabaseAdmin
     .from("videos")
-    .select("views,likes,comments,shares")
+    .select("views,likes,comments,shares,published_at,last_updated")
     .ilike("video_url", `%${videoId}%`)
     .maybeSingle();
 
   if (dbVideo) {
-    const er = (dbVideo.views ?? 0) > 0
-      ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
-      : null;
-    await supabaseAdmin.from("calculator_tests").insert({
-      video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
-      video_id: videoId,
-      handle,
-      views: dbVideo.views,
-      likes: dbVideo.likes,
-      comments: dbVideo.comments,
-      shares: dbVideo.shares,
-      engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
-    });
-    return NextResponse.json({
-      source: "db",
-      views: dbVideo.views,
-      likes: dbVideo.likes,
-      comments: dbVideo.comments,
-      shares: dbVideo.shares,
-    });
+    const now = Date.now();
+    const lastUpdated = new Date(dbVideo.last_updated).getTime();
+    const publishedAt = dbVideo.published_at ? new Date(dbVideo.published_at).getTime() : null;
+
+    const timeSinceScrape = now - lastUpdated;
+    const videoAgeAtScrape = publishedAt !== null ? lastUpdated - publishedAt : null;
+
+    // Use cache if: video was ≥14 days old when scraped AND scraped within the last 7 days
+    const useCache =
+      (videoAgeAtScrape === null || videoAgeAtScrape >= FOURTEEN_DAYS_MS) &&
+      timeSinceScrape <= SEVEN_DAYS_MS;
+
+    if (useCache) {
+      const er = (dbVideo.views ?? 0) > 0
+        ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
+        : null;
+      await supabaseAdmin.from("calculator_tests").insert({
+        video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+        video_id: videoId,
+        handle,
+        views: dbVideo.views,
+        likes: dbVideo.likes,
+        comments: dbVideo.comments,
+        shares: dbVideo.shares,
+        engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
+      });
+      return NextResponse.json({
+        source: "db",
+        views: dbVideo.views,
+        likes: dbVideo.likes,
+        comments: dbVideo.comments,
+        shares: dbVideo.shares,
+      });
+    }
+    // else: fall through to re-scrape via Apify
   }
 
-  // 2. Not in DB — start async Apify run
+  // 2. Not in DB (or cache stale) — start async Apify run
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
     return NextResponse.json({ error: "APIFY_TOKEN saknas" }, { status: 500 });
   }
 
-  const res = await fetch(
-    `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs?token=${apifyToken}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        profiles: [`@${handle}`],
-        profileScrapeSections: ["videos"],
-        resultsPerPage: 20,
-      }),
-    }
-  );
+  const apifyBody = JSON.stringify({
+    postURLs: [`https://www.tiktok.com/@${handle}/video/${videoId}`],
+  });
 
-  if (!res.ok) {
-    const text = await res.text();
-    return NextResponse.json({ error: `Apify start error ${res.status}: ${text}` }, { status: 502 });
+  let apifyRes: Response;
+  try {
+    apifyRes = await fetch(
+      `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apifyToken}`,
+        },
+        body: apifyBody,
+      }
+    );
+  } catch (err) {
+    return NextResponse.json({ error: `Nätverksfel mot Apify: ${err}` }, { status: 502 });
   }
 
-  const json = await res.json();
+  if (!apifyRes.ok) {
+    const text = await apifyRes.text();
+    if (apifyRes.status === 403 && text.includes("hard limit exceeded")) {
+      return NextResponse.json(
+        { error: "Kalkylatorn är tillfälligt pausad. Prova igen om några dagar." },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json({ error: `Apify start error ${apifyRes.status}: ${text}` }, { status: 502 });
+  }
+
+  const json = await apifyRes.json();
   const runId: string = json?.data?.id;
 
   if (!runId) {

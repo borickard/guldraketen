@@ -51,7 +51,7 @@ export default function NomineraPage() {
           <div style={{ background: "var(--gr-card)", border: "1.5px solid var(--gr-line)", borderRadius: 18, padding: "24px" }}>
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
               <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
+                <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
                   TikTok-handle
                 </span>
                 <input
@@ -60,11 +60,11 @@ export default function NomineraPage() {
                   placeholder="@kontot"
                   autoComplete="off"
                   required
-                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
+                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'Barlow', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
                 />
               </label>
               <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
+                <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.5 }}>
                   Din e-post (valfri)
                 </span>
                 <input
@@ -73,17 +73,17 @@ export default function NomineraPage() {
                   placeholder="namn@foretag.se"
                   autoComplete="email"
                   inputMode="email"
-                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
+                  style={{ padding: "12px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "var(--gr-bg)", fontFamily: "'Barlow', sans-serif", fontSize: 15, color: "var(--gr-dark)", outline: "none" }}
                 />
               </label>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, lineHeight: 1.6, opacity: 0.5 }}>
+              <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, lineHeight: 1.6, opacity: 0.5 }}>
                 Vi sparar handle och eventuell e-post för att hantera nomineringen. Rättslig grund: berättigat intresse. Kontakta <strong>info@socialraketer.se</strong> för att begära radering.
               </div>
-              {error && <div style={{ color: "crimson", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>{error}</div>}
+              {error && <div style={{ color: "crimson", fontFamily: "'Barlow', sans-serif", fontSize: 13 }}>{error}</div>}
               <button
                 type="submit"
                 disabled={submitting}
-                style={{ padding: "14px", borderRadius: 14, border: "none", background: "var(--gr-dark)", color: "#EBE7E2", cursor: submitting ? "not-allowed" : "pointer", fontFamily: "'Space Mono', sans-serif", fontSize: 15, letterSpacing: ".04em", textTransform: "uppercase" }}
+                style={{ padding: "14px", borderRadius: 14, border: "none", background: "var(--gr-dark)", color: "#EBE7E2", cursor: submitting ? "not-allowed" : "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, letterSpacing: ".04em", textTransform: "uppercase" }}
               >
                 {submitting ? "Skickar..." : "Skicka nominering"}
               </button>
@@ -91,25 +91,25 @@ export default function NomineraPage() {
           </div>
         ) : (
           <div style={{ background: "var(--gr-card)", border: "1.5px solid var(--gr-line)", borderRadius: 18, padding: "28px 24px" }}>
-            <div style={{ fontFamily: "'Space Mono', sans-serif", fontSize: 22, marginBottom: 10, color: "var(--gr-dark)" }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, marginBottom: 10, color: "var(--gr-dark)" }}>
               Tack!
             </div>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, lineHeight: 1.65, opacity: 0.75, margin: "0 0 28px" }}>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, lineHeight: 1.65, opacity: 0.75, margin: "0 0 28px" }}>
               Vi har tagit emot din nominering och kollar in kontot.
             </p>
 
             <div style={{ borderTop: "1px solid var(--gr-line)", paddingTop: 24 }}>
-              <div style={{ fontFamily: "'Space Mono', sans-serif", fontSize: 16, marginBottom: 8, color: "var(--gr-dark)" }}>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, marginBottom: 8, color: "var(--gr-dark)" }}>
                 Dela projektet på LinkedIn
               </div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.6, opacity: 0.65, margin: "0 0 16px" }}>
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, lineHeight: 1.6, opacity: 0.65, margin: "0 0 16px" }}>
                 Hjälp oss nå fler — dela Sociala raketer med ditt nätverk.
               </p>
               <a
                 href={linkedInUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 18px", borderRadius: 12, background: "#0A66C2", color: "#fff", textDecoration: "none", fontFamily: "'Space Mono', sans-serif", fontSize: 14 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 18px", borderRadius: 12, background: "#0A66C2", color: "#fff", textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
@@ -120,7 +120,7 @@ export default function NomineraPage() {
 
             <button
               onClick={() => { setDone(false); setHandle(""); setEmail(""); setError(null); }}
-              style={{ marginTop: 20, padding: "10px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "transparent", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--gr-dark)", opacity: 0.6 }}
+              style={{ marginTop: 20, padding: "10px 14px", borderRadius: 12, border: "1.5px solid var(--gr-line)", background: "transparent", cursor: "pointer", fontFamily: "'Barlow', sans-serif", fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--gr-dark)", opacity: 0.6 }}
             >
               Nominera ett till
             </button>

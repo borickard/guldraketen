@@ -2,86 +2,97 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-const links = [
-  { href: "/", label: "Veckans raket" },
-  { href: "/hall-of-fame", label: "Hall of Fame" },
-  { href: "/kalkylator", label: "Kalkylator" },
+const homeLinks = [
+  { href: "#topplistan",    label: "Topplistan" },
+  { href: "#kalkylator",    label: "Kalkylator" },
+  { href: "#hall-of-fame",  label: "Hall of Fame" },
+  { href: "#om-engagemang", label: "Om engagemang" },
+];
+
+const otherLinks = [
+  { href: "/#topplistan",   label: "Topplistan" },
+  { href: "/kalkylator",    label: "Kalkylator" },
+  { href: "/hall-of-fame",  label: "Hall of Fame" },
   { href: "/om-engagemang", label: "Om engagemang" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const isHome = pathname === "/";
+  const links = isHome ? homeLinks : otherLinks;
+
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const navRef = useRef<HTMLElement>(null);
 
+  // Lock body scroll when drawer is open
   useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
+  // Track scroll for compact mode
   useEffect(() => {
-    function handleScroll() {
-      setScrolled(window.scrollY > 60);
-    }
+    function handleScroll() { setScrolled(window.scrollY > 60); }
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close on route change
+  // Close drawer on route change
   useEffect(() => { setOpen(false); }, [pathname]);
 
   return (
-    <nav className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")} ref={navRef}>
-      <Link href="/" className="gr-nav-logo">
-        <span style={{ color: "#C8962A" }}>S</span>ociala raketer
-      </Link>
+    <>
+      <nav className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")}>
+        <Link href="/" className="gr-nav-logo">
+          Sociala raketer
+        </Link>
 
-      <div className="gr-nav-links">
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={"gr-nav-link" + (pathname === l.href ? " gr-nav-link--active" : "")}
-          >
-            {l.label}
-          </Link>
-        ))}
-      </div>
-
-      <button
-        className={"gr-hamburger" + (open ? " open" : "")}
-        onClick={() => setOpen(!open)}
-        aria-label="Meny"
-        aria-expanded={open}
-      >
-        <span className="gr-ham-bar gr-ham-bar-1" />
-        <span className="gr-ham-bar gr-ham-bar-2" />
-        <span className="gr-ham-bar gr-ham-bar-3" />
-      </button>
-
-      {open && (
-        <div className="gr-nav-mobile">
+        <div className="gr-nav-links">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className={"gr-nav-mobile-link" + (pathname === l.href ? " gr-nav-mobile-link--active" : "")}
-              onClick={() => setOpen(false)}
+              className="gr-nav-link"
             >
               {l.label}
             </Link>
           ))}
         </div>
+
+        <button
+          className={"gr-hamburger" + (open ? " open" : "")}
+          onClick={() => setOpen(!open)}
+          aria-label="Meny"
+          aria-expanded={open}
+        >
+          <span className="gr-ham-bar gr-ham-bar-1" />
+          <span className="gr-ham-bar gr-ham-bar-2" />
+          <span className="gr-ham-bar gr-ham-bar-3" />
+        </button>
+      </nav>
+
+      {open && (
+        <>
+          <div
+            className="gr-nav-drawer-backdrop"
+            onClick={() => setOpen(false)}
+          />
+          <div className="gr-nav-mobile">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="gr-nav-mobile-link"
+                onClick={() => setOpen(false)}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </>
       )}
-    </nav>
+    </>
   );
 }

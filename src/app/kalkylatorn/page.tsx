@@ -14,14 +14,46 @@ interface Benchmark {
   period: string;
 }
 
-type Mode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "video-error";
+interface ProfileVideo {
+  videoId: string | null;
+  videoUrl: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  engagementRate: number;
+  caption: string;
+  thumbnailUrl: string | null;
+}
+
+type Mode =
+  | "idle"
+  | "video-loading"
+  | "video-ready"
+  | "video-not-found"
+  | "video-error"
+  | "profile-starting"
+  | "profile-loading"
+  | "profile-ready"
+  | "profile-error";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function detectInput(raw: string): { videoId: string; handle: string | null } | null {
+type Detected =
+  | { type: "video"; videoId: string; handle: string | null }
+  | { type: "profile"; handle: string }
+  | null;
+
+function detectInput(raw: string): Detected {
   const s = raw.trim();
   const vid = s.match(/\/video\/(\d+)/)?.[1];
-  if (vid) return { videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  if (vid) {
+    return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  }
+  const urlHandle = s.match(/\/@([^/?#\s]+)/)?.[1];
+  if (urlHandle) return { type: "profile", handle: urlHandle };
+  const bare = s.match(/^@?([a-zA-Z0-9._]{2,24})$/)?.[1];
+  if (bare) return { type: "profile", handle: bare };
   return null;
 }
 
@@ -34,7 +66,7 @@ function computePercentile(er: number, bench: Benchmark): number {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-function KalkylatorPage() {
+function KalkylatornPage() {
   const searchParams = useSearchParams();
 
   const initialUrl = (() => {
@@ -44,6 +76,7 @@ function KalkylatorPage() {
     if (v) return `https://www.tiktok.com/video/${v}`;
     return "";
   })();
+  const initialProfile = searchParams.get("profile");
 
   const [inputUrl, setInputUrl] = useState(initialUrl);
   const [inputError, setInputError] = useState(false);
@@ -58,6 +91,13 @@ function KalkylatorPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  const [profileHandle, setProfileHandle] = useState<string | null>(initialProfile);
+  const [profileRunId, setProfileRunId] = useState<string | null>(null);
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileVideos, setProfileVideos] = useState<ProfileVideo[] | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
   const [copied, setCopied] = useState(false);
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
@@ -65,6 +105,7 @@ function KalkylatorPage() {
   const [bench, setBench] = useState<Benchmark | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -86,12 +127,15 @@ function KalkylatorPage() {
     if (mode === "video-ready" && videoId) {
       const p = new URLSearchParams({ v: videoId });
       if (videoHandle) p.set("h", videoHandle);
-      window.history.replaceState(null, "", `/kalkylator?${p}`);
+      window.history.replaceState(null, "", `/kalkylatorn?${p}`);
     }
   }, [mode, videoId, videoHandle]);
 
   useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   const startVideoFetch = useCallback(async (id: string, handle: string | null) => {
@@ -166,12 +210,75 @@ function KalkylatorPage() {
     }
   }, []);
 
+  const startProfileFetch = useCallback(async (handle: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+    setMode("profile-starting");
+    setProfileHandle(handle);
+    setProfileVideos(null);
+    setProfileError(null);
+    setElapsed(0);
+
+    try {
+      const res = await fetch("/api/fetch-profile/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle }),
+      });
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-json */ }
+
+      if (!res.ok) {
+        setMode("profile-error");
+        setProfileError((data.error as string) ?? `Serverfel (${res.status})`);
+        return;
+      }
+
+      const runId = data.runId as string;
+      setProfileRunId(runId);
+      setMode("profile-loading");
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+
+      let ms = 0;
+      pollRef.current = setInterval(async () => {
+        ms += 5000;
+        if (ms >= 300_000) {
+          clearInterval(pollRef.current!);
+          clearInterval(timerRef.current!);
+          setMode("profile-error");
+          setProfileError("Tidsgränsen överskreds. Prova igen.");
+          return;
+        }
+        try {
+          const r = await fetch(`/api/fetch-profile/result?runId=${runId}`);
+          const d = await r.json();
+          if (d.status === "ready") {
+            clearInterval(pollRef.current!);
+            clearInterval(timerRef.current!);
+            setProfileVideos(d.videos);
+            setMode("profile-ready");
+          } else if (d.status === "error") {
+            clearInterval(pollRef.current!);
+            clearInterval(timerRef.current!);
+            setMode("profile-error");
+            setProfileError("Hämtningen misslyckades.");
+          }
+        } catch { /* keep polling */ }
+      }, 5000);
+    } catch {
+      setMode("profile-error");
+      setProfileError("Kunde inte kontakta servern.");
+    }
+  }, []);
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    if (initialUrl) {
+    if (initialProfile) {
+      startProfileFetch(initialProfile);
+    } else if (initialUrl) {
       const detected = detectInput(initialUrl);
-      if (detected) startVideoFetch(detected.videoId, detected.handle);
+      if (detected?.type === "video") startVideoFetch(detected.videoId, detected.handle);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -182,7 +289,11 @@ function KalkylatorPage() {
     const detected = detectInput(trimmed);
     if (!detected) { setInputError(true); return; }
     setInputError(false);
-    startVideoFetch(detected.videoId, detected.handle);
+    if (detected.type === "video") {
+      startVideoFetch(detected.videoId, detected.handle);
+    } else {
+      startProfileFetch(detected.handle);
+    }
   }
 
   const er = useMemo(() => {
@@ -195,6 +306,11 @@ function KalkylatorPage() {
     : null;
 
   const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
+  const activeProfile = profileHandle;
+  const siteBase = process.env.NEXT_PUBLIC_SITE_URL ?? "socialaraketer.se";
+
+  // suppress unused warning
+  void profileRunId;
 
   return (
     <div className="gr-root">
@@ -203,7 +319,7 @@ function KalkylatorPage() {
         <div className="gr-kalky-v2-head">
           <h1 className="gr-kalky-v2-title">Engagemangskalkylator</h1>
           <p className="gr-kalky-v2-sub">
-            Klistra in en länk till en TikTok-video så räknar vi ut engagemangsgraden och visar hur den står sig mot svenska företagsvideor.
+            Testa engagemanget på din video eller hela din TikTok-profil. Resultatet för en video laddas snabbt — profiler tar vanligtvis 1–3 minuter.
           </p>
         </div>
 
@@ -212,7 +328,7 @@ function KalkylatorPage() {
             <input
               type="url"
               className={"gr-kalky-v2-input" + (inputError ? " error" : "")}
-              placeholder="tiktok.com/@konto/video/..."
+              placeholder="tiktok.com/@konto/video/... eller tiktok.com/@konto"
               value={inputUrl}
               onChange={(e) => { setInputUrl(e.target.value); setInputError(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
@@ -223,7 +339,7 @@ function KalkylatorPage() {
           </div>
           {inputError && (
             <p className="gr-kalky-v2-input-err">
-              Klistra in en TikTok-videolänk, t.ex. tiktok.com/@konto/video/12345.
+              Länken verkar inte vara en TikTok-video eller profil. Prova t.ex. tiktok.com/@konto/video/12345 eller tiktok.com/@konto.
             </p>
           )}
         </div>
@@ -356,6 +472,80 @@ function KalkylatorPage() {
           </div>
         )}
 
+        {(mode === "profile-starting" || mode === "profile-loading") && activeProfile && (
+          <div className="gr-kalky-v2-profile">
+            <div className="gr-kalky-v2-profile-top">
+              <span className="gr-kalky-v2-spinner" />
+              <div>
+                <p className="gr-kalky-v2-profile-title">Analyserar @{activeProfile}</p>
+                <p className="gr-kalky-v2-profile-eta">
+                  {mode === "profile-starting"
+                    ? "Startar analys..."
+                    : `${elapsed}s — tar vanligtvis 1–3 minuter`}
+                </p>
+              </div>
+            </div>
+            <div className="gr-kalky-v2-profile-link">
+              <p className="gr-kalky-v2-profile-link-lbl">Analysen körs i bakgrunden. Besök den här länken om ett par minuter för att se resultatet:</p>
+              <a href={`/p/${activeProfile}`} className="gr-kalky-v2-profile-url">
+                {siteBase.replace(/^https?:\/\//, "")}/p/{activeProfile}
+              </a>
+            </div>
+            <div className="gr-kalky-v2-profile-notify">
+              <label className="gr-kalky-v2-profile-notify-lbl">
+                Eller fyll i din jobbmail — vi hör av oss så fort det är klart.
+              </label>
+              <div className="gr-kalky-v2-email-row">
+                <input
+                  type="email"
+                  className="gr-kalky-v2-email"
+                  placeholder="din@jobbmail.se"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                />
+                <button className="gr-kalky-v2-email-btn" disabled>
+                  Notifiera mig
+                </button>
+              </div>
+              <p className="gr-kalky-v2-email-note">E-postnotifieringar är inte aktiva ännu.</p>
+            </div>
+          </div>
+        )}
+
+        {mode === "profile-ready" && activeProfile && profileVideos && (
+          <div className="gr-kalky-v2-profile-result">
+            <h2 className="gr-kalky-v2-profile-result-h">@{activeProfile}</h2>
+            <p className="gr-kalky-v2-profile-result-meta">{profileVideos.length} videor analyserade</p>
+            <div className="gr-kalky-v2-pvlist">
+              {profileVideos.slice(0, 6).map((v, i) => (
+                <a
+                  key={v.videoId ?? i}
+                  href={v.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="gr-kalky-v2-pv"
+                >
+                  {v.thumbnailUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.thumbnailUrl} alt="" className="gr-kalky-v2-pv-thumb" />
+                  )}
+                  <div className="gr-kalky-v2-pv-body">
+                    <p className="gr-kalky-v2-pv-er">{v.engagementRate.toFixed(2)}% ER</p>
+                    <p className="gr-kalky-v2-pv-views">{v.views.toLocaleString("sv-SE")} visningar</p>
+                    {v.caption && <p className="gr-kalky-v2-pv-cap">{v.caption}</p>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mode === "profile-error" && profileError && (
+          <div className="gr-kalky-v2-notice gr-kalky-v2-notice--error">
+            {profileError}
+          </div>
+        )}
+
       </div>
 
       {lightboxOpen && videoId && (
@@ -386,7 +576,7 @@ function KalkylatorPage() {
 export default function Page() {
   return (
     <Suspense>
-      <KalkylatorPage />
+      <KalkylatornPage />
     </Suspense>
   );
 }
