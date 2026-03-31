@@ -33,14 +33,16 @@ Sociala Raketer fokuserar på faktiskt publikengagemang – likes, kommentarer, 
 src/
   app/
     page.tsx                          – startsida (hero + strip-karusell + promo + topplista)
-    layout.tsx                        – Google Fonts (Space Mono, DM Mono, DM Sans)
+    layout.tsx                        – Google Fonts (Barlow, Barlow Condensed)
     globals.css                       – all CSS (bakgrund #EBE7E2)
     components/
       NavBar.tsx                      – sticky nav som krymper vid scroll
     hall-of-fame/
       page.tsx                        – Hall of Fame (Raketer vänster + Konton höger, split grid)
     kalkylator/
-      page.tsx                        – Engagemangskalkylator
+      page.tsx                        – Engagemangskalkylator (video only, publik)
+    kalkylatorn/
+      page.tsx                        – Premiumkalkylator (video + profil, ej länkad i nav)
     nominera/
       page.tsx                        – nomineringsformuläret (dold, ej länkad)
     om-engagemang/
@@ -64,8 +66,11 @@ src/
       topplistan/route.ts             – ackumulerade poäng per konto (Hall of Fame)
       benchmark/route.ts              – percentildata för kalkylatorns jämförelse
       fetch-video/
-        start/route.ts                – DB-lookup + starta Apify-körning, loggar till calculator_tests
+        start/route.ts                – DB-lookup med cache-logik + starta Apify-körning, loggar till calculator_tests
         result/route.ts               – poll Apify-resultat, loggar till calculator_tests
+      fetch-profile/
+        start/route.ts                – starta Apify-profilkörning (premium, används av /kalkylatorn)
+        result/route.ts               – poll Apify-profilresultat
       admin/
         contest-videos/route.ts       – GET flaggade videor, PATCH godkänn/återflagga
         backfill-thumbnails/route.ts  – ladda upp TikTok-thumbnails till Supabase Storage
@@ -202,9 +207,8 @@ Webhook fungerar bara i produktion (Vercel).
 - **Kort:** `#E2DDD7` (något mörkare än bakgrund)
 
 ### Typsnitt
-- **Space Mono** — rubriker, hero H1, wordmark, vecko-labels
-- **DM Mono** — statistik, etiketter, meta-info
-- **DM Sans** — brödtext, video-captions, korttext
+- **Barlow Condensed** — rubriker, hero H1, wordmark, vecko-labels (`--gr-syne`)
+- **Barlow** — all övrig text: statistik, etiketter, brödtext (`--gr-mono`, `--gr-sans`)
 
 ### Designprinciper
 - Rankingshierarki kommuniceras via **typografisk skala**, inte grid-linjer
@@ -217,14 +221,13 @@ Webhook fungerar bara i produktion (Vercel).
 ### Topplistan
 - Rankar på **bästa enskilda videons** engagement_rate
 - Minimum 10 000 visningar på bästa videon för att räknas
-- Statistik i kollapsad rad = bästa videons views + eng.rate
-- Metaraden i kollapsad rad säger "Bästa inlägg" + trend/NY-badge
-- Klickar man på en rad expanderar den med:
-  - Sammandragsrad: antal inlägg, totala visningar, snitt eng.rate
-  - Horisontell scroll-rad med videokort
-  - Bästa videokortet highlightas med guldborder + "Bäst"-badge
-- Trend (↑/↓) jämförs mot föregående veckas ranking
-- Räckviddsfilter borttaget från startsidan
+- Visar **top 3** på startsidan (3-kolumns grid desktop, 1-kolumn mobil)
+- Kort: flip-animation — framsida (thumbnail + mint info-strip), baksida (statistik + "Visa videon")
+  - Framsida: thumbnail överst (object-position: top), mint strip (#EDF8FB) med rank+handle på samma rad, ER och label nedan
+  - Baksida: ER som hero-stat överst, divider, 2×2 metrics-grid, följarantal, "Visa videon"-knapp
+  - rankColor: guld/silver/brons för topp 3, mörk (#07253A) för rank 4+
+- Veckoväljare: höger i header-raden med ←/→ pilar för att bläddra en vecka i taget
+- Trend (↑/↓) och NY-badge borttagna från korten
 
 ---
 
@@ -242,13 +245,21 @@ Strukturen uppifrån och ned:
 8. **Footer** — TODO: personlig text
 
 ### Kalkylator (`/kalkylator`)
+- **Video only** — accepterar enbart TikTok-videolänkar, inte profiler
 - URL-param `?v={videoId}&h={handle}` — delas med andra, videon laddas och statistik hämtas direkt
 - Auto-fetch triggas en gång vid mount om `?v=` finns i URL
 - Thumbnail hämtas via TikTok oEmbed; klick öppnar lightbox med iframe-embed
-- "Hämta statistik automatiskt" — kollar DB först, startar Apify-körning om inte funnen, pollar var 3:e sekund i upp till 120s
+- Kollar DB först med cache-logik: använd cachat om videon var ≥14 dagar gammal vid scrape OCH scrapad inom 7 dagar
+- Annars startar Apify-körning, pollar var 3:e sekund i upp till 120s
 - Varje hämtning loggas till `calculator_tests`-tabellen
 - Benchmark-visualisering: percentilutrop + progress bar, baseras på användarens valda vikter
 - Anpassningsbara vikter (±-knappar, 0–20), formelförhandsvisning, återställningsknapp
+- Apify 403 hard limit → visar användarvänligt felmeddelande
+
+### Premiumkalkylator (`/kalkylatorn`)
+- **Video + profil** — samma som `/kalkylator` men accepterar även TikTok-profilsidor och @handle
+- Inte länkad i nav eller från startsidan — delas direkt med utvalda användare
+- Profilanalys kör `clockworks~tiktok-profile-scraper`, pollar var 5:e sekund i upp till 5 min
 
 ### Hall of Fame (`/hall-of-fame`)
 - Split-grid layout (`gr-content-grid`): Raketer vänster (2fr), Konton höger (1fr), 40px gap
@@ -292,18 +303,9 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ## TODO
 
-### Footer — personlig presentation (nästa prioritet)
-- Skriv om footern så den berättar om Rickard: varför han skapade sajten, vad han jobbar med, hur man kontaktar honom
-- Ton: personlig och direkt, inte marknadsförings-fluff
-- Inkludera länk till LinkedIn eller e-post
-
 ### Snabba fixes
 - **Mobil nav** — hamburgarmenyns länkar saknar funktion, behöver wiras upp
 - **Skeleton loading** — ersätt "Laddar..."-texten i listan med skeleton-rader i rätt höjd
-
-### Veckoväljare — redesign
-- Ersätt `<select>` med inline-rubrik: **"Veckans raket Vecka 11"** där "Vecka 11" är en klickbar pill
-- Pillen öppnar en popover/dropdown med tillgängliga veckor
 
 ### Delning från listan
 - Share-ikoner på expanderade videokort → `/[week]/[rank]`-URL:er
@@ -368,24 +370,25 @@ För att `position: sticky` ska fungera på ett grid-item måste det ha `align-s
 
 ---
 
-## Senaste ändringar (2026-03-26)
+## Senaste ändringar (2026-03-31)
 
-- **Ny startsida** — hero med URL-input + manifest, strip-karusell (185px, 6 repetitioner, fade-mask), promo-grid (2 kolumner), info-kolumner (3 kolumner), FAB (kalkylator-länk, expanderar på hover)
-- **Kalkylator auto-fetch** — `?v={id}&h={handle}` från startsidan triggar automatisk statistikhämtning vid sidladdning
-- **Avatarer** — `avatar_url` i accounts-tabellen; hämtas vid scrape via `authorMeta.avatar`; backfill-endpoint i admin; visas som runda bilder i hero social proof
-- **Hall of Fame redesign** — top 3 per vecka i kortformat (`.gr-vc` + `aspect-ratio: 9/16`), veckogrupper med mörk rubrikrad, sticky sektion- och kontorubriker, top 10 konton
-- **NavBar sticky** — krymper padding och logga-storlek efter 60px scroll; `scrolled`-state i NavBar.tsx
-- **Räckviddsfilter borttaget** från startsidan
-- **Varumärke** — "Guldraketen" bytt till "Sociala Raketer" i UI (domän/repo-namn oförändrat)
-- **`/om-engagemang`** — omskriven med ny rubrik och CTA till kalkylatorn
+- **Kortdesign** — hard split layout (thumbnail + mint strip #EDF8FB), rank+handle inline, ER som hero på baksidan, följarantal på baksidan, `object-position: top` på thumbnails
+- **Typsnitt** — konsoliderat till Barlow + Barlow Condensed (DM Mono, DM Sans, Space Mono borttagna)
+- **Veckans raketer** — visar top 3, 1-kolumn på mobil, 3 kolumner desktop
+- **Strip-karusell** — 6 repetitioner + keyframe -16.67% för att täcka extra breda skärmar
+- **Veckoväljare** — flyttad till höger i headern med ←/→ pil-navigation
+- **`/kalkylatorn`** — ny premiumsida med profil- och videoanalys (ej länkad i nav)
+- **`/kalkylator`** — renodlad till video only; startsideformuläret detsamma
+- **Cache-logik** — skip re-scrape om videon var ≥14 dagar vid scrape OCH scrapad senaste 7 dagarna
+- **Apify-felmeddelande** — 403 hard limit visas som användarvänlig text
+- **Footer** — personlig tagline med LinkedIn-länk till Rickard Berggren
+- **Nav-ordning** — Kalkylator före Hall of Fame; Hall of Fame-ankarlänk fixad (`id="hall-of-fame"`)
 
-### Äldre ändringar (2026-03-25)
-- **calculator_tests** — ny Supabase-tabell; loggas vid varje kalkylator-hämtning
-- **Kalkylator** — benchmark med användarens valda vikter; Enter triggar hämtning
-- **Admin kalkylator-tester** — sorterbar tabell; knapp för att lägga till handle
-
-### Äldre ändringar (2026-03-24)
-- **Ny design på startsidan** — editorial estetik: sandbeige bakgrund, Space Mono, DM Mono, mörk #1-rad, ticker
-- **Rankinglogik** — bästa enskilda videons eng.rate, min 10K visningar krävs
+### Äldre ändringar (2026-03-26)
+- **Ny startsida** — hero med URL-input + manifest, strip-karusell, promo-grid, info-kolumner, FAB
+- **Kalkylator auto-fetch** — `?v={id}&h={handle}` triggar automatisk statistikhämtning vid sidladdning
+- **Avatarer** — `avatar_url` i accounts; visas i hero social proof
+- **Hall of Fame redesign** — top 3 per vecka i kortformat, sticky rubriker, top 10 konton
+- **NavBar sticky** — krymper vid scroll
 - **Hall of Fame** — `/hall-of-fame` lanserad
 - **Thumbnails** — Supabase Storage bucket "thumbnails"
