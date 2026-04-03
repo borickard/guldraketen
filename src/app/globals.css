@@ -4909,7 +4909,7 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 12px;
-    padding: 4px 0 28px 16px;
+    padding: 4px 10vw 28px 10vw;
   }
   .gr-rk-grid::-webkit-scrollbar {
     display: none;
@@ -4917,7 +4917,7 @@ body {
   .gr-rk-grid .gr-rk-card {
     min-width: 80vw;
     flex-shrink: 0;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
     aspect-ratio: 2 / 3;
   }
 }
