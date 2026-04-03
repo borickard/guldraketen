@@ -69,6 +69,12 @@ function KalkylatorPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const [copied, setCopied] = useState(false);
+
+  const [betaEmail, setBetaEmail] = useState("");
+  const [betaSubmitted, setBetaSubmitted] = useState(false);
+  const [betaLoading, setBetaLoading] = useState(false);
+  const [betaError, setBetaError] = useState<string | null>(null);
+
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
   const [wShares, setWShares] = useState(10);
@@ -232,6 +238,36 @@ function KalkylatorPage() {
 
   const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
 
+  async function handleBetaSubmit() {
+    const email = betaEmail.trim();
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setBetaError("Ange en giltig e-postadress.");
+      return;
+    }
+    setBetaLoading(true);
+    setBetaError(null);
+    try {
+      const videoUrl = videoId && videoHandle
+        ? `https://www.tiktok.com/@${videoHandle}/video/${videoId}`
+        : null;
+      const res = await fetch("/api/beta-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, videoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBetaError(data.error ?? "Något gick fel. Prova igen.");
+      } else {
+        setBetaSubmitted(true);
+      }
+    } catch {
+      setBetaError("Kunde inte kontakta servern.");
+    } finally {
+      setBetaLoading(false);
+    }
+  }
+
   return (
     <div className="gr-root">
       <div className="gr-kalky-v2">
@@ -388,6 +424,36 @@ function KalkylatorPage() {
               >
                 {copied ? "Kopierad!" : "Kopiera länk"}
               </button>
+            </div>
+
+            <div className="gr-kalky-beta">
+              <p className="gr-kalky-beta-desc">
+                Vill du testa hela din profil? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
+              </p>
+              {betaSubmitted ? (
+                <p className="gr-kalky-beta-success">Tack! Vi hör av oss när beta öppnar.</p>
+              ) : (
+                <>
+                  <div className="gr-kalky-beta-row">
+                    <input
+                      type="email"
+                      className="gr-kalky-beta-email"
+                      placeholder="din@email.se"
+                      value={betaEmail}
+                      onChange={(e) => { setBetaEmail(e.target.value); setBetaError(null); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleBetaSubmit(); }}
+                    />
+                    <button
+                      className="gr-kalky-beta-btn"
+                      onClick={handleBetaSubmit}
+                      disabled={betaLoading}
+                    >
+                      {betaLoading ? "..." : "Anmäl"}
+                    </button>
+                  </div>
+                  {betaError && <p className="gr-kalky-beta-err">{betaError}</p>}
+                </>
+              )}
             </div>
           </div>
         )}

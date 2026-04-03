@@ -4,8 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 const APIFY_ACTOR_ID = "clockworks~tiktok-video-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
 
-const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -18,24 +17,15 @@ export async function POST(req: NextRequest) {
   // 1. DB lookup first
   const { data: dbVideo } = await supabaseAdmin
     .from("videos")
-    .select("views,likes,comments,shares,published_at,last_updated")
+    .select("views,likes,comments,shares,last_updated")
     .ilike("video_url", `%${videoId}%`)
     .maybeSingle();
 
   if (dbVideo) {
-    const now = Date.now();
-    const lastUpdated = new Date(dbVideo.last_updated).getTime();
-    const publishedAt = dbVideo.published_at ? new Date(dbVideo.published_at).getTime() : null;
+    const timeSinceScrape = Date.now() - new Date(dbVideo.last_updated).getTime();
 
-    const timeSinceScrape = now - lastUpdated;
-    const videoAgeAtScrape = publishedAt !== null ? lastUpdated - publishedAt : null;
-
-    // Use cache if: video was ≥14 days old when scraped AND scraped within the last 7 days
-    const useCache =
-      (videoAgeAtScrape === null || videoAgeAtScrape >= FOURTEEN_DAYS_MS) &&
-      timeSinceScrape <= SEVEN_DAYS_MS;
-
-    if (useCache) {
+    // Use cache if scraped within the last 2 days
+    if (timeSinceScrape <= TWO_DAYS_MS) {
       const er = (dbVideo.views ?? 0) > 0
         ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
         : null;
