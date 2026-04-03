@@ -4898,9 +4898,22 @@ body {
 
 @media (max-width: 640px) {
   .gr-rk-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 4px 16px 28px;
+    display: flex;
+    grid-template-columns: unset;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    padding: 4px 0 28px 16px;
+  }
+  .gr-rk-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .gr-rk-grid .gr-rk-card {
+    min-width: 80vw;
+    flex-shrink: 0;
+    scroll-snap-align: start;
   }
 }
 
