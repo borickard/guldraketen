@@ -56,10 +56,18 @@ function displayName(v: RawVideo): string {
   return acct.display_name || `@${v.handle}`;
 }
 
-function detectCalcInput(raw: string): { videoId: string; handle: string | null } | null {
+type CalcDetected =
+  | { type: "video"; videoId: string; handle: string | null }
+  | { type: "short"; url: string };
+
+function detectCalcInput(raw: string): CalcDetected | null {
   const s = raw.trim();
+  // Short links — resolve server-side via kalkylator
+  if (/^https?:\/\/(vm|vt)\.tiktok\.com\/\w/.test(s)) return { type: "short", url: s };
+  if (/^https?:\/\/(?:www\.)?tiktok\.com\/t\/\w/.test(s)) return { type: "short", url: s };
+  // Standard video URL
   const vid = s.match(/\/video\/(\d+)/)?.[1];
-  if (vid) return { videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  if (vid) return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
   return null;
 }
 
@@ -296,6 +304,10 @@ function HomeInner() {
     const detected = detectCalcInput(calcUrl);
     if (!detected) { setCalcUrlError(true); return; }
     setCalcUrlError(false);
+    if (detected.type === "short") {
+      window.location.href = `/kalkylator?url=${encodeURIComponent(detected.url)}`;
+      return;
+    }
     const params = new URLSearchParams({ v: detected.videoId });
     if (detected.handle) params.set("h", detected.handle);
     window.location.href = `/kalkylator?${params}`;

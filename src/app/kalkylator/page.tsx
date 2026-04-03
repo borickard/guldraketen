@@ -18,10 +18,18 @@ type Mode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "vide
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function detectInput(raw: string): { videoId: string; handle: string | null } | null {
+type Detected =
+  | { type: "video"; videoId: string; handle: string | null }
+  | { type: "short"; url: string };
+
+function detectInput(raw: string): Detected | null {
   const s = raw.trim();
+  // Short links must be resolved server-side
+  if (/^https?:\/\/(vm|vt)\.tiktok\.com\/\w/.test(s)) return { type: "short", url: s };
+  if (/^https?:\/\/(?:www\.)?tiktok\.com\/t\/\w/.test(s)) return { type: "short", url: s };
+  // Standard video URL (handles all query-param variants)
   const vid = s.match(/\/video\/(\d+)/)?.[1];
-  if (vid) return { videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  if (vid) return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
   return null;
 }
 
@@ -38,6 +46,8 @@ function KalkylatorPage() {
   const searchParams = useSearchParams();
 
   const initialUrl = (() => {
+    const urlParam = searchParams.get("url");
+    if (urlParam) return urlParam;
     const v = searchParams.get("v");
     const h = searchParams.get("h");
     if (v && h) return `https://www.tiktok.com/@${h}/video/${v}`;
@@ -166,12 +176,37 @@ function KalkylatorPage() {
     }
   }, []);
 
+  const resolveAndFetch = useCallback(async (shortUrl: string) => {
+    setMode("video-loading");
+    setVideoStats(null);
+    setVideoError(null);
+    try {
+      const res = await fetch("/api/resolve-tiktok-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: shortUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.videoId) {
+        setMode("video-error");
+        setVideoError(data.error ?? "Kunde inte lösa upp länken.");
+        return;
+      }
+      startVideoFetch(data.videoId, data.handle);
+    } catch {
+      setMode("video-error");
+      setVideoError("Kunde inte kontakta servern.");
+    }
+  }, [startVideoFetch]);
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
     if (initialUrl) {
       const detected = detectInput(initialUrl);
-      if (detected) startVideoFetch(detected.videoId, detected.handle);
+      if (!detected) return;
+      if (detected.type === "short") resolveAndFetch(detected.url);
+      else startVideoFetch(detected.videoId, detected.handle);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -182,7 +217,8 @@ function KalkylatorPage() {
     const detected = detectInput(trimmed);
     if (!detected) { setInputError(true); return; }
     setInputError(false);
-    startVideoFetch(detected.videoId, detected.handle);
+    if (detected.type === "short") resolveAndFetch(detected.url);
+    else startVideoFetch(detected.videoId, detected.handle);
   }
 
   const er = useMemo(() => {

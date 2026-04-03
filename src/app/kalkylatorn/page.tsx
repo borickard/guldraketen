@@ -41,11 +41,16 @@ type Mode =
 
 type Detected =
   | { type: "video"; videoId: string; handle: string | null }
+  | { type: "short"; url: string }
   | { type: "profile"; handle: string }
   | null;
 
 function detectInput(raw: string): Detected {
   const s = raw.trim();
+  // Short links must be resolved server-side
+  if (/^https?:\/\/(vm|vt)\.tiktok\.com\/\w/.test(s)) return { type: "short", url: s };
+  if (/^https?:\/\/(?:www\.)?tiktok\.com\/t\/\w/.test(s)) return { type: "short", url: s };
+  // Standard video URL
   const vid = s.match(/\/video\/(\d+)/)?.[1];
   if (vid) {
     return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
@@ -271,6 +276,29 @@ function KalkylatornPage() {
     }
   }, []);
 
+  const resolveAndFetch = useCallback(async (shortUrl: string) => {
+    setMode("video-loading");
+    setVideoStats(null);
+    setVideoError(null);
+    try {
+      const res = await fetch("/api/resolve-tiktok-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: shortUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.videoId) {
+        setMode("video-error");
+        setVideoError(data.error ?? "Kunde inte lösa upp länken.");
+        return;
+      }
+      startVideoFetch(data.videoId, data.handle);
+    } catch {
+      setMode("video-error");
+      setVideoError("Kunde inte kontakta servern.");
+    }
+  }, [startVideoFetch]);
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -278,7 +306,9 @@ function KalkylatornPage() {
       startProfileFetch(initialProfile);
     } else if (initialUrl) {
       const detected = detectInput(initialUrl);
-      if (detected?.type === "video") startVideoFetch(detected.videoId, detected.handle);
+      if (!detected) return;
+      if (detected.type === "short") resolveAndFetch(detected.url);
+      else if (detected.type === "video") startVideoFetch(detected.videoId, detected.handle);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -289,7 +319,9 @@ function KalkylatornPage() {
     const detected = detectInput(trimmed);
     if (!detected) { setInputError(true); return; }
     setInputError(false);
-    if (detected.type === "video") {
+    if (detected.type === "short") {
+      resolveAndFetch(detected.url);
+    } else if (detected.type === "video") {
       startVideoFetch(detected.videoId, detected.handle);
     } else {
       startProfileFetch(detected.handle);
