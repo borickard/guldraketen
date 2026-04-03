@@ -44,6 +44,15 @@ interface HofScore {
   bronze: number;
 }
 
+interface Benchmark {
+  count: number;
+  average: number;
+  median: number;
+  p75: number;
+  p90: number;
+  period: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getAccount(v: RawVideo) {
@@ -88,6 +97,13 @@ function fmtWeekShort(w: string): string {
   const m = w.match(/(\d{4})-W(\d{2})/);
   if (!m) return w;
   return `Vecka ${parseInt(m[2])}`;
+}
+
+function computePercentile(er: number, bench: Benchmark): number {
+  if (er >= bench.p90) return 90 + Math.min(9, ((er - bench.p90) / bench.p90) * 20);
+  if (er >= bench.p75) return 75 + ((er - bench.p75) / (bench.p90 - bench.p75)) * 15;
+  if (er >= bench.median) return 50 + ((er - bench.median) / (bench.p75 - bench.median)) * 25;
+  return Math.max(1, (er / bench.median) * 50);
 }
 
 function groupByAccount(videos: RawVideo[]): AccountRow[] {
@@ -210,9 +226,28 @@ function HomeInner() {
   const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
   const [hofScores, setHofScores] = useState<HofScore[]>([]);
 
-  // Kalkylator-sektion state
+  // ── Inline calculator state ──────────────────────────────────────────────────
+  type CalcMode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "video-error";
   const [calcUrl, setCalcUrl] = useState("");
   const [calcUrlError, setCalcUrlError] = useState(false);
+  const [calcMode, setCalcMode] = useState<CalcMode>("idle");
+  const [calcVideoId, setCalcVideoId] = useState<string | null>(null);
+  const [calcHandle, setCalcHandle] = useState<string | null>(null);
+  const [calcStats, setCalcStats] = useState<{ views: number; likes: number; comments: number; shares: number } | null>(null);
+  const [calcError, setCalcError] = useState<string | null>(null);
+  const [calcThumb, setCalcThumb] = useState<string | null>(null);
+  const [calcLightbox, setCalcLightbox] = useState(false);
+  const [calcCopied, setCalcCopied] = useState(false);
+  const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
+  const [wLikes, setWLikes] = useState(1);
+  const [wComments, setWComments] = useState(5);
+  const [wShares, setWShares] = useState(10);
+  const [betaEmail, setBetaEmail] = useState("");
+  const [betaSubmitted, setBetaSubmitted] = useState(false);
+  const [betaLoading, setBetaLoading] = useState(false);
+  const [betaError, setBetaError] = useState<string | null>(null);
+  const calcPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const calcStartedRef = useRef(false);
 
   // Karusell-tooltip
   const [showTooltip, setShowTooltip] = useState(false);
@@ -300,17 +335,130 @@ function HomeInner() {
   }, []);
 
 
+  // Fetch benchmark on mount
+  useEffect(() => {
+    fetch("/api/benchmark").then((r) => r.json()).then(setCalcBench).catch(() => null);
+    return () => { if (calcPollRef.current) clearInterval(calcPollRef.current); };
+  }, []);
+
+  // Fetch thumbnail when result is ready
+  useEffect(() => {
+    if (calcMode !== "video-ready" || !calcVideoId) { setCalcThumb(null); return; }
+    const url = calcHandle
+      ? `https://www.tiktok.com/@${calcHandle}/video/${calcVideoId}`
+      : `https://www.tiktok.com/video/${calcVideoId}`;
+    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+      .then((r) => r.json()).then((d) => setCalcThumb(d.thumbnail_url ?? null)).catch(() => null);
+  }, [calcMode, calcVideoId, calcHandle]);
+
+  // Update URL with ?v= for shareability
+  useEffect(() => {
+    if (calcMode === "video-ready" && calcVideoId) {
+      const p = new URLSearchParams({ v: calcVideoId });
+      if (calcHandle) p.set("h", calcHandle);
+      window.history.replaceState(null, "", `/?${p}`);
+    }
+  }, [calcMode, calcVideoId, calcHandle]);
+
+  const startCalcFetch = useCallback(async (id: string, handle: string | null) => {
+    if (calcPollRef.current) clearInterval(calcPollRef.current);
+    setCalcMode("video-loading");
+    setCalcVideoId(id);
+    setCalcHandle(handle);
+    setCalcStats(null);
+    setCalcError(null);
+    if (!handle) {
+      setCalcMode("video-error");
+      setCalcError("Kunde inte läsa ut handle ur länken. Kontrollera formatet tiktok.com/@konto/video/...");
+      return;
+    }
+    try {
+      const res = await fetch("/api/fetch-video/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoId: id, handle }),
+      });
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-json */ }
+      if (!res.ok) { setCalcMode("video-error"); setCalcError((data.error as string) ?? `Serverfel (${res.status})`); return; }
+      if (data.source === "db") {
+        setCalcStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
+        setCalcMode("video-ready");
+        return;
+      }
+      const { runId } = data;
+      let ms = 0;
+      calcPollRef.current = setInterval(async () => {
+        ms += 3000;
+        if (ms >= 120_000) { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Tidsgränsen överskreds. Prova igen lite senare."); return; }
+        try {
+          const r = await fetch(`/api/fetch-video/result?runId=${runId}&videoId=${id}&handle=${encodeURIComponent(handle)}`);
+          const d = await r.json();
+          if (d.status === "ready") { clearInterval(calcPollRef.current!); setCalcStats({ views: d.views, likes: d.likes, comments: d.comments, shares: d.shares }); setCalcMode("video-ready"); }
+          else if (d.status === "not-found") { clearInterval(calcPollRef.current!); setCalcMode("video-not-found"); }
+          else if (d.status === "error") { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Hämtningen misslyckades."); }
+        } catch { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Nätverksfel."); }
+      }, 3000);
+    } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
+  }, []);
+
+  const resolveAndCalcFetch = useCallback(async (shortUrl: string) => {
+    setCalcMode("video-loading");
+    setCalcStats(null);
+    setCalcError(null);
+    try {
+      const res = await fetch("/api/resolve-tiktok-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: shortUrl }) });
+      const data = await res.json();
+      if (!res.ok || !data.videoId) { setCalcMode("video-error"); setCalcError(data.error ?? "Kunde inte lösa upp länken."); return; }
+      startCalcFetch(data.videoId, data.handle);
+    } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
+  }, [startCalcFetch]);
+
+  // Auto-fetch from ?v= URL param on mount
+  useEffect(() => {
+    if (calcStartedRef.current) return;
+    const v = searchParams.get("v");
+    const h = searchParams.get("h");
+    if (!v) return;
+    calcStartedRef.current = true;
+    const url = h ? `https://www.tiktok.com/@${h}/video/${v}` : `https://www.tiktok.com/video/${v}`;
+    setCalcUrl(url);
+    startCalcFetch(v, h);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const calcEr = useMemo(() => {
+    if (!calcStats || calcStats.views <= 0) return null;
+    return ((calcStats.likes * wLikes + calcStats.comments * wComments + calcStats.shares * wShares) / calcStats.views) * 100;
+  }, [calcStats, wLikes, wComments, wShares]);
+
+  const calcBenchPct = calcBench && calcBench.count > 0 && calcEr !== null
+    ? Math.round(computePercentile(calcEr, calcBench))
+    : null;
+
+  const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
+
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
     if (!detected) { setCalcUrlError(true); return; }
     setCalcUrlError(false);
-    if (detected.type === "short") {
-      window.location.href = `/kalkylator?url=${encodeURIComponent(detected.url)}`;
-      return;
-    }
-    const params = new URLSearchParams({ v: detected.videoId });
-    if (detected.handle) params.set("h", detected.handle);
-    window.location.href = `/kalkylator?${params}`;
+    if (detected.type === "short") resolveAndCalcFetch(detected.url);
+    else startCalcFetch(detected.videoId, detected.handle);
+  }
+
+  async function handleBetaSubmit() {
+    const email = betaEmail.trim();
+    if (!email || !/\S+@\S+\.\S+/.test(email)) { setBetaError("Ange en giltig e-postadress."); return; }
+    setBetaLoading(true);
+    setBetaError(null);
+    try {
+      const videoUrl = calcVideoId && calcHandle ? `https://www.tiktok.com/@${calcHandle}/video/${calcVideoId}` : null;
+      const res = await fetch("/api/beta-signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, videoUrl }) });
+      const data = await res.json();
+      if (!res.ok) setBetaError(data.error ?? "Något gick fel. Prova igen.");
+      else setBetaSubmitted(true);
+    } catch { setBetaError("Kunde inte kontakta servern."); }
+    finally { setBetaLoading(false); }
   }
 
   return (
@@ -573,8 +721,160 @@ function HomeInner() {
               Klistra in en TikTok-videolänk, t.ex. tiktok.com/@konto/video/12345.
             </p>
           )}
+
+          {calcMode === "video-loading" && (
+            <div className="gr-kalky-v2-loading" style={{ marginTop: 32 }}>
+              <span className="gr-kalky-v2-spinner" />
+              <span>Hämtar engagemang och analyserar</span>
+            </div>
+          )}
+
+          {calcMode === "video-not-found" && (
+            <div className="gr-kalky-v2-notice gr-kalky-v2-notice--warn" style={{ marginTop: 32 }}>
+              Videon hittades inte i TikTok. Kontrollera att länken är korrekt.
+            </div>
+          )}
+
+          {calcMode === "video-error" && calcError && (
+            <div className="gr-kalky-v2-notice gr-kalky-v2-notice--error" style={{ marginTop: 32 }}>
+              {calcError}
+            </div>
+          )}
+
+          {calcMode === "video-ready" && calcStats && (
+            <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
+              <div className="gr-kalky-v2-result-row">
+                {calcThumb && (
+                  <button className="gr-kalky-v2-thumb-btn" onClick={() => setCalcLightbox(true)} aria-label="Spela upp video">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
+                    <div className="gr-kalky-v2-play">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
+                    </div>
+                  </button>
+                )}
+                <div className="gr-kalky-v2-er-block">
+                  {calcEr !== null ? (
+                    <>
+                      <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
+                      <p className="gr-kalky-v2-er">{calcEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+                      {calcBenchPct !== null && (
+                        <>
+                          <p className="gr-kalky-v2-bench-line">
+                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av svenska företagsvideor
+                          </p>
+                          <div className="gr-kalky-v2-bench-track">
+                            <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
+                            <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(calcBenchPct, 99)}%` }} />
+                          </div>
+                          <div className="gr-kalky-v2-bench-labels">
+                            <span>0%</span><span>Topp 25%</span><span>Topp 10%</span>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="gr-kalky-v2-stats">
+                {[
+                  { lbl: "Visningar", val: calcStats.views },
+                  { lbl: "Likes", val: calcStats.likes },
+                  { lbl: "Kommentarer", val: calcStats.comments },
+                  { lbl: "Delningar", val: calcStats.shares },
+                ].map(({ lbl, val }) => (
+                  <div key={lbl} className="gr-kalky-v2-stat">
+                    <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                    <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
+                  </div>
+                ))}
+              </div>
+
+              <details className="gr-kalky-v2-weights">
+                <summary>Justera formelns vikter</summary>
+                <div className="gr-kalky-v2-weights-row">
+                  {([
+                    { label: "Likes", value: wLikes, setter: setWLikes },
+                    { label: "Kommentarer", value: wComments, setter: setWComments },
+                    { label: "Delningar", value: wShares, setter: setWShares },
+                  ] as { label: string; value: number; setter: (v: number) => void }[]).map(({ label, value, setter }) => (
+                    <div key={label} className="gr-kalky-v2-weight">
+                      <span>{label}</span>
+                      <div className="gr-kalky-v2-stepper">
+                        <button onClick={() => setter(Math.max(0, value - 1))}>−</button>
+                        <span>×{value}</span>
+                        <button onClick={() => setter(Math.min(20, value + 1))}>+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="gr-kalky-v2-formula">
+                  (likes×{wLikes} + kommentarer×{wComments} + delningar×{wShares}) ÷ visningar × 100
+                </p>
+                {weightsChanged && (
+                  <button className="gr-kalky-v2-reset" onClick={() => { setWLikes(1); setWComments(5); setWShares(10); }}>
+                    Återställ standardvikter
+                  </button>
+                )}
+              </details>
+
+              <div className="gr-kalky-v2-share">
+                <span className="gr-kalky-v2-share-url">
+                  {typeof window !== "undefined" ? window.location.href : ""}
+                </span>
+                <button
+                  className="gr-kalky-v2-copy-btn"
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); setCalcCopied(true); setTimeout(() => setCalcCopied(false), 2000); }}
+                >
+                  {calcCopied ? "Kopierad!" : "Kopiera länk"}
+                </button>
+              </div>
+
+              <div className="gr-kalky-beta">
+                <p className="gr-kalky-beta-desc">
+                  Vill du testa hela din profil? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
+                </p>
+                {betaSubmitted ? (
+                  <p className="gr-kalky-beta-success">Tack! Vi hör av oss när beta öppnar.</p>
+                ) : (
+                  <>
+                    <div className="gr-kalky-beta-row">
+                      <input
+                        type="email"
+                        className="gr-kalky-beta-email"
+                        placeholder="din@email.se"
+                        value={betaEmail}
+                        onChange={(e) => { setBetaEmail(e.target.value); setBetaError(null); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleBetaSubmit(); }}
+                      />
+                      <button className="gr-kalky-beta-btn" onClick={handleBetaSubmit} disabled={betaLoading}>
+                        {betaLoading ? "..." : "Anmäl"}
+                      </button>
+                    </div>
+                    {betaError && <p className="gr-kalky-beta-err">{betaError}</p>}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+      {calcLightbox && calcVideoId && (
+        <div className="gr-kalky-lightbox" onClick={() => setCalcLightbox(false)}>
+          <div className="gr-kalky-lightbox-inner" onClick={(e) => e.stopPropagation()}>
+            <button className="gr-kalky-lightbox-close" onClick={() => setCalcLightbox(false)} aria-label="Stäng">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <iframe src={`https://www.tiktok.com/embed/v2/${calcVideoId}`} className="gr-kalky-lightbox-frame" allow="fullscreen" allowFullScreen />
+          </div>
+        </div>
+      )}
 
       {/* ── HALL OF FAME ─────────────────────────────────────────────── */}
       {hofScores.length > 0 && (
