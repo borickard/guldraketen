@@ -477,14 +477,12 @@ function HomeInner() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={thumb} alt="" className="gr-rk-card-front-img" />
                           )}
+                          <span className="gr-rk-card-pos">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
                         </div>
                         <div className="gr-rk-card-front-info">
-                          <div className="gr-rk-card-top">
-                            <span className="gr-rk-card-pos">
-                              {String(i + 1).padStart(2, "0")}
-                            </span>
-                            <div className="gr-rk-card-name">{acc.displayName}</div>
-                          </div>
+                          <div className="gr-rk-card-name">{acc.displayName}</div>
                           <div className="gr-rk-card-er" style={{ color: rankColor(i) }}>
                             {acc.bestEngagement.toFixed(2)}%
                           </div>

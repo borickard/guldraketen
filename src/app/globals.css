@@ -4483,6 +4483,10 @@ body {
   color: #EDF8FB;
 }
 
+.gr-list-section .gr-page-hdr {
+  border-bottom: none;
+}
+
 .gr-list-section .gr-wk-pill {
   background: rgba(237, 248, 251, 0.1);
   color: #EDF8FB;
@@ -4995,12 +4999,16 @@ body {
 }
 
 .gr-rk-card-pos {
+  position: absolute;
+  top: 10px;
+  left: 12px;
   font-family: 'Barlow', sans-serif;
   font-size: 13px;
-  font-weight: 500;
-  color: rgba(7, 37, 58, 0.45);
+  font-weight: 700;
+  color: #fff;
   line-height: 1;
-  flex-shrink: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55);
+  z-index: 1;
 }
 
 .gr-rk-card-name {
