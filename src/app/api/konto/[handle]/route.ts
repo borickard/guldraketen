@@ -32,7 +32,7 @@ export async function GET(
   // 1. Fetch account row
   const { data: account, error: accErr } = await supabaseAdmin
     .from("accounts")
-    .select("handle, display_name, avatar_url, followers, category, created_at")
+    .select("handle, display_name, avatar_url, followers, created_at")
     .eq("handle", handle)
     .maybeSingle();
 

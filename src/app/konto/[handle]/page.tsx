@@ -11,7 +11,6 @@ interface Account {
   display_name: string | null;
   avatar_url: string | null;
   followers: number | null;
-  category: string | null;
   created_at: string;
 }
 
@@ -145,10 +144,7 @@ export default function KontoPage() {
                 <h1 className="gr-konto-name">{displayName}</h1>
                 <div className="gr-konto-meta">
                   <span className="gr-konto-handle">@{handle}</span>
-                  {account.category && (
-                    <span className="gr-konto-category">{account.category}</span>
-                  )}
-                  {account.followers && account.followers > 0 && (
+{account.followers && account.followers > 0 && (
                     <span className="gr-konto-followers">{fmt(account.followers)} följare</span>
                   )}
                 </div>
