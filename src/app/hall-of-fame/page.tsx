@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Suspense } from "react";
 
 interface VideoEntry {
@@ -127,6 +127,22 @@ function HallOfFameInner() {
   const [loadingWinners, setLoadingWinners] = useState(true);
   const [loadingScores, setLoadingScores] = useState(true);
   const [sort, setSort] = useState<SortOrder>("newest");
+  const [visibleRows, setVisibleRows] = useState(3);
+  const [cols, setCols] = useState(3);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!gridRef.current) return;
+    const measure = () => {
+      if (!gridRef.current) return;
+      const colStr = getComputedStyle(gridRef.current).gridTemplateColumns;
+      setCols(colStr.trim().split(/\s+/).length);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(gridRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     fetch("/api/tidigare-raketer")
@@ -142,6 +158,7 @@ function HallOfFameInner() {
   }, []);
 
   const sortedEntries = useMemo(() => {
+    setVisibleRows(3);
     const list = [...rawEntries];
     switch (sort) {
       case "oldest":   return list.sort((a, b) => a.week.localeCompare(b.week));
@@ -187,37 +204,49 @@ function HallOfFameInner() {
           ) : sortedEntries.length === 0 ? (
             <p style={{ padding: "24px", color: "rgba(28,27,25,0.45)", fontFamily: "var(--gr-mono)", fontSize: "var(--gr-fs-xs)" }}>Inga vinnare ännu.</p>
           ) : (
-            <div className="gr-hof-flat-grid">
-              {sortedEntries.map((entry) => (
-                <a
-                  key={`${entry.week}-${entry.handle}`}
-                  href={entry.bestVideo.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="gr-vc"
-                >
-                  <div className="gr-thumb">
-                    <Thumb src={entry.bestVideo.thumbnail_url} name={entry.displayName} />
-                    <span className="gr-thumb-views">{fmt(entry.bestVideo.views)}</span>
-                    <div className="gr-thumb-stats">
-                      <span><HeartIcon />{fmt(entry.bestVideo.likes)}</span>
-                      <span><CommentIcon />{fmt(entry.bestVideo.comments)}</span>
-                      <span><ShareIcon />{fmt(entry.bestVideo.shares)}</span>
+            <>
+              <div className="gr-hof-flat-grid" ref={gridRef}>
+                {sortedEntries.slice(0, visibleRows * cols).map((entry) => (
+                  <a
+                    key={`${entry.week}-${entry.handle}`}
+                    href={entry.bestVideo.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gr-vc"
+                  >
+                    <div className="gr-thumb">
+                      <Thumb src={entry.bestVideo.thumbnail_url} name={entry.displayName} />
+                      <span className="gr-thumb-views">{fmt(entry.bestVideo.views)}</span>
+                      <div className="gr-thumb-stats">
+                        <span><HeartIcon />{fmt(entry.bestVideo.likes)}</span>
+                        <span><CommentIcon />{fmt(entry.bestVideo.comments)}</span>
+                        <span><ShareIcon />{fmt(entry.bestVideo.shares)}</span>
+                      </div>
+                      <span className="gr-thumb-best" style={{ background: RANK_COLORS[entry.rank - 1] }}>
+                        #{entry.rank}
+                      </span>
                     </div>
-                    <span className="gr-thumb-best" style={{ background: RANK_COLORS[entry.rank - 1] }}>
-                      #{entry.rank}
-                    </span>
-                  </div>
-                  <div className="gr-vid-info">
-                    <p className="gr-vid-title">{entry.bestVideo.caption ?? entry.displayName}</p>
-                    <p className="gr-vid-eng" style={{ color: entry.rank === 1 ? "#C8962A" : "rgba(28,27,25,.45)" }}>
-                      {Number(entry.bestVideo.engagement_rate).toFixed(2)}% eng.
-                    </p>
-                    <p className="gr-hof-card-week">{fmtWeek(entry.week)}</p>
-                  </div>
-                </a>
-              ))}
-            </div>
+                    <div className="gr-vid-info">
+                      <p className="gr-vid-title">{entry.bestVideo.caption ?? entry.displayName}</p>
+                      <p className="gr-vid-eng" style={{ color: entry.rank === 1 ? "#C8962A" : "rgba(28,27,25,.45)" }}>
+                        {Number(entry.bestVideo.engagement_rate).toFixed(2)}% eng.
+                      </p>
+                      <p className="gr-hof-card-week">{fmtWeek(entry.week)}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+              {visibleRows * cols < sortedEntries.length && (
+                <div className="gr-hof-load-more">
+                  <button
+                    className="gr-hof-load-more-btn"
+                    onClick={() => setVisibleRows((r) => r + 3)}
+                  >
+                    Visa fler ({sortedEntries.length - visibleRows * cols} kvar)
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
