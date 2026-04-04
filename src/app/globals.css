@@ -1154,9 +1154,9 @@ body {
   justify-content: center;
   margin-left: 6px;
   padding: 3px 5px;
-  border: 1px solid rgba(237,248,251,0.3);
+  border: 1px solid rgba(28,27,25,0.25);
   border-radius: 4px;
-  color: rgba(237,248,251,0.6);
+  color: rgba(28,27,25,0.5);
   text-decoration: none;
   vertical-align: middle;
   line-height: 1;
@@ -1164,9 +1164,9 @@ body {
 }
 
 .gr-score-profile-btn:hover {
-  background: rgba(237,248,251,0.15);
-  color: #EDF8FB;
-  border-color: rgba(237,248,251,0.6);
+  background: rgba(28,27,25,0.07);
+  color: var(--gr-dark);
+  border-color: rgba(28,27,25,0.5);
 }
 
 .gr-score-pts {
