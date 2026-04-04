@@ -1057,6 +1057,11 @@ body {
   border-radius: 16.5px 16.5px 0 0;
 }
 
+.gr-hof-filler {
+  /* Invisible placeholder to fill incomplete grid rows */
+  visibility: hidden;
+}
+
 .gr-hof-card-week {
   font-family: 'Barlow', sans-serif;
   font-size: var(--gr-fs-label);

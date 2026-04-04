@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Suspense } from "react";
 
 interface VideoEntry {
@@ -129,19 +129,13 @@ function HallOfFameInner() {
   const [sort, setSort] = useState<SortOrder>("newest");
   const [visibleRows, setVisibleRows] = useState(3);
   const [cols, setCols] = useState(3);
-  const gridRef = useRef<HTMLDivElement>(null);
 
+  // Match the CSS breakpoint: ≤600px → 2 columns, else 3
   useEffect(() => {
-    if (!gridRef.current) return;
-    const measure = () => {
-      if (!gridRef.current) return;
-      const colStr = getComputedStyle(gridRef.current).gridTemplateColumns;
-      setCols(colStr.trim().split(/\s+/).length);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(gridRef.current);
-    return () => ro.disconnect();
+    const update = () => setCols(window.innerWidth <= 600 ? 2 : 3);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   useEffect(() => {
@@ -205,7 +199,7 @@ function HallOfFameInner() {
             <p style={{ padding: "24px", color: "rgba(28,27,25,0.45)", fontFamily: "var(--gr-mono)", fontSize: "var(--gr-fs-xs)" }}>Inga vinnare ännu.</p>
           ) : (
             <>
-              <div className="gr-hof-flat-grid" ref={gridRef}>
+              <div className="gr-hof-flat-grid">
                 {sortedEntries.slice(0, visibleRows * cols).map((entry) => (
                   <a
                     key={`${entry.week}-${entry.handle}`}
@@ -235,6 +229,15 @@ function HallOfFameInner() {
                     </div>
                   </a>
                 ))}
+                {/* Fill incomplete last row so no card is ever alone */}
+                {(() => {
+                  const shown = Math.min(visibleRows * cols, sortedEntries.length);
+                  const remainder = shown % cols;
+                  const fillers = remainder === 0 ? 0 : cols - remainder;
+                  return Array.from({ length: fillers }, (_, i) => (
+                    <div key={`filler-${i}`} className="gr-hof-filler" aria-hidden />
+                  ));
+                })()}
               </div>
               {visibleRows * cols < sortedEntries.length && (
                 <div className="gr-hof-load-more">
@@ -242,7 +245,7 @@ function HallOfFameInner() {
                     className="gr-hof-load-more-btn"
                     onClick={() => setVisibleRows((r) => r + 3)}
                   >
-                    Visa fler ({sortedEntries.length - visibleRows * cols} kvar)
+                    Visa fler ({sortedEntries.length - Math.min(visibleRows * cols, sortedEntries.length)} kvar)
                   </button>
                 </div>
               )}
