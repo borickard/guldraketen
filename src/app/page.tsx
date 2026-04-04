@@ -963,7 +963,16 @@ function HomeInner() {
                 <li key={s.handle} className="gr-hof-inline-item">
                   <span className="gr-hof-inline-rank">{i + 1}</span>
                   <MedalDot color={[C.gold, C.silver, C.bronze][i] ?? "rgba(7,37,58,0.25)"} />
-                  <span className="gr-hof-inline-name">{s.displayName || `@${s.handle}`}</span>
+                  <span className="gr-hof-inline-name">
+                    {s.displayName || `@${s.handle}`}
+                    <a href={`/konto/${s.handle}`} className="gr-score-profile-btn" aria-label={`Visa profil för ${s.displayName || s.handle}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </a>
+                  </span>
                   <span className="gr-hof-inline-pts">{s.totalPoints}p</span>
                 </li>
               ))}
