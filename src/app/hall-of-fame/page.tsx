@@ -148,7 +148,7 @@ function HallOfFameInner() {
   }, [weekGroups, sort]);
 
   return (
-    <main className="gr-root gr-page">
+    <main className="gr-hof-page gr-page">
 
       {/* ── Page header ── */}
       <div className="gr-page-hdr">

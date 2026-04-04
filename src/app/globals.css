@@ -942,6 +942,28 @@ body {
   opacity: 0.65;
 }
 
+/* ── Hall of Fame page wrapper ── */
+.gr-hof-page {
+  background: #EBE7E2;
+  color: var(--gr-dark);
+  min-height: 100vh;
+}
+
+.gr-hof-page .gr-page-hdr {
+  border-bottom: 1px solid rgba(28,27,25,0.1);
+}
+
+.gr-hof-page .gr-content-aside {
+  border-left: 1px solid rgba(28,27,25,0.1);
+}
+
+@media (max-width: 839px) {
+  .gr-hof-page .gr-content-aside {
+    border-left: none;
+    border-top: 1px solid rgba(28,27,25,0.1);
+  }
+}
+
 /* ── Hall of Fame ── */
 .gr-hof-section-hdr {
   display: flex;
@@ -950,7 +972,7 @@ body {
   gap: 12px;
   min-height: 55px;
   padding: 14px 24px;
-  border-bottom: 1px solid var(--gr-line);
+  border-bottom: 1px solid rgba(28,27,25,0.1);
   flex-wrap: wrap;
 }
 
@@ -958,7 +980,7 @@ body {
   position: sticky;
   top: 34px;
   z-index: 10;
-  background: var(--gr-bg);
+  background: #EBE7E2;
 }
 
 @media (min-width: 840px) {
@@ -975,7 +997,7 @@ body {
   font-size: var(--gr-fs-xs);
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--gr-muted);
+  color: rgba(28,27,25,0.45);
   margin: 0;
 }
 
@@ -992,7 +1014,7 @@ body {
   text-transform: uppercase;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1.5px solid var(--gr-line);
+  border: 1.5px solid rgba(28,27,25,0.2);
   background: transparent;
   color: var(--gr-dark);
   opacity: 0.45;
@@ -1003,7 +1025,7 @@ body {
 .gr-sort-pill.active {
   background: var(--gr-dark);
   border-color: var(--gr-dark);
-  color: var(--gr-bg);
+  color: #EBE7E2;
   opacity: 1;
 }
 
@@ -1016,7 +1038,7 @@ body {
 
 /* Week group in Hall of Fame */
 .gr-hof-week-group {
-  border: 1px solid var(--gr-line);
+  border: 1px solid rgba(28,27,25,0.1);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1111,14 +1133,14 @@ body {
   color: rgba(28,27,25,.4);
   text-align: left;
   padding: 0 0 12px;
-  border-bottom: 1px solid var(--gr-line);
+  border-bottom: 1px solid rgba(28,27,25,0.1);
 }
 
 .gr-score-table th.right { text-align: right; }
 
 .gr-score-row td {
   padding: 12px 0;
-  border-bottom: 1px solid var(--gr-line);
+  border-bottom: 1px solid rgba(28,27,25,0.1);
   vertical-align: middle;
 }
 .gr-score-row:last-child td { border-bottom: none; }
