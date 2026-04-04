@@ -1674,6 +1674,7 @@ body {
   flex-shrink: 0;
   line-height: 1;
   transition: font-size 0.25s ease;
+  cursor: pointer;
 }
 
 .gr-nav--compact .gr-nav-logo {
