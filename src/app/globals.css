@@ -2068,6 +2068,7 @@ body {
     position: sticky;
     top: 34px;
     align-self: start;
+    z-index: 15;
   }
 }
 

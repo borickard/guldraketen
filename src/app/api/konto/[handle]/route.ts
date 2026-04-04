@@ -39,12 +39,31 @@ export async function GET(
   if (accErr) return NextResponse.json({ error: accErr.message }, { status: 500 });
   if (!account) return NextResponse.json({ error: "Konto hittades inte" }, { status: 404 });
 
-  // 2. Fetch all videos for this handle
+  // 2. Fetch videos for this handle — exclude current + previous week (data not yet settled)
+  const [currentWeek, previousWeek] = currentAndPreviousWeek();
+
+  // Compute the Monday of the previous week as a date cutoff
+  // Anything published_at before that Monday is considered "settled"
+  function weekBoundStart(isoWeek: string): Date {
+    const [yearStr, weekStr] = isoWeek.split("-W");
+    const year = parseInt(yearStr);
+    const weekNum = parseInt(weekStr);
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const startOfWeek1 = new Date(jan4);
+    startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+    const monday = new Date(startOfWeek1);
+    monday.setUTCDate(startOfWeek1.getUTCDate() + (weekNum - 1) * 7);
+    return monday;
+  }
+
+  const cutoffDate = weekBoundStart(previousWeek); // Monday of previous week → exclude from there
+
   const { data: videos, error: vidErr } = await supabaseAdmin
     .from("videos")
     .select("id, video_url, published_at, views, likes, comments, shares, engagement_rate, thumbnail_url, caption")
     .eq("handle", handle)
     .or("is_contest.eq.false,contest_approved.eq.true")
+    .lt("published_at", cutoffDate.toISOString())
     .order("published_at", { ascending: false })
     .limit(500);
 
@@ -62,8 +81,6 @@ export async function GET(
     : null;
 
   // 4. Compute top-3 finish counts by re-running the weekly ranking across all accounts
-  const [currentWeek, previousWeek] = currentAndPreviousWeek();
-
   const { data: allVideos } = await supabaseAdmin
     .from("videos")
     .select("handle, views, engagement_rate, published_at")
