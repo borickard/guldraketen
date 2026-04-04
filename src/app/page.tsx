@@ -334,6 +334,18 @@ function HomeInner() {
     setExpanded((e) => (e === handle ? null : handle));
   }, []);
 
+  const RANK_SLUGS = ["guld", "silver", "brons"];
+  const [copiedRank, setCopiedRank] = useState<number | null>(null);
+
+  function handleShareCard(e: React.MouseEvent, rank: number) {
+    e.stopPropagation();
+    const slug = RANK_SLUGS[rank];
+    const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/${selectedWeek}/${slug}`;
+    navigator.clipboard.writeText(url);
+    setCopiedRank(rank);
+    setTimeout(() => setCopiedRank(null), 2000);
+  }
+
 
   // Fetch benchmark on mount
   useEffect(() => {
@@ -640,6 +652,20 @@ function HomeInner() {
                           <span className="gr-rk-card-pos">
                             {String(i + 1).padStart(2, "0")}
                           </span>
+                          <button
+                            className="gr-rk-card-share"
+                            onClick={(e) => handleShareCard(e, i)}
+                            aria-label="Kopiera länk"
+                          >
+                            {copiedRank === i ? (
+                              <span className="gr-rk-card-share-copied">Kopierad!</span>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                         <div className="gr-rk-card-front-info">
                           <div className="gr-rk-card-name">{acc.displayName}</div>
@@ -684,6 +710,13 @@ function HomeInner() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           Visa videon
+                        </a>
+                        <a
+                          href={`/konto/${acc.handle}`}
+                          className="gr-rk-card-back-profile"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Se profil
                         </a>
                       </div>
                     </div>
