@@ -2240,11 +2240,12 @@ body {
 }
 
 .gr-score-name-link {
-  color: inherit;
+  color: #EDF8FB;
   text-decoration: none;
 }
 
 .gr-score-name-link:hover {
+  opacity: 0.75;
   text-decoration: underline;
 }
 
@@ -5551,6 +5552,11 @@ body {
 }
 
 /* ── Account profile page /konto/[handle] ── */
+
+.gr-konto-page {
+  background: var(--gr-bg);
+  min-height: 100vh;
+}
 
 .gr-konto-wrap {
   max-width: 900px;

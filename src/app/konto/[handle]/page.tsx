@@ -107,7 +107,7 @@ export default function KontoPage() {
   const { gold = 0, silver = 0, bronze = 0 } = stats?.topFinishes ?? {};
 
   return (
-    <div className="gr-root">
+    <div className="gr-konto-page">
       <div className="gr-konto-wrap">
 
         {/* Back link */}
@@ -245,3 +245,4 @@ export default function KontoPage() {
     </div>
   );
 }
+
