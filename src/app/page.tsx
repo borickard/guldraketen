@@ -889,18 +889,6 @@ function HomeInner() {
                 </a>
               ))}
             </div>
-            <div className="gr-carousel-row gr-carousel-row--rev">
-              {Array.from({length: 6}, () => carouselRow2).flat().map((v, i) => (
-                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
-                  <div className="gr-carousel-info">
-                    <span className="gr-carousel-name">{displayName(v)}</span>
-                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-                  </div>
-                </a>
-              ))}
-            </div>
           </div>
         </section>
       )}
