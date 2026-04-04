@@ -245,7 +245,16 @@ function HallOfFameInner() {
                 {scores.slice(0, 10).map((entry, i) => (
                   <tr key={entry.handle} className="gr-score-row">
                     <td className="gr-score-rank">{i + 1}</td>
-                    <td className="gr-score-name"><a href={`/konto/${entry.handle}`} className="gr-score-name-link">{entry.displayName}</a></td>
+                    <td className="gr-score-name">
+                      {entry.displayName}
+                      <a href={`/konto/${entry.handle}`} className="gr-score-profile-btn" aria-label={`Visa profil för ${entry.displayName}`}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/>
+                          <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                      </a>
+                    </td>
                     <td><MedalBadges gold={entry.gold} silver={entry.silver} bronze={entry.bronze} /></td>
                     <td className="gr-score-pts">{entry.totalPoints}p</td>
                   </tr>

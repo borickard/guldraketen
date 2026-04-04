@@ -1148,6 +1148,27 @@ body {
   text-decoration: underline;
 }
 
+.gr-score-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 3px 5px;
+  border: 1px solid rgba(237,248,251,0.3);
+  border-radius: 4px;
+  color: rgba(237,248,251,0.6);
+  text-decoration: none;
+  vertical-align: middle;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.gr-score-profile-btn:hover {
+  background: rgba(237,248,251,0.15);
+  color: #EDF8FB;
+  border-color: rgba(237,248,251,0.6);
+}
+
 .gr-score-pts {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: var(--gr-fs-lg);
