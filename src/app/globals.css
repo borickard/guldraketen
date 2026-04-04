@@ -1004,6 +1004,7 @@ body {
 /* Sort pills */
 .gr-sort-pills {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -1029,48 +1030,40 @@ body {
   opacity: 1;
 }
 
-.gr-hof-weeks-wrap {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-/* Week group in Hall of Fame */
-.gr-hof-week-group {
-  border: 1px solid rgba(28,27,25,0.1);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.gr-hof-week-label {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(235, 231, 226, 0.75);
-  background: var(--gr-dark);
-  padding: 10px 18px;
-}
-
-/* HoF card grid — reuses .gr-vc/.gr-thumb but fills the 2-col grid */
-.gr-hof-card-row {
+.gr-hof-flat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 12px;
+  gap: 16px;
+  padding: 24px;
 }
 
-.gr-hof-card-row .gr-vc {
+@media (max-width: 600px) {
+  .gr-hof-flat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+}
+
+.gr-hof-flat-grid .gr-vc {
   width: 100%;
   flex-shrink: unset;
 }
 
-.gr-hof-card-row .gr-thumb {
+.gr-hof-flat-grid .gr-thumb {
   width: 100%;
   height: unset;
   aspect-ratio: 9 / 16;
   border-radius: 16.5px 16.5px 0 0;
+}
+
+.gr-hof-card-week {
+  font-family: 'Barlow', sans-serif;
+  font-size: var(--gr-fs-label);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,0.3);
+  margin: 2px 0 0;
 }
 
 /* Raketer list rows — mirror entry row style */
