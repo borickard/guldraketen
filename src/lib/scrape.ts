@@ -10,7 +10,11 @@ const RESULTS_PER_PROFILE = 50;
 // Returnerar direkt med ett runId – väntar INTE på att scraping ska bli klar.
 // Apify kallar på webhookUrl när jobbet är klart.
 
-export async function startScrape(webhookUrl: string, daysBack = 14): Promise<{ runId: string; handles: number }> {
+export async function startScrape(
+    webhookUrl: string,
+    daysBack = 14,
+    triggeredBy: "cron" | "manual" = "manual"
+): Promise<{ runId: string; handles: number; scrapeRunId: string }> {
     const apifyToken = process.env.APIFY_TOKEN;
     if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
 
@@ -23,6 +27,15 @@ export async function startScrape(webhookUrl: string, daysBack = 14): Promise<{ 
 
     const handles = (accounts ?? []).map((a: { handle: string }) => a.handle);
     if (handles.length === 0) throw new Error("Inga aktiva konton");
+
+    // Insert scrape_runs row before starting Apify
+    const { data: runRow, error: insertErr } = await supabaseAdmin
+        .from("scrape_runs")
+        .insert({ triggered_by: triggeredBy, days_back: daysBack, handles: handles.length, status: "started" })
+        .select("id")
+        .single();
+    if (insertErr) console.error("scrape_runs insert error:", insertErr.message);
+    const scrapeRunId: string = runRow?.id ?? "";
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysBack);
@@ -37,35 +50,61 @@ export async function startScrape(webhookUrl: string, daysBack = 14): Promise<{ 
             }
         ])))}`;
 
-    const res = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apifyToken}`,
-        },
-        body: JSON.stringify({
-            profiles: handles,
-            profileScrapeSections: ["videos"],
-            profileSorting: "latest",
-            resultsPerPage: RESULTS_PER_PROFILE,
-            excludePinnedPosts: true,
-            oldestPostDateUnified: cutoffStr,
-        }),
-    });
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apifyToken}`,
+            },
+            body: JSON.stringify({
+                profiles: handles,
+                profileScrapeSections: ["videos"],
+                profileSorting: "latest",
+                resultsPerPage: RESULTS_PER_PROFILE,
+                excludePinnedPosts: true,
+                oldestPostDateUnified: cutoffStr,
+            }),
+        });
+    } catch (err) {
+        if (scrapeRunId) {
+            await supabaseAdmin.from("scrape_runs").update({
+                status: "failed",
+                error: err instanceof Error ? err.message : String(err),
+                completed_at: new Date().toISOString(),
+            }).eq("id", scrapeRunId);
+        }
+        throw err;
+    }
 
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Apify start error ${res.status}: ${text}`);
+        const errMsg = `Apify start error ${res.status}: ${text}`;
+        if (scrapeRunId) {
+            await supabaseAdmin.from("scrape_runs").update({
+                status: "failed",
+                error: errMsg,
+                completed_at: new Date().toISOString(),
+            }).eq("id", scrapeRunId);
+        }
+        throw new Error(errMsg);
     }
 
     const { data: run } = await res.json();
-    return { runId: run.id, handles: handles.length };
+
+    // Store Apify run ID for webhook lookup
+    if (scrapeRunId) {
+        await supabaseAdmin.from("scrape_runs").update({ run_id: run.id }).eq("id", scrapeRunId);
+    }
+
+    return { runId: run.id, handles: handles.length, scrapeRunId };
 }
 
 // ─── Bearbeta Apify-resultat (anropas från webhook) ───────────────────────────
 // Hämtar dataset-items via datasetId och skriver till Supabase.
 
-export async function processScrapeResults(datasetId: string): Promise<ScrapeResult> {
+export async function processScrapeResults(datasetId: string, apifyRunId?: string): Promise<ScrapeResult> {
     const apifyToken = process.env.APIFY_TOKEN;
     if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
 
@@ -188,12 +227,28 @@ export async function processScrapeResults(datasetId: string): Promise<ScrapeRes
         }
     }
 
-    return {
+    const result: ScrapeResult = {
         message: "Klar",
         upserted,
         skipped,
         followers: Object.keys(followerMap).length,
     };
+
+    // Update scrape_runs row on completion
+    if (apifyRunId) {
+        await supabaseAdmin
+            .from("scrape_runs")
+            .update({
+                status: "completed",
+                upserted,
+                skipped,
+                followers: result.followers,
+                completed_at: new Date().toISOString(),
+            })
+            .eq("run_id", apifyRunId);
+    }
+
+    return result;
 }
 
 // ─── Contest detection ────────────────────────────────────────────────────────

@@ -129,6 +129,39 @@ engagement_rate  numeric generated always as (
 last_updated     timestamptz default now()
 ```
 
+### `scrape_runs`
+```sql
+id           uuid primary key default gen_random_uuid()
+run_id       text                        -- Apify run ID (set after successful start)
+triggered_by text not null default 'unknown'  -- 'cron' | 'manual'
+days_back    integer
+handles      integer                     -- number of active accounts at start
+status       text not null default 'started'  -- 'started' | 'completed' | 'failed'
+error        text                        -- error message if failed
+upserted     integer                     -- videos upserted on completion
+skipped      integer
+followers    integer                     -- accounts with follower updates
+started_at   timestamptz not null default now()
+completed_at timestamptz
+```
+**Create table SQL:**
+```sql
+create table scrape_runs (
+  id           uuid primary key default gen_random_uuid(),
+  run_id       text,
+  triggered_by text not null default 'unknown',
+  days_back    integer,
+  handles      integer,
+  status       text not null default 'started',
+  error        text,
+  upserted     integer,
+  skipped      integer,
+  followers    integer,
+  started_at   timestamptz not null default now(),
+  completed_at timestamptz
+);
+```
+
 ### `calculator_tests`
 ```sql
 id               uuid primary key default gen_random_uuid()

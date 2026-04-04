@@ -26,6 +26,21 @@ interface ContestVideo {
   accounts: { display_name: string | null } | { display_name: string | null }[] | null;
 }
 
+interface ScrapeRun {
+  id: string;
+  run_id: string | null;
+  triggered_by: string;
+  days_back: number | null;
+  handles: number | null;
+  status: "started" | "completed" | "failed";
+  error: string | null;
+  upserted: number | null;
+  skipped: number | null;
+  followers: number | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
 interface Account {
   id: string;
   handle: string;
@@ -194,7 +209,17 @@ export default function AdminPage() {
     if (res.ok) await fetchAccounts();
   }
 
-  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator">("konton");
+  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log">("konton");
+  const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
+  const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
+
+  async function fetchScrapeRuns() {
+    setLoadingScrapeRuns(true);
+    const res = await fetch("/api/admin/scrape-runs");
+    const data = await res.json();
+    setScrapeRuns(Array.isArray(data) ? data : []);
+    setLoadingScrapeRuns(false);
+  }
 
   const active = accounts.filter((a) => a.is_active);
   const inactive = accounts.filter((a) => !a.is_active);
@@ -213,11 +238,15 @@ export default function AdminPage() {
             { key: "konton", label: "Konton", meta: `${active.length} aktiva` },
             { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.length} flaggade` },
             { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
+            { key: "scrape-log", label: "Scrape-log", meta: "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
               className={`admin-tab${activeSection === tab.key ? " admin-tab--active" : ""}`}
-              onClick={() => setActiveSection(tab.key)}
+              onClick={() => {
+                setActiveSection(tab.key);
+                if (tab.key === "scrape-log") fetchScrapeRuns();
+              }}
             >
               {tab.label}
               <span className="admin-tab-meta">{tab.meta}</span>
@@ -496,6 +525,66 @@ export default function AdminPage() {
           )}
         </div>
         }
+
+        {/* ── Section 4: Scrape-log ── */}
+        {activeSection === "scrape-log" && <div className="admin-section">
+          <div className="admin-section-hdr" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <h2 className="admin-section-title">Scrape-log</h2>
+            <button className="add-btn" onClick={fetchScrapeRuns} disabled={loadingScrapeRuns}>
+              {loadingScrapeRuns ? "Laddar…" : "Uppdatera"}
+            </button>
+          </div>
+
+          {loadingScrapeRuns ? (
+            <p className="loading">Laddar…</p>
+          ) : scrapeRuns.length === 0 ? (
+            <p className="empty">Inga körningar loggade ännu.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="calc-table" style={{ fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    <th>Tid</th>
+                    <th>Källa</th>
+                    <th>Status</th>
+                    <th className="right">Konton</th>
+                    <th className="right">Dagar</th>
+                    <th className="right">Upsertade</th>
+                    <th className="right">Hoppade</th>
+                    <th className="right">Varaktighet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scrapeRuns.map((r) => {
+                    const duration = r.completed_at
+                      ? Math.round((new Date(r.completed_at).getTime() - new Date(r.started_at).getTime()) / 1000)
+                      : null;
+                    const statusColor = r.status === "completed" ? "#2a7a2a" : r.status === "failed" ? "#b30000" : "#a06000";
+                    return (
+                      <tr key={r.id}>
+                        <td style={{ whiteSpace: "nowrap" }}>{new Date(r.started_at).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}</td>
+                        <td>{r.triggered_by}</td>
+                        <td style={{ color: statusColor, fontWeight: 600 }}>
+                          {r.status}
+                          {r.status === "failed" && r.error && (
+                            <span title={r.error} style={{ cursor: "help", marginLeft: 4 }}>⚠</span>
+                          )}
+                        </td>
+                        <td className="right">{r.handles ?? "—"}</td>
+                        <td className="right">{r.days_back ?? "—"}</td>
+                        <td className="right">{r.upserted ?? "—"}</td>
+                        <td className="right">{r.skipped ?? "—"}</td>
+                        <td className="right">{duration !== null ? `${duration}s` : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        }
+
       </div>
     </>
   );
