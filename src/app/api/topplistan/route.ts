@@ -106,5 +106,7 @@ export async function GET() {
     .map(([handle, s]) => ({ handle, ...s }))
     .sort((a, b) => b.totalPoints - a.totalPoints || b.gold - a.gold);
 
-  return NextResponse.json(result);
+  const res = NextResponse.json(result);
+  res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  return res;
 }

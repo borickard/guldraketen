@@ -42,7 +42,7 @@ export async function GET() {
   const p75 = rates[Math.floor(count * 0.75)];
   const p90 = rates[Math.floor(count * 0.90)];
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     count,
     average: Math.round(average * 10000) / 10000,
     median: Math.round(median * 10000) / 10000,
@@ -50,4 +50,6 @@ export async function GET() {
     p90: Math.round(p90 * 10000) / 10000,
     period,
   });
+  res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  return res;
 }

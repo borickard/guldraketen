@@ -58,5 +58,7 @@ export async function GET() {
     }
 
     const weeks = Array.from(weekSet).sort((a, b) => (b > a ? 1 : -1));
-    return NextResponse.json(weeks);
+    const res = NextResponse.json(weeks);
+    res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+    return res;
 }

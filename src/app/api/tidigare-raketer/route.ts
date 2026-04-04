@@ -118,5 +118,7 @@ export async function GET() {
   // Sort newest week first
   weekGroups.sort((a, b) => (b.week > a.week ? 1 : -1));
 
-  return NextResponse.json(weekGroups);
+  const res = NextResponse.json(weekGroups);
+  res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  return res;
 }

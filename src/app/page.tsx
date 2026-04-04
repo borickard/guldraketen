@@ -310,6 +310,16 @@ function HomeInner() {
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
+  const dataFreshnessLabel = useMemo(() => {
+    if (!videos.length) return null;
+    const maxUpdated = videos.reduce((max, v) =>
+      v.last_updated > max ? v.last_updated : max, videos[0].last_updated);
+    const days = Math.round((Date.now() - new Date(maxUpdated).getTime()) / (24 * 60 * 60 * 1000));
+    if (days === 0) return "Uppdaterad idag";
+    if (days === 1) return "Uppdaterad igår";
+    return `Uppdaterad ${days} dagar sedan`;
+  }, [videos]);
+
   const carouselVideos = useMemo(() => {
     return videos
       .filter((v) => v.thumbnail_url)
@@ -503,56 +513,6 @@ function HomeInner() {
         </div>
       </section>
 
-      {/* ── KARUSELL ─────────────────────────────────────────────────── */}
-      {carouselVideos.length > 0 && (
-        <section className="gr-examples" id="exempel">
-          <div className="gr-examples-hdr">
-            <h2 className="gr-examples-title">Exempel från topplistan</h2>
-            <div style={{ position: "relative" }}>
-              <button
-                className="gr-examples-info-btn"
-                onClick={() => setShowTooltip((v) => !v)}
-                onBlur={() => setTimeout(() => setShowTooltip(false), 150)}
-                aria-label="Info om exemplen"
-              >
-                i
-              </button>
-              {showTooltip && (
-                <div className="gr-examples-tooltip">
-                  Videor med särskilt högt engagemang de senaste veckorna. Bakom varje thumbnail finns riktigt innehåll som faktiskt engagerade en publik.
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="gr-carousel-wrap">
-            <div className="gr-carousel-row gr-carousel-row--fwd">
-              {Array.from({length: 6}, () => carouselRow1).flat().map((v, i) => (
-                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
-                  <div className="gr-carousel-info">
-                    <span className="gr-carousel-name">{displayName(v)}</span>
-                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-            <div className="gr-carousel-row gr-carousel-row--rev">
-              {Array.from({length: 6}, () => carouselRow2).flat().map((v, i) => (
-                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
-                  <div className="gr-carousel-info">
-                    <span className="gr-carousel-name">{displayName(v)}</span>
-                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
       <section id="topplistan" className="gr-list-section">
 
@@ -560,6 +520,9 @@ function HomeInner() {
         <div className="gr-list-section-hdr">
           <div className="gr-page-hdr">
             <h1 className="gr-page-title">Veckans raketer</h1>
+            {dataFreshnessLabel && (
+              <span className="gr-toplist-freshness">{dataFreshnessLabel}</span>
+            )}
             {selectedWeek && (() => {
               const weekIdx = weeks.indexOf(selectedWeek);
               const canBack = weekIdx + 1 < weeks.length;
@@ -911,6 +874,56 @@ function HomeInner() {
             <iframe src={`https://www.tiktok.com/embed/v2/${calcVideoId}`} className="gr-kalky-lightbox-frame" allow="fullscreen" allowFullScreen />
           </div>
         </div>
+      )}
+
+      {/* ── KARUSELL ─────────────────────────────────────────────────── */}
+      {carouselVideos.length > 0 && (
+        <section className="gr-examples" id="exempel">
+          <div className="gr-examples-hdr">
+            <h2 className="gr-examples-title">Exempel från topplistan</h2>
+            <div style={{ position: "relative" }}>
+              <button
+                className="gr-examples-info-btn"
+                onClick={() => setShowTooltip((v) => !v)}
+                onBlur={() => setTimeout(() => setShowTooltip(false), 150)}
+                aria-label="Info om exemplen"
+              >
+                i
+              </button>
+              {showTooltip && (
+                <div className="gr-examples-tooltip">
+                  Videor med särskilt högt engagemang de senaste veckorna. Bakom varje thumbnail finns riktigt innehåll som faktiskt engagerade en publik.
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="gr-carousel-wrap">
+            <div className="gr-carousel-row gr-carousel-row--fwd">
+              {Array.from({length: 6}, () => carouselRow1).flat().map((v, i) => (
+                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
+                  <div className="gr-carousel-info">
+                    <span className="gr-carousel-name">{displayName(v)}</span>
+                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div className="gr-carousel-row gr-carousel-row--rev">
+              {Array.from({length: 6}, () => carouselRow2).flat().map((v, i) => (
+                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
+                  <div className="gr-carousel-info">
+                    <span className="gr-carousel-name">{displayName(v)}</span>
+                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* ── HALL OF FAME ─────────────────────────────────────────────── */}
