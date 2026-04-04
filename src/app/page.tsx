@@ -702,22 +702,24 @@ function HomeInner() {
                             <span className="gr-rk-card-back-metric-lbl"> följare</span>
                           </div>
                         )}
-                        <a
-                          href={acc.bestVideo.video_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="gr-rk-card-back-btn"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Visa videon
-                        </a>
-                        <a
-                          href={`/konto/${acc.handle}`}
-                          className="gr-rk-card-back-profile"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Se profil
-                        </a>
+                        <div className="gr-rk-card-back-actions">
+                          <a
+                            href={acc.bestVideo.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="gr-rk-card-back-btn"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Visa videon
+                          </a>
+                          <a
+                            href={`/konto/${acc.handle}`}
+                            className="gr-rk-card-back-profile"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Visa profil
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -5206,40 +5206,56 @@ body {
   gap: 4px;
 }
 
+.gr-rk-card-back-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .gr-rk-card-back-btn {
-  display: block;
-  text-align: center;
-  background: rgba(237, 248, 251, 0.1);
-  border: 1px solid rgba(237, 248, 251, 0.22);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FE2C55;
+  border: 1.5px solid #FE2C55;
   border-radius: 6px;
-  padding: 11px 12px;
-  font-family: 'Barlow', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 10px 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
   color: #EDF8FB;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition: opacity 0.15s;
 }
 
 .gr-rk-card-back-btn:hover {
-  background: rgba(237, 248, 251, 0.18);
-  border-color: rgba(237, 248, 251, 0.38);
+  opacity: 0.88;
 }
 
 .gr-rk-card-back-profile {
-  display: block;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 7px 12px;
-  font-family: 'Barlow', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  color: rgba(237, 248, 251, 0.55);
+  padding: 10px 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #EDF8FB;
+  border: 1.5px solid rgba(237, 248, 251, 0.35);
+  border-radius: 6px;
   text-decoration: none;
-  transition: color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 .gr-rk-card-back-profile:hover {
-  color: rgba(237, 248, 251, 0.9);
+  border-color: rgba(237, 248, 251, 0.75);
+  background: rgba(237, 248, 251, 0.05);
 }
 
 /* Skeleton */
