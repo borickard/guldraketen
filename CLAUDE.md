@@ -32,13 +32,16 @@ Sociala Raketer fokuserar på faktiskt publikengagemang – likes, kommentarer, 
 ```
 src/
   app/
-    page.tsx                          – startsida (hero + strip-karusell + promo + topplista)
+    page.tsx                          – startsida (hero + topplista + kalkylator + karusell + HoF + om engagemang)
     layout.tsx                        – Google Fonts (Barlow, Barlow Condensed)
     globals.css                       – all CSS (bakgrund #EBE7E2)
     components/
-      NavBar.tsx                      – sticky nav som krymper vid scroll
+      NavBar.tsx                      – sticky nav som krymper vid scroll; wordmark är <a href="/"> för full reload
     hall-of-fame/
-      page.tsx                        – Hall of Fame (Raketer vänster + Konton höger, split grid)
+      page.tsx                        – Hall of Fame (flat kortgrid vänster + Konton höger, split grid)
+    konto/
+      [handle]/
+        page.tsx                      – profilsida per konto; visar videos äldre än föregående vecka
     kalkylator/
       page.tsx                        – Engagemangskalkylator (video only, publik)
     kalkylatorn/
@@ -51,20 +54,22 @@ src/
       page.tsx                        – admin-UI
     [week]/
       [rank]/
-        page.tsx                      – delningssida /2026-W10/guld etc
+        page.tsx                      – delningssida /2026-W10/guld etc (ny design: mörk navy, Barlow, sp2-* CSS)
     api/
       accounts/route.ts               – CRUD inkl. display_name, category
       nominate/route.ts
       scrape/route.ts                 – Vercel Cron endpoint
       scrape/trigger/route.ts         – manuell trigger från admin
       scrape/webhook/route.ts         – Apify callback
-      videos/route.ts                 – topplista med veckofilter (ISO-veckobaserad)
+      videos/route.ts                 – topplista med veckofilter (ISO-veckobaserad) + Cache-Control headers
       video/route.ts                  – enskild video per rank (för share-sidor)
-      weeks/route.ts                  – tillgängliga veckor (exkl. nuvarande + föregående)
+      weeks/route.ts                  – tillgängliga veckor (exkl. nuvarande + föregående) + Cache-Control
       stats/route.ts                  – { video_count, account_count } för hero social proof
-      tidigare-raketer/route.ts       – top 3 per vecka, grupperat (Hall of Fame)
-      topplistan/route.ts             – ackumulerade poäng per konto (Hall of Fame)
-      benchmark/route.ts              – percentildata för kalkylatorns jämförelse
+      tidigare-raketer/route.ts       – top 3 per vecka, grupperat (Hall of Fame) + Cache-Control
+      topplistan/route.ts             – ackumulerade poäng per konto (Hall of Fame) + Cache-Control
+      benchmark/route.ts              – percentildata för kalkylatorns jämförelse + Cache-Control
+      konto/
+        [handle]/route.ts             – profildata + videor per konto (äldre än föregående vecka)
       fetch-video/
         start/route.ts                – DB-lookup med cache-logik + starta Apify-körning, loggar till calculator_tests
         result/route.ts               – poll Apify-resultat, loggar till calculator_tests
@@ -222,11 +227,13 @@ Webhook fungerar bara i produktion (Vercel).
 - Rankar på **bästa enskilda videons** engagement_rate
 - Minimum 10 000 visningar på bästa videon för att räknas
 - Visar **top 3** på startsidan (3-kolumns grid desktop, 1-kolumn mobil)
-- Kort: flip-animation — framsida (thumbnail + mint info-strip), baksida (statistik + "Visa videon")
+- Kort: flip-animation — framsida (thumbnail + mint info-strip), baksida (statistik + knappar)
   - Framsida: thumbnail överst (object-position: top), mint strip (#EDF8FB) med rank+handle på samma rad, ER och label nedan
-  - Baksida: ER som hero-stat överst, divider, 2×2 metrics-grid, följarantal, "Visa videon"-knapp
+  - Baksida: rankfärg "01" + ER på samma rad, divider, 2×2 metrics-grid, följarantal, "Visa videon" (magenta) + "Visa profil" (ghost) på samma rad
   - rankColor: guld/silver/brons för topp 3, mörk (#07253A) för rank 4+
+  - Inget share-ikon på baksidan (borttaget)
 - Veckoväljare: höger i header-raden med ←/→ pilar för att bläddra en vecka i taget
+- `dataFreshnessLabel` visas på egen rad under sektionsrubriken (beräknas från `max(last_updated)`)
 - Trend (↑/↓) och NY-badge borttagna från korten
 
 ---
@@ -235,14 +242,15 @@ Webhook fungerar bara i produktion (Vercel).
 
 ### Startsida (`/`)
 Strukturen uppifrån och ned:
-1. **NavBar** — sticky, krymper vid scroll (se ovan)
-2. **Strip-karusell** — 185px hög rad med TikTok-thumbnails, scrollar automatiskt, tonas ut i kanterna. Fast höjd även före laddning.
-3. **Hero** — stor H1, manifest (2 rader Space Mono + brödtext), URL-input-form som skickar till `/kalkylator?v={id}&h={handle}`, social proof (avatarer + räknare), scroll-CTA
-4. **Promo-grid** — två kolumner: "Veckans bästa på TikTok" (mörk, top 3) + "Bäst engagemang över tid" (ljus, Hall of Fame top 3)
-5. **Info-kolumner** — tre kort: Hur räknar vi / Veckans topplista / Testa ditt innehåll
-6. **Topplista** — id="topplistan", veckoväljare, expanderbara rader med videokort
-7. **FAB** — fixed bottom-right, kalkylator-länk, expanderar till pill på hover (desktop)
-8. **Footer** — TODO: personlig text
+1. **NavBar** — sticky, krymper vid scroll
+2. **Hero** — stor H1, manifest, URL-input-form → `/kalkylator?v={id}&h={handle}`, social proof (avatarer + räknare), scroll-CTA
+3. **Topplista** — id="topplistan", veckoväljare, freshness-label, expanderbara rader med videokort; top 3 flip-kort
+4. **Inbyggd kalkylator** — video-URL-input direkt på startsidan
+5. **Strip-karusell** — 185px hög rad med TikTok-thumbnails, scrollar automatiskt, tonas ut i kanterna
+6. **Hall of Fame-preview** — inlinelista med top 10 konton + poäng, länk till `/hall-of-fame`
+7. **Om engagemang** — tre förklaringskort
+8. **FAB** — fixed bottom-right, kalkylator-länk, expanderar till pill på hover (desktop)
+9. **Footer** — personlig tagline + LinkedIn-länk
 
 ### Kalkylator (`/kalkylator`)
 - **Video only** — accepterar enbart TikTok-videolänkar, inte profiler
@@ -262,22 +270,35 @@ Strukturen uppifrån och ned:
 - Profilanalys kör `clockworks~tiktok-profile-scraper`, pollar var 5:e sekund i upp till 5 min
 
 ### Hall of Fame (`/hall-of-fame`)
+- Ljus bakgrund (`gr-hof-page`, #EBE7E2) — matchar startsidans stil
 - Split-grid layout (`gr-content-grid`): Raketer vänster (2fr), Konton höger (1fr), 40px gap
-- **Raketer**: veckogrupper med mörk rubrikrad (veckonamn) + 3 videokort i en rad
-  - Korten återanvänder `.gr-vc`/`.gr-thumb` från topplistan, med `aspect-ratio: 9/16`
-  - Rank-badge (#1/#2/#3) i guld/silver/brons-färg överst på kortet
+- **Raketer**: flat kortgrid (inte grupperat per vecka)
+  - 3 kolumner desktop, 2 kolumner mobil (breakpoint 600px, matchar CSS exakt via `window.innerWidth`)
+  - Visar 3 rader initialt; "Visa fler"-knapp lägger till 3 rader åt gången
+  - Filler-divs (`gr-hof-filler`) fyller upp sista raden — aldrig ett ensamt kort
+  - Sorteringsalternativ: Nyaste, Äldsta, Eng.rate, Visningar, Likes, Kommentarer, Delningar
+  - Varje kort visar veckolabel (t.ex. "V12 2026") under ER
   - Sektionsrubrik "Raketer" + sorterpills är sticky (top: 34px)
-  - Veckokorten omsluts av `.gr-hof-weeks-wrap` med `padding: 24px` för korrekt marginaler
-- **Konton**: sticky poängtabell (top 10), sticky (top: 34px, align-self: start)
+- **Konton**: sticky poängtabell (top 10)
   - Medaljer som SVG-färgprickar (`MedalDot`)
   - Poäng: 1:a=15p, 2:a=10p, 3:e=5p
+  - Länkikon (`gr-score-profile-btn`) bredvid varje kontonamn → `/konto/[handle]`
 - Data från `/api/tidigare-raketer` (Raketer) och `/api/topplistan` (Konton)
 - Exkluderar innevarande + föregående vecka (kräver min 5 konton per vecka)
+
+### Konto (`/konto/[handle]`)
+- Ljus bakgrund (`gr-konto-page`, bakgrund: `var(--gr-bg)`)
+- Visar profilinfo (avatar, display_name, följare) + videogrid
+- Videor filtreras: endast videor äldre än måndag i föregående ISO-vecka
+- Data från `/api/konto/[handle]`
 
 ### Delningssidor (`/[week]/[rank]`)
 - URL-format: `/2026-W10/guld`, `/2026-W10/silver`, `/2026-W10/brons`, `/2026-W10/top4` etc.
 - Server-renderade med OG-metadata för LinkedIn-delning
-- Inbäddad TikTok-spelare
+- Ny design (2026-04): mörk navy bakgrund, Barlow-typsnitt, `sp2-*` CSS-klasser
+- Grid-layout: 280px thumbnail-kolumn + 1fr info-kolumn (mobil: single column ≤680px)
+- Rankfärg på ER-värdet, "Kopiera länk"-knapp med kopierad-feedback, prev/next rank-navigation
+- Kontonamn länkas till `/konto/[handle]`
 
 ### Admin (`/admin`)
 - Lägg till/ta bort/aktivera/avaktivera konton
@@ -352,14 +373,19 @@ Tecken som ↗ ← → ◆ kan ge blå renderingsbug i vissa browsers. Använd a
 
 ### CSS-arkitektur
 All `.gr-`-CSS ligger i `globals.css`. CSS custom properties (`--gr-bg`, `--gr-dark`, `--gr-gold` etc.) definieras i `:root`. Dynamisk styling (per-rad-färger, isDark, rankColor) sitter kvar som inline styles i `page.tsx` eftersom de beror på runtime-state.
-- `/* HERO & LANDING */` — hero, strip-karusell, promo-grid, info-grid, FAB
-- `/* ── Hall of Fame ── */` — HoF-specifika klasser inkl. `.gr-hof-weeks-wrap`, `.gr-hof-card-row`
+- `/* HERO & LANDING */` — hero, strip-karusell, info-grid, FAB
+- `/* ── Hall of Fame ── */` — HoF-specifika klasser inkl. `.gr-hof-flat-grid`, `.gr-hof-filler`, `.gr-hof-load-more`
+- `/* sp2-* */` — delningssidans layout och komponenter
+
+**Viktigt — `--gr-line` är genomskinlig:** `--gr-line: rgba(237,248,251,0.07)` är designad för mörk bakgrund. Använd **inte** `var(--gr-line)` för borders på ljusa sidor — använd `rgba(28,27,25,0.1)` istället.
+
+**Ljusa sidor** (konto, hall-of-fame) använder egna wrapper-klasser (`gr-konto-page`, `gr-hof-page`) med `background: #EBE7E2` — inte `gr-root` som har mörk navy-bakgrund.
 
 ### Delad kolumnlayout (`gr-content-grid`)
 Används av Hall of Fame:
 - Mobil: 1 kolumn
 - Desktop (≥840px): `2fr 1fr`, gap `40px`
-- `.gr-content-main` — vänster/bred kolumn
+- `.gr-content-main` — vänster/bred kolumn; måste ha `min-width: 0; overflow: hidden` för att förhindra att kortgridar spiller över i höger kolumn och blockerar klick
 - `.gr-content-aside` — höger/smal kolumn; `border-left` och `padding: 32px 24px` som default
 
 ### Sticky i CSS Grid
@@ -368,27 +394,38 @@ För att `position: sticky` ska fungera på ett grid-item måste det ha `align-s
 ### Backtick-problem i route.ts
 `.select()` i Supabase-queries ska använda en vanlig strängvariabel, inte template literals.
 
+### HoF kolumndetektering
+`window.innerWidth <= 600 ? 2 : 3` — matchar exakt CSS-breakpointen för `.gr-hof-flat-grid`. Använd **inte** `getComputedStyle(el).gridTemplateColumns` — browsers returnerar ibland template-strängen ("repeat(2, 1fr)") istället för de beräknade värdena.
+
 ---
 
-## Senaste ändringar (2026-03-31)
+## Senaste ändringar (2026-04-04)
 
-- **Kortdesign** — hard split layout (thumbnail + mint strip #EDF8FB), rank+handle inline, ER som hero på baksidan, följarantal på baksidan, `object-position: top` på thumbnails
-- **Typsnitt** — konsoliderat till Barlow + Barlow Condensed (DM Mono, DM Sans, Space Mono borttagna)
-- **Veckans raketer** — visar top 3, 1-kolumn på mobil, 3 kolumner desktop
-- **Strip-karusell** — 6 repetitioner + keyframe -16.67% för att täcka extra breda skärmar
-- **Veckoväljare** — flyttad till höger i headern med ←/→ pil-navigation
-- **`/kalkylatorn`** — ny premiumsida med profil- och videoanalys (ej länkad i nav)
-- **`/kalkylator`** — renodlad till video only; startsideformuläret detsamma
+- **Hall of Fame redesign** — ljus bakgrund (gr-hof-page), flat kortgrid utan veckogrupperingar, 7 sorteringsalternativ, 3 rader initialt + "Visa fler" (3 rader åt gången), filler-divs mot ensamma kort
+- **Konto-sidor** — `/konto/[handle]` lanserad; visar videor äldre än föregående ISO-vecka
+- **HoF profilknappar** — liten länkikon bredvid kontonamn i Konton-tabellen + HoF-preview på startsidan
+- **Delningssidor** — ny design: mörk navy, Barlow, sp2-* CSS; rank-nav, kopiera-länk-knapp
+- **Kortbaksida** — rank "01" + ER på samma rad; "Visa videon" (magenta) + "Visa profil" (ghost) sida vid sida; share-ikonen borttagen
+- **Startsidestruktur** — ny ordning: Hero → Topplista → Kalkylator → Karusell → HoF → Om engagemang
+- **Freshness-label** — "Uppdaterad X dagar sedan" på egen rad under sektionsrubriken
+- **Cache-Control headers** — lagts till på weeks, videos, topplistan, tidigare-raketer, benchmark
+- **CSS-rensning** — ~1 500 rader dead CSS borttaget; globals.css 5 848 → ~4 400 rader
+- **NavBar wordmark** — `<a href="/">` (inte Link) för full page reload
+
+### Äldre ändringar (2026-03-31)
+- **Kortdesign** — hard split layout (thumbnail + mint strip #EDF8FB), rank+handle inline, ER som hero på baksidan
+- **Typsnitt** — konsoliderat till Barlow + Barlow Condensed
+- **Veckans raketer** — top 3, 1-kolumn mobil, 3 kolumner desktop
+- **Strip-karusell** — 6 repetitioner + keyframe -16.67%
+- **Veckoväljare** — ←/→ pil-navigation i header-raden
+- **`/kalkylatorn`** — premiumsida med profil- och videoanalys
 - **Cache-logik** — skip re-scrape om videon var ≥14 dagar vid scrape OCH scrapad senaste 7 dagarna
-- **Apify-felmeddelande** — 403 hard limit visas som användarvänlig text
-- **Footer** — personlig tagline med LinkedIn-länk till Rickard Berggren
-- **Nav-ordning** — Kalkylator före Hall of Fame; Hall of Fame-ankarlänk fixad (`id="hall-of-fame"`)
+- **Footer** — personlig tagline med LinkedIn-länk
 
 ### Äldre ändringar (2026-03-26)
 - **Ny startsida** — hero med URL-input + manifest, strip-karusell, promo-grid, info-kolumner, FAB
-- **Kalkylator auto-fetch** — `?v={id}&h={handle}` triggar automatisk statistikhämtning vid sidladdning
+- **Kalkylator auto-fetch** — `?v={id}&h={handle}` triggar automatisk statistikhämtning
 - **Avatarer** — `avatar_url` i accounts; visas i hero social proof
-- **Hall of Fame redesign** — top 3 per vecka i kortformat, sticky rubriker, top 10 konton
+- **Hall of Fame** — `/hall-of-fame` lanserad; top 3 per vecka i kortformat, sticky rubriker, top 10 konton
 - **NavBar sticky** — krymper vid scroll
-- **Hall of Fame** — `/hall-of-fame` lanserad
 - **Thumbnails** — Supabase Storage bucket "thumbnails"
