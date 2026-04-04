@@ -649,9 +649,6 @@ function HomeInner() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={thumb} alt="" className="gr-rk-card-front-img" />
                           )}
-                          <span className="gr-rk-card-pos">
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
                           <button
                             className="gr-rk-card-share"
                             onClick={(e) => handleShareCard(e, i)}
@@ -678,9 +675,14 @@ function HomeInner() {
 
                       {/* Back — metrics + button, no thumbnail */}
                       <div className="gr-rk-card-back">
-                        <div className="gr-rk-card-back-er" style={{ color: rankColor(i) }}>
-                          {acc.bestEngagement.toFixed(2)}%
-                          <span className="gr-rk-card-back-er-lbl"> eng.rate</span>
+                        <div className="gr-rk-card-back-er-row">
+                          <span className="gr-rk-card-back-rank" style={{ color: rankColor(i) }}>
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <div className="gr-rk-card-back-er" style={{ color: rankColor(i) }}>
+                            {acc.bestEngagement.toFixed(2)}%
+                            <span className="gr-rk-card-back-er-lbl"> eng.rate</span>
+                          </div>
                         </div>
                         <div className="gr-rk-card-back-divider" />
                         <div className="gr-rk-card-back-metrics">

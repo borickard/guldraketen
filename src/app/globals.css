@@ -5153,6 +5153,21 @@ body {
   padding: 18px 18px 16px;
 }
 
+.gr-rk-card-back-er-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.gr-rk-card-back-rank {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(22px, 2.8vw, 30px);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
 .gr-rk-card-back-er {
   font-family: 'Barlow', sans-serif;
   font-size: clamp(28px, 3.5vw, 38px);
