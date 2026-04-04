@@ -663,7 +663,6 @@ body {
   background: #07253A;
   color: #EDF8FB;
   font-family: 'Barlow', sans-serif;
-  overflow: hidden;
   min-height: 100vh;
 }
 
@@ -3251,7 +3250,7 @@ body {
   font-size: 11px;
   color: rgba(237, 248, 251, 0.4);
   letter-spacing: .04em;
-  margin-top: 4px;
+  padding: 0 24px 12px;
   display: block;
 }
 

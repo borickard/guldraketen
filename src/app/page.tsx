@@ -520,9 +520,6 @@ function HomeInner() {
         <div className="gr-list-section-hdr">
           <div className="gr-page-hdr">
             <h1 className="gr-page-title">Veckans raketer</h1>
-            {dataFreshnessLabel && (
-              <span className="gr-toplist-freshness">{dataFreshnessLabel}</span>
-            )}
             {selectedWeek && (() => {
               const weekIdx = weeks.indexOf(selectedWeek);
               const canBack = weekIdx + 1 < weeks.length;
@@ -583,6 +580,9 @@ function HomeInner() {
             })()}
           </div>
         </div>
+        {dataFreshnessLabel && (
+          <p className="gr-toplist-freshness">{dataFreshnessLabel}</p>
+        )}
 
         {/* Card grid */}
         <div className="gr-rk-grid">
