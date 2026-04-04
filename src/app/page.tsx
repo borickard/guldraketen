@@ -940,7 +940,7 @@ function HomeInner() {
             <div>
               <h3 className="gr-about-block-title">Inte alla reaktioner väger lika</h3>
               <p className="gr-about-block-body">
-                En rak engagemangsgrad behandlar en like och en delning som om de vore samma sak — det är de inte. Vår modell viktar delningar högst och kommentarer över likes, för att ge en rättvisare bild av vad som faktiskt berör och stoppar någon i scrollandet.
+                Den klassiska modellen för engagemangsgrad behandlar en like och en delning som om de vore samma sak — det är de inte. Vår algoritm viktar delningar högst och kommentarer över likes, för att ge en rättvisare bild av vad som faktiskt berör och stoppar någon i scrollandet.
               </p>
               <p className="gr-about-block-body" style={{ marginTop: "0.75em" }}>
                 Vi filtrerar också bort tävlingsvideor — de där följare uppmanas att gilla, dela och kommentera i utbyte mot en chans att vinna. Det är engagemang med doping. Siffrorna ser imponerande ut men säger inget om innehållet.
