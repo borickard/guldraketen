@@ -45,9 +45,9 @@ export default function NavBar() {
   return (
     <>
       <nav className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")}>
-        <Link href="/" className="gr-nav-logo">
+        <a href="/" className="gr-nav-logo">
           Sociala raketer
-        </Link>
+        </a>
 
         <div className="gr-nav-links">
           {links.map((l) => (
