@@ -638,20 +638,6 @@ function HomeInner() {
 
                       {/* Back — metrics + button, no thumbnail */}
                       <div className="gr-rk-card-back">
-                        <button
-                          className="gr-rk-card-share gr-rk-card-share--back"
-                          onClick={(e) => handleShareCard(e, i)}
-                          aria-label="Kopiera länk"
-                        >
-                          {copiedRank === i ? (
-                            <span className="gr-rk-card-share-copied">Kopierad!</span>
-                          ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                            </svg>
-                          )}
-                        </button>
                         <div className="gr-rk-card-back-er-row">
                           <span className="gr-rk-card-back-rank" style={{ color: rankColor(i) }}>
                             {String(i + 1).padStart(2, "0")}
