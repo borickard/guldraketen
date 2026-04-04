@@ -250,7 +250,7 @@ function HomeInner() {
   const calcStartedRef = useRef(false);
 
   // Karusell-tooltip
-  const [showTooltip, setShowTooltip] = useState(false);
+
 
   // Close week picker on outside click
   useEffect(() => {
@@ -496,10 +496,7 @@ function HomeInner() {
           </h1>
           <div className="gr-hero-v2-manifest">
             <p>
-              Många företag finns på sociala medier. Få skapar innehåll som faktiskt berör. De pratar, men ingen lyssnar — ett tomt kommentarsfält är inte sociala medier, det är en monolog utan publik.
-            </p>
-            <p>
-              Sociala Raketer belyser de som gör sig förtjänta av engagemanget.
+              Många företag finns på sociala medier. Få skapar innehåll som faktiskt berör. Siffrorna avslöjar vem.
             </p>
           </div>
           <div className="gr-hero-v2-ctas">
@@ -700,7 +697,7 @@ function HomeInner() {
           <h2 className="gr-calc-h2">Hur engagerande är ditt innehåll?</h2>
           <div className="gr-calc-desc">
             <p>
-              Klistra in en länk till en TikTok-video så räknar vi ut engagemangsgraden och visar hur den står sig mot svenska företagsvideor.
+              Klistra in en länk till en TikTok-video så räknar vi ut engagemangsgraden och visar om ditt innehåll berör.
             </p>
           </div>
           <div className="gr-calc-input-wrap">
@@ -879,24 +876,6 @@ function HomeInner() {
       {/* ── KARUSELL ─────────────────────────────────────────────────── */}
       {carouselVideos.length > 0 && (
         <section className="gr-examples" id="exempel">
-          <div className="gr-examples-hdr">
-            <h2 className="gr-examples-title">Exempel från topplistan</h2>
-            <div style={{ position: "relative" }}>
-              <button
-                className="gr-examples-info-btn"
-                onClick={() => setShowTooltip((v) => !v)}
-                onBlur={() => setTimeout(() => setShowTooltip(false), 150)}
-                aria-label="Info om exemplen"
-              >
-                i
-              </button>
-              {showTooltip && (
-                <div className="gr-examples-tooltip">
-                  Videor med särskilt högt engagemang de senaste veckorna. Bakom varje thumbnail finns riktigt innehåll som faktiskt engagerade en publik.
-                </div>
-              )}
-            </div>
-          </div>
           <div className="gr-carousel-wrap">
             <div className="gr-carousel-row gr-carousel-row--fwd">
               {Array.from({length: 6}, () => carouselRow1).flat().map((v, i) => (
@@ -973,21 +952,24 @@ function HomeInner() {
           <h2 className="gr-about-h2">Om engagemang</h2>
           <div className="gr-about-blocks">
             <div>
-              <h3 className="gr-about-block-title">Inte alla reaktioner är lika värda</h3>
+              <h3 className="gr-about-block-title">Inte alla reaktioner väger lika</h3>
               <p className="gr-about-block-body">
-                Alla interaktioner är inte likvärdiga. En delning kräver mer av tittaren än en like — och betyder mer. Vår formel premierar delningar högst, kommentarer i mitten och likes sist. Likes i all ära. Men när någon kommenterar har de stannat upp — något väckte en reaktion. Och när de delar? Då har du nått fram genom bruset.
+                En rak engagemangsgrad behandlar en like och en delning som om de vore samma sak — det är de inte. Vår modell viktar delningar högst och kommentarer över likes, för att ge en rättvisare bild av vad som faktiskt berör och stoppar någon i scrollandet.
+              </p>
+              <p className="gr-about-block-body" style={{ marginTop: "0.75em" }}>
+                Vi filtrerar också bort tävlingsvideor — de där följare uppmanas att gilla, dela och kommentera i utbyte mot en chans att vinna. Det är engagemang med doping. Siffrorna ser imponerande ut men säger inget om innehållet.
               </p>
             </div>
             <div>
               <h3 className="gr-about-block-title">Svenska företag och organisationer</h3>
               <p className="gr-about-block-body">
-                Sociala Raketer mäter svenska företag och organisationer som skapar innehåll som faktiskt berör. Inte privata kreatörer — utan de som använder sociala medier som en del av sitt kommunikationsarbete. Varje vecka utvärderas hundratals videor automatiskt.
+                Sociala Raketer följer svenska företag och organisationer som använder sociala medier i sin kommunikation. Inte privata kreatörer. Varje vecka utvärderas hundratals videor automatiskt.
               </p>
             </div>
             <div>
-              <h3 className="gr-about-block-title">Hur står sig du?</h3>
+              <h3 className="gr-about-block-title">Har du engagerande content?</h3>
               <p className="gr-about-block-body">
-                Klistra in en video eller ett @handle så räknar vi ut engagemangsgraden — och visar hur du står dig mot de som rankats.
+                Klistra in en länk till en TikTok-video i vår kalkylator så räknar vi ut engagemangsgraden.
               </p>
               <a href="#kalkylator" className="gr-about-cta-link">
                 Gå till kalkylatorn
