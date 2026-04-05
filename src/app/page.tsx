@@ -248,6 +248,8 @@ function HomeInner() {
   const [betaError, setBetaError] = useState<string | null>(null);
   const calcPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const calcStartedRef = useRef(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef({ dragging: false, startX: 0, scrollStart: 0 });
 
   // Karusell-tooltip
 
@@ -483,8 +485,53 @@ function HomeInner() {
     finally { setBetaLoading(false); }
   }
 
+  function onCarouselMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    dragState.current = { dragging: true, startX: e.pageX, scrollStart: carouselRef.current?.scrollLeft ?? 0 };
+    if (carouselRef.current) carouselRef.current.style.cursor = "grabbing";
+  }
+  function onCarouselMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!dragState.current.dragging) return;
+    e.preventDefault();
+    if (carouselRef.current) carouselRef.current.scrollLeft = dragState.current.scrollStart - (e.pageX - dragState.current.startX);
+  }
+  function onCarouselMouseUp() {
+    dragState.current.dragging = false;
+    if (carouselRef.current) carouselRef.current.style.cursor = "grab";
+  }
+
   return (
     <div className="gr-root">
+
+      {/* ── KARUSELL (top strip) ─────────────────────────────────────── */}
+      {carouselVideos.length > 0 && (
+        <div
+          className="gr-top-carousel"
+          ref={carouselRef}
+          onMouseDown={onCarouselMouseDown}
+          onMouseMove={onCarouselMouseMove}
+          onMouseUp={onCarouselMouseUp}
+          onMouseLeave={onCarouselMouseUp}
+        >
+          {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
+            <a
+              key={i}
+              href={v.video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gr-top-carousel-card"
+              draggable={false}
+              onClick={(e) => { if (Math.abs((carouselRef.current?.scrollLeft ?? 0) - dragState.current.scrollStart) > 4) e.preventDefault(); }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
+              <div className="gr-top-carousel-info">
+                <span className="gr-top-carousel-name">{displayName(v)}</span>
+                <span className="gr-top-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="gr-hero-v2" id="hero">
@@ -873,25 +920,6 @@ function HomeInner() {
         </div>
       )}
 
-      {/* ── KARUSELL ─────────────────────────────────────────────────── */}
-      {carouselVideos.length > 0 && (
-        <section className="gr-examples" id="exempel">
-          <div className="gr-carousel-wrap">
-            <div className="gr-carousel-row gr-carousel-row--fwd">
-              {Array.from({length: 6}, () => carouselRow1).flat().map((v, i) => (
-                <a key={i} href={v.video_url} target="_blank" rel="noopener noreferrer" className="gr-carousel-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={v.thumbnail_url!} alt="" className="gr-carousel-thumb" />
-                  <div className="gr-carousel-info">
-                    <span className="gr-carousel-name">{displayName(v)}</span>
-                    <span className="gr-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── HALL OF FAME ─────────────────────────────────────────────── */}
       {hofScores.length > 0 && (

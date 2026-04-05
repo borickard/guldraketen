@@ -3223,6 +3223,73 @@ body {
 }
 
 /* ── KARUSELL-SEKTION ── */
+/* ── Top draggable carousel strip ── */
+.gr-top-carousel {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  background: #07253A;
+  border-bottom: 1px solid rgba(237,248,251,0.08);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+}
+
+.gr-top-carousel::-webkit-scrollbar { display: none; }
+
+.gr-top-carousel-card {
+  flex-shrink: 0;
+  width: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  background: rgba(237,248,251,0.06);
+  border: 1px solid rgba(237,248,251,0.1);
+  display: block;
+  transition: border-color 0.15s;
+}
+
+.gr-top-carousel-card:hover {
+  border-color: rgba(200,150,42,0.6);
+}
+
+.gr-top-carousel-thumb {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.gr-top-carousel-info {
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.gr-top-carousel-name {
+  font-family: var(--gr-mono);
+  font-size: 8px;
+  letter-spacing: .03em;
+  color: rgba(237,248,251,0.6);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.gr-top-carousel-er {
+  font-family: var(--gr-mono);
+  font-size: 8px;
+  color: var(--gr-gold);
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
 .gr-examples {
   background: #EDF8FB;
   padding: var(--space-5) 0;
