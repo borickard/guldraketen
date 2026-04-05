@@ -106,6 +106,19 @@ function computePercentile(er: number, bench: Benchmark): number {
   return Math.max(1, (er / bench.median) * 50);
 }
 
+function benchVerdict(pct: number): { label: string; color: string } {
+  if (pct >= 90) return { label: "Exceptionellt högt engagemang", color: "#C8962A" };
+  if (pct >= 75) return { label: "Högt engagemang", color: "#C8962A" };
+  if (pct >= 50) return { label: "Genomsnittligt engagemang", color: "rgba(237,248,251,0.7)" };
+  if (pct >= 25) return { label: "Lågt engagemang", color: "rgba(237,248,251,0.5)" };
+  return { label: "Mycket lågt engagemang", color: "rgba(237,248,251,0.4)" };
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("sv-SE", { day: "numeric", month: "long", year: "numeric" });
+}
+
 function groupByAccount(videos: RawVideo[]): AccountRow[] {
   const map = new Map<string, RawVideo[]>();
   for (const v of videos) {
@@ -239,6 +252,7 @@ function HomeInner() {
   const [calcLightbox, setCalcLightbox] = useState(false);
   const [calcCopied, setCalcCopied] = useState(false);
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
+  const [calcLastUpdated, setCalcLastUpdated] = useState<string | null>(null);
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
   const [wShares, setWShares] = useState(10);
@@ -391,6 +405,7 @@ function HomeInner() {
     setCalcHandle(handle);
     setCalcStats(null);
     setCalcError(null);
+    setCalcLastUpdated(null);
     if (!handle) {
       setCalcMode("video-error");
       setCalcError("Kunde inte läsa ut handle ur länken. Kontrollera formatet tiktok.com/@konto/video/...");
@@ -407,6 +422,7 @@ function HomeInner() {
       if (!res.ok) { setCalcMode("video-error"); setCalcError((data.error as string) ?? `Serverfel (${res.status})`); return; }
       if (data.source === "db") {
         setCalcStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
+        setCalcLastUpdated((data.lastUpdated as string) ?? null);
         setCalcMode("video-ready");
         return;
       }
@@ -819,13 +835,26 @@ function HomeInner() {
 
           {calcMode === "video-ready" && calcStats && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
+
+              {calcLastUpdated && (
+                <p className="gr-kalky-v2-cache-note">
+                  Statistik hämtad {fmtDate(calcLastUpdated)} — vi hämtar ny data om det gått mer än 48 timmar.
+                </p>
+              )}
+
+              {calcStats.views < 10000 && (
+                <div className="gr-kalky-v2-notice gr-kalky-v2-notice--warn" style={{ marginBottom: 16 }}>
+                  Videon har färre än 10 000 visningar. ER-jämförelsen är mindre tillförlitlig på låg räckvidd.
+                </div>
+              )}
+
               <div className="gr-kalky-v2-result-row">
                 {calcThumb && (
                   <button className="gr-kalky-v2-thumb-btn" onClick={() => setCalcLightbox(true)} aria-label="Spela upp video">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
                     <div className="gr-kalky-v2-play">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
                     </div>
                   </button>
                 )}
@@ -834,19 +863,10 @@ function HomeInner() {
                     <>
                       <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
                       <p className="gr-kalky-v2-er">{calcEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                      {calcBenchPct !== null && (
-                        <>
-                          <p className="gr-kalky-v2-bench-line">
-                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av {calcBench!.count} uppmätta videor
-                          </p>
-                          <div className="gr-kalky-v2-bench-track">
-                            <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
-                            <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(calcBenchPct, 99)}%` }} />
-                          </div>
-                          <div className="gr-kalky-v2-bench-labels">
-                            <span>Lågt</span><span>Medel</span><span>Högt</span>
-                          </div>
-                        </>
+                      {calcBenchPct !== null && calcBench && (
+                        <p className="gr-kalky-v2-bench-line">
+                          Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av {calcBench.count} uppmätta videor
+                        </p>
                       )}
                     </>
                   ) : (
@@ -854,6 +874,22 @@ function HomeInner() {
                   )}
                 </div>
               </div>
+
+              {calcBenchPct !== null && calcBench && calcEr !== null && (() => {
+                const verdict = benchVerdict(calcBenchPct);
+                return (
+                  <div className="gr-kalky-v2-bench-section">
+                    <p className="gr-kalky-v2-bench-verdict" style={{ color: verdict.color }}>{verdict.label}</p>
+                    <div className="gr-kalky-v2-bench-track">
+                      <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
+                      <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(calcBenchPct, 99)}%` }} />
+                    </div>
+                    <div className="gr-kalky-v2-bench-labels">
+                      <span>Lågt</span><span>Medel</span><span>Högt</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="gr-kalky-v2-stats">
                 {[
