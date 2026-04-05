@@ -290,12 +290,15 @@ Strukturen uppifrån och ned:
 - URL-param `?v={videoId}&h={handle}` — delas med andra, videon laddas och statistik hämtas direkt
 - Auto-fetch triggas en gång vid mount om `?v=` finns i URL
 - Thumbnail hämtas via TikTok oEmbed; klick öppnar lightbox med iframe-embed
-- Kollar DB först med cache-logik: använd cachat om videon var ≥14 dagar gammal vid scrape OCH scrapad inom 7 dagar
+- Kollar DB först: om videon scrapades inom 48 timmar används cachat resultat → visar cachad-not med datum
+- Vid cache-träff loggas `source: "db"` till `calculator_tests`; annars `source: "apify"`
 - Annars startar Apify-körning, pollar var 3:e sekund i upp till 120s
 - Varje hämtning loggas till `calculator_tests`-tabellen
 - Benchmark-visualisering: percentilutrop + progress bar, baseras på användarens valda vikter
 - Anpassningsbara vikter (±-knappar, 0–20), formelförhandsvisning, återställningsknapp
 - Apify 403 hard limit → visar användarvänligt felmeddelande
+
+> **VIKTIGT:** Kalkylatorn på startsidan (`page.tsx`, `startCalcFetch`) och `/kalkylator` (`kalkylator/page.tsx`) ska alltid vara **funktionellt identiska**. Vid ändringar i logik, cache-hantering, felmeddelanden eller UI-beteende — uppdatera alltid båda.
 
 ### Premiumkalkylator (`/kalkylatorn`)
 - **Video + profil** — samma som `/kalkylator` men accepterar även TikTok-profilsidor och @handle
