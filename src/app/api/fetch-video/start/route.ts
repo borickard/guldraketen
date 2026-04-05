@@ -14,7 +14,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "videoId och handle krävs" }, { status: 400 });
   }
 
-  // 1. DB lookup first
+  // 1. Check calculator_tests for a recent result (within 48h)
+  const { data: recentTest } = await supabaseAdmin
+    .from("calculator_tests")
+    .select("views,likes,comments,shares,engagement_rate,tested_at")
+    .eq("video_id", videoId)
+    .order("tested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentTest) {
+    const timeSinceTest = Date.now() - new Date(recentTest.tested_at).getTime();
+    if (timeSinceTest <= TWO_DAYS_MS) {
+      return NextResponse.json({
+        source: "db",
+        views: recentTest.views,
+        likes: recentTest.likes,
+        comments: recentTest.comments,
+        shares: recentTest.shares,
+        lastUpdated: recentTest.tested_at,
+      });
+    }
+  }
+
+  // 2. Check videos table (weekly scrapes)
   const { data: dbVideo } = await supabaseAdmin
     .from("videos")
     .select("views,likes,comments,shares,last_updated")
@@ -24,7 +47,6 @@ export async function POST(req: NextRequest) {
   if (dbVideo) {
     const timeSinceScrape = Date.now() - new Date(dbVideo.last_updated).getTime();
 
-    // Use cache if scraped within the last 2 days
     if (timeSinceScrape <= TWO_DAYS_MS) {
       const er = (dbVideo.views ?? 0) > 0
         ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
@@ -48,7 +70,6 @@ export async function POST(req: NextRequest) {
         lastUpdated: dbVideo.last_updated,
       });
     }
-    // else: fall through to re-scrape via Apify
   }
 
   // 2. Not in DB (or cache stale) — start async Apify run
