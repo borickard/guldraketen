@@ -26,6 +26,13 @@ interface ContestVideo {
   accounts: { display_name: string | null } | { display_name: string | null }[] | null;
 }
 
+interface BetaSignup {
+  id: string;
+  email: string;
+  video_url: string | null;
+  created_at: string;
+}
+
 interface ScrapeRun {
   id: string;
   run_id: string | null;
@@ -209,9 +216,11 @@ export default function AdminPage() {
     if (res.ok) await fetchAccounts();
   }
 
-  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log">("konton");
+  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log" | "epost">("konton");
   const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
   const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
+  const [betaSignups, setBetaSignups] = useState<BetaSignup[]>([]);
+  const [loadingBetaSignups, setLoadingBetaSignups] = useState(false);
 
   async function fetchScrapeRuns() {
     setLoadingScrapeRuns(true);
@@ -219,6 +228,14 @@ export default function AdminPage() {
     const data = await res.json();
     setScrapeRuns(Array.isArray(data) ? data : []);
     setLoadingScrapeRuns(false);
+  }
+
+  async function fetchBetaSignups() {
+    setLoadingBetaSignups(true);
+    const res = await fetch("/api/admin/beta-signups");
+    const data = await res.json();
+    setBetaSignups(Array.isArray(data) ? data : []);
+    setLoadingBetaSignups(false);
   }
 
   const active = accounts.filter((a) => a.is_active);
@@ -239,6 +256,7 @@ export default function AdminPage() {
             { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.length} flaggade` },
             { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
             { key: "scrape-log", label: "Scrape-log", meta: "" },
+            { key: "epost", label: "E-post", meta: "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -246,6 +264,7 @@ export default function AdminPage() {
               onClick={() => {
                 setActiveSection(tab.key);
                 if (tab.key === "scrape-log") fetchScrapeRuns();
+                if (tab.key === "epost") fetchBetaSignups();
               }}
             >
               {tab.label}
@@ -578,6 +597,48 @@ export default function AdminPage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        }
+
+        {/* ── Section 5: E-post ── */}
+        {activeSection === "epost" && <div className="admin-section">
+          <div className="admin-section-hdr" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <h2 className="admin-section-title">E-post ({betaSignups.length})</h2>
+            <button className="add-btn" onClick={fetchBetaSignups} disabled={loadingBetaSignups}>
+              {loadingBetaSignups ? "Laddar…" : "Uppdatera"}
+            </button>
+          </div>
+
+          {loadingBetaSignups ? (
+            <p className="loading">Laddar…</p>
+          ) : betaSignups.length === 0 ? (
+            <p className="empty">Inga anmälningar ännu.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>E-post</th>
+                    <th>Video</th>
+                    <th>Datum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {betaSignups.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.email}</td>
+                      <td>
+                        {s.video_url
+                          ? <a href={s.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>länk</a>
+                          : "—"}
+                      </td>
+                      <td style={{ whiteSpace: "nowrap" }}>{new Date(s.created_at).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
