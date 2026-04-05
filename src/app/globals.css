@@ -1388,14 +1388,18 @@ body {
   cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
-  width: 100px;
+  width: 200px;
   background: rgba(237,248,251,0.06);
 }
 .gr-kalky-v2-thumb {
   display: block;
-  width: 100px;
+  width: 200px;
   aspect-ratio: 9/16;
   object-fit: cover;
+}
+@media (max-width: 520px) {
+  .gr-kalky-v2-result-row { flex-direction: column; }
+  .gr-kalky-v2-thumb-btn, .gr-kalky-v2-thumb { width: 100%; }
 }
 .gr-kalky-v2-play {
   position: absolute;
@@ -1446,26 +1450,36 @@ body {
 }
 .gr-kalky-v2-bench-line strong { color: #EDF8FB; }
 
+.gr-kalky-v2-bench-section {
+  margin-bottom: 24px;
+  padding-top: 4px;
+}
+.gr-kalky-v2-bench-verdict {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: .01em;
+  margin-bottom: 10px;
+}
 .gr-kalky-v2-bench-track {
   position: relative;
-  height: 4px;
+  height: 5px;
   background: rgba(237,248,251,0.1);
-  border-radius: 2px;
-  margin-bottom: 4px;
-  max-width: 280px;
+  border-radius: 3px;
+  margin-bottom: 6px;
 }
 .gr-kalky-v2-bench-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   background: #C8962A;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.5s ease;
 }
 .gr-kalky-v2-bench-dot {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 10px; height: 10px;
+  width: 12px; height: 12px;
   background: #C8962A;
   border: 2px solid #07253A;
   border-radius: 50%;
@@ -1474,11 +1488,17 @@ body {
 .gr-kalky-v2-bench-labels {
   display: flex;
   justify-content: space-between;
-  max-width: 280px;
   font-family: var(--gr-mono);
   font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(237,248,251,0.3);
+}
+.gr-kalky-v2-cache-note {
+  font-family: var(--gr-mono);
+  font-size: 11px;
   color: rgba(237,248,251,0.35);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* Stats row */

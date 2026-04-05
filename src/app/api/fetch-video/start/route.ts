@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         likes: dbVideo.likes,
         comments: dbVideo.comments,
         shares: dbVideo.shares,
+        lastUpdated: dbVideo.last_updated,
       });
     }
     // else: fall through to re-scrape via Apify

@@ -40,6 +40,19 @@ function computePercentile(er: number, bench: Benchmark): number {
   return Math.max(1, (er / bench.median) * 50);
 }
 
+function benchVerdict(pct: number): { label: string; color: string } {
+  if (pct >= 90) return { label: "Exceptionellt högt engagemang", color: "#C8962A" };
+  if (pct >= 75) return { label: "Högt engagemang", color: "#C8962A" };
+  if (pct >= 50) return { label: "Genomsnittligt engagemang", color: "rgba(237,248,251,0.7)" };
+  if (pct >= 25) return { label: "Lågt engagemang", color: "rgba(237,248,251,0.5)" };
+  return { label: "Mycket lågt engagemang", color: "rgba(237,248,251,0.4)" };
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("sv-SE", { day: "numeric", month: "long", year: "numeric" });
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function KalkylatorPage() {
@@ -67,6 +80,7 @@ function KalkylatorPage() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
 
@@ -117,6 +131,7 @@ function KalkylatorPage() {
     setVideoHandle(handle);
     setVideoStats(null);
     setVideoError(null);
+    setLastUpdated(null);
 
     if (!handle) {
       setMode("video-error");
@@ -141,6 +156,7 @@ function KalkylatorPage() {
 
       if (data.source === "db") {
         setVideoStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
+        setLastUpdated((data.lastUpdated as string) ?? null);
         setMode("video-ready");
         return;
       }
@@ -321,6 +337,21 @@ function KalkylatorPage() {
 
         {mode === "video-ready" && videoStats && (
           <div className="gr-kalky-v2-result">
+
+            {/* Cache note */}
+            {lastUpdated && (
+              <p className="gr-kalky-v2-cache-note">
+                Statistik hämtad {fmtDate(lastUpdated)} — vi hämtar ny data om det gått mer än 48 timmar.
+              </p>
+            )}
+
+            {/* Low-views warning */}
+            {videoStats.views < 10000 && (
+              <div className="gr-kalky-v2-notice gr-kalky-v2-notice--warn" style={{ marginBottom: 16 }}>
+                Videon har färre än 10 000 visningar. ER-jämförelsen är mindre tillförlitlig på låg räckvidd.
+              </div>
+            )}
+
             <div className="gr-kalky-v2-result-row">
               {thumbnailUrl && (
                 <button
@@ -331,7 +362,7 @@ function KalkylatorPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={thumbnailUrl} alt="" className="gr-kalky-v2-thumb" />
                   <div className="gr-kalky-v2-play">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
@@ -344,19 +375,10 @@ function KalkylatorPage() {
                     <p className="gr-kalky-v2-er">
                       {er.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span>
                     </p>
-                    {benchPct !== null && (
-                      <>
-                        <p className="gr-kalky-v2-bench-line">
-                          Bättre än <strong>{benchPct >= 99 ? "99+" : benchPct}%</strong> av svenska företagsvideor
-                        </p>
-                        <div className="gr-kalky-v2-bench-track">
-                          <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(benchPct, 99)}%` }} />
-                          <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(benchPct, 99)}%` }} />
-                        </div>
-                        <div className="gr-kalky-v2-bench-labels">
-                          <span>0%</span><span>Topp 25%</span><span>Topp 10%</span>
-                        </div>
-                      </>
+                    {benchPct !== null && bench && (
+                      <p className="gr-kalky-v2-bench-line">
+                        Bättre än <strong>{benchPct >= 99 ? "99+" : benchPct}%</strong> av {bench.count} uppmätta videor
+                      </p>
                     )}
                   </>
                 ) : (
@@ -364,6 +386,23 @@ function KalkylatorPage() {
                 )}
               </div>
             </div>
+
+            {/* Full-width benchmark scale */}
+            {benchPct !== null && bench && er !== null && (() => {
+              const verdict = benchVerdict(benchPct);
+              return (
+                <div className="gr-kalky-v2-bench-section">
+                  <p className="gr-kalky-v2-bench-verdict" style={{ color: verdict.color }}>{verdict.label}</p>
+                  <div className="gr-kalky-v2-bench-track">
+                    <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(benchPct, 99)}%` }} />
+                    <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(benchPct, 99)}%` }} />
+                  </div>
+                  <div className="gr-kalky-v2-bench-labels">
+                    <span>Lågt</span><span>Medel</span><span>Högt</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="gr-kalky-v2-stats">
               {[
