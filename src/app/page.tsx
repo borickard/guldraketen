@@ -837,14 +837,14 @@ function HomeInner() {
                       {calcBenchPct !== null && (
                         <>
                           <p className="gr-kalky-v2-bench-line">
-                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av svenska företagsvideor
+                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av {calcBench!.count} uppmätta videor
                           </p>
                           <div className="gr-kalky-v2-bench-track">
                             <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
                             <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(calcBenchPct, 99)}%` }} />
                           </div>
                           <div className="gr-kalky-v2-bench-labels">
-                            <span>0%</span><span>Topp 25%</span><span>Topp 10%</span>
+                            <span>Lågt</span><span>Medel</span><span>Högt</span>
                           </div>
                         </>
                       )}
