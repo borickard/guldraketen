@@ -26,15 +26,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const videoId = finalUrl.match(/\/video\/(\d+)/)?.[1] ?? null;
+  const postMatch = finalUrl.match(/\/(video|photo)\/(\d+)/);
+  const videoId = postMatch?.[2] ?? null;
+  const postType = (postMatch?.[1] ?? "video") as "video" | "photo";
   const handle = finalUrl.match(/\/@([^/?#\s]+)/)?.[1] ?? null;
 
   if (!videoId) {
     return NextResponse.json(
-      { error: "Länken leder inte till en TikTok-video. Kontrollera att du kopierade rätt länk." },
+      { error: "Länken leder inte till ett TikTok-inlägg. Kontrollera att du kopierade rätt länk." },
       { status: 422 }
     );
   }
 
-  return NextResponse.json({ videoId, handle });
+  return NextResponse.json({ videoId, handle, postType });
 }

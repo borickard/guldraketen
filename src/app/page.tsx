@@ -66,7 +66,7 @@ function displayName(v: RawVideo): string {
 }
 
 type CalcDetected =
-  | { type: "video"; videoId: string; handle: string | null }
+  | { type: "post"; postId: string; postType: "video" | "photo"; handle: string | null }
   | { type: "short"; url: string };
 
 function detectCalcInput(raw: string): CalcDetected | null {
@@ -74,9 +74,9 @@ function detectCalcInput(raw: string): CalcDetected | null {
   // Short links — resolve server-side via kalkylator
   if (/^https?:\/\/(vm|vt)\.tiktok\.com\/\w/.test(s)) return { type: "short", url: s };
   if (/^https?:\/\/(?:www\.)?tiktok\.com\/t\/\w/.test(s)) return { type: "short", url: s };
-  // Standard video URL
-  const vid = s.match(/\/video\/(\d+)/)?.[1];
-  if (vid) return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  // Standard video or photo URL
+  const match = s.match(/\/(video|photo)\/(\d+)/);
+  if (match) return { type: "post", postId: match[2], postType: match[1] as "video" | "photo", handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
   return null;
 }
 
@@ -398,7 +398,7 @@ function HomeInner() {
     }
   }, [calcMode, calcVideoId, calcHandle]);
 
-  const startCalcFetch = useCallback(async (id: string, handle: string | null) => {
+  const startCalcFetch = useCallback(async (id: string, handle: string | null, postType: "video" | "photo" = "video") => {
     if (calcPollRef.current) clearInterval(calcPollRef.current);
     setCalcMode("video-loading");
     setCalcVideoId(id);
@@ -408,14 +408,14 @@ function HomeInner() {
     setCalcLastUpdated(null);
     if (!handle) {
       setCalcMode("video-error");
-      setCalcError("Kunde inte läsa ut handle ur länken. Kontrollera formatet tiktok.com/@konto/video/...");
+      setCalcError("Kunde inte läsa ut handle ur länken. Kontrollera formatet tiktok.com/@konto/video/... eller tiktok.com/@konto/photo/...");
       return;
     }
     try {
       const res = await fetch("/api/fetch-video/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoId: id, handle }),
+        body: JSON.stringify({ videoId: id, handle, postType }),
       });
       let data: Record<string, unknown> = {};
       try { data = await res.json(); } catch { /* non-json */ }
@@ -450,7 +450,7 @@ function HomeInner() {
       const res = await fetch("/api/resolve-tiktok-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: shortUrl }) });
       const data = await res.json();
       if (!res.ok || !data.videoId) { setCalcMode("video-error"); setCalcError(data.error ?? "Kunde inte lösa upp länken."); return; }
-      startCalcFetch(data.videoId, data.handle);
+      startCalcFetch(data.videoId, data.handle, data.postType ?? "video");
     } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
   }, [startCalcFetch]);
 
@@ -463,7 +463,7 @@ function HomeInner() {
     calcStartedRef.current = true;
     const url = h ? `https://www.tiktok.com/@${h}/video/${v}` : `https://www.tiktok.com/video/${v}`;
     setCalcUrl(url);
-    startCalcFetch(v, h);
+    startCalcFetch(v, h, "video");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -483,7 +483,7 @@ function HomeInner() {
     if (!detected) { setCalcUrlError(true); return; }
     setCalcUrlError(false);
     if (detected.type === "short") resolveAndCalcFetch(detected.url);
-    else startCalcFetch(detected.videoId, detected.handle);
+    else startCalcFetch(detected.postId, detected.handle, detected.postType);
   }
 
   async function handleBetaSubmit() {

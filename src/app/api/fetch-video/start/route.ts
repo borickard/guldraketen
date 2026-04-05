@@ -8,7 +8,7 @@ const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const { videoId, handle } = body ?? {};
+  const { videoId, handle, postType = "video" } = body ?? {};
 
   if (!videoId || !handle) {
     return NextResponse.json({ error: "videoId och handle krävs" }, { status: 400 });
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (timeSinceTest <= TWO_DAYS_MS) {
       // Log the cache hit
       await supabaseAdmin.from("calculator_tests").insert({
-        video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+        video_url: `https://www.tiktok.com/@${handle}/${postType}/${videoId}`,
         video_id: videoId,
         handle,
         views: recentTest.views,
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
         : null;
       await supabaseAdmin.from("calculator_tests").insert({
-        video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+        video_url: `https://www.tiktok.com/@${handle}/${postType}/${videoId}`,
         video_id: videoId,
         handle,
         views: dbVideo.views,
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
   }
 
   const apifyBody = JSON.stringify({
-    postURLs: [`https://www.tiktok.com/@${handle}/video/${videoId}`],
+    postURLs: [`https://www.tiktok.com/@${handle}/${postType}/${videoId}`],
   });
 
   let apifyRes: Response;
