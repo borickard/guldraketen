@@ -4804,3 +4804,14 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Prevent iOS zoom on input focus (font-size must be ≥16px) ── */
+@media (max-width: 768px) {
+  .gr-hero-input,
+  .gr-kalky-v2-input,
+  .gr-calc-section-input,
+  .gr-kalky-input,
+  .gr-kalky-stat-input {
+    font-size: 16px;
+  }
+}
