@@ -12,6 +12,7 @@ interface CalcTest {
   comments: number | null;
   shares: number | null;
   engagement_rate: number | null;
+  source: "db" | "apify" | null;
   tested_at: string;
 }
 
@@ -471,6 +472,7 @@ export default function AdminPage() {
                     <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Visningar</th>
                     <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
                     <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Källa</th>
                     <th style={{ padding: "6px 8px" }}></th>
                     <th style={{ padding: "6px 8px" }}></th>
                   </tr>
@@ -490,6 +492,15 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: "6px 8px", color: "var(--muted)" }}>
                           {new Date(t.tested_at).toLocaleDateString("sv-SE")}
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>
+                          {t.source === "db" ? (
+                            <span style={{ fontSize: 9, background: "#e8f4e8", color: "#2a7a2a", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DB</span>
+                          ) : t.source === "apify" ? (
+                            <span style={{ fontSize: 9, background: "#f0f0f0", color: "#666", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Apify</span>
+                          ) : (
+                            <span style={{ fontSize: 9, color: "var(--muted)" }}>—</span>
+                          )}
                         </td>
                         <td style={{ padding: "6px 8px" }}>
                           {t.video_url && (

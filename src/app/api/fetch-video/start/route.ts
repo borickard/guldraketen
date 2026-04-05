@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
         comments: dbVideo.comments,
         shares: dbVideo.shares,
         engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
+        source: "db",
       });
       return NextResponse.json({
         source: "db",
