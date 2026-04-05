@@ -499,6 +499,25 @@ function HomeInner() {
     if (carouselRef.current) carouselRef.current.style.cursor = "grab";
   }
 
+  // Auto-scroll: JS-driven so drag can pause it
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el || carouselVideos.length === 0) return;
+    let rafId: number;
+    const speed = 0.6; // px per frame
+    const tick = () => {
+      if (!dragState.current.dragging && el) {
+        el.scrollLeft += speed;
+        // Seamless loop: 3 copies, reset at 2/3 mark
+        const oneSet = el.scrollWidth / 3;
+        if (el.scrollLeft >= oneSet * 2) el.scrollLeft -= oneSet;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [carouselVideos]);
+
   return (
     <div className="gr-root">
 
