@@ -527,7 +527,7 @@ function HomeInner() {
     const progress = Math.abs(normalized) / oneSet; // 0..1
     const delay = -(progress * CAROUSEL_DURATION);
     row.style.transform = "";
-    row.style.animation = `gr-scroll-fwd ${CAROUSEL_DURATION}s ${delay}s linear infinite`;
+    row.style.animation = `gr-top-scroll ${CAROUSEL_DURATION}s ${delay}s linear infinite`;
   }
 
   return (

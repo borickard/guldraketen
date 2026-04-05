@@ -3240,8 +3240,13 @@ body {
   gap: 8px;
   width: max-content;
   padding: 0 16px;
-  animation: gr-scroll-fwd 30s 0s linear infinite;
+  animation: gr-top-scroll 30s 0s linear infinite;
   will-change: transform;
+}
+
+@keyframes gr-top-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-33.3333%); }
 }
 
 .gr-top-carousel-card {
