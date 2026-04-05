@@ -374,8 +374,20 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 - Förslag på retry-logik: kör om efter 1h, sedan 12h, sedan 24h
 - Vercel Cron kan inte hantera retries nativt — lagra scrape-status i Supabase + separat check-cron
 
-### Lösenordsskydd på `/admin`
-- Supabase Auth
+### Admin-redesign
+- Gör om admin-sidan med tydliga sektioner och flikar
+- Huvudfunktioner i fokus; flytta debug-knappar (backfill thumbnails, avatarer etc.) till ett separat "Verktyg"-flöde
+- Lösenordsskydd med sparad inloggning i localStorage — användaren ska inte behöva logga in igen vid återbesök
+- Bredare layout, bättre visuell hierarki
+
+### Användarinloggning & dashboard (premium)
+- Användare hanteras av Rickard i admin (ingen självregistrering)
+- Inloggad vy: dashboard med användarens senaste TikTok-innehåll, filterbart
+- Insikter: vecko-/månadsvis ER-benchmark, toppinnehåll, trender
+- Anpassningsbara vikter för ER-formeln som sparas per användare och är aktiva tills de ändras
+- Betalning/prenumeration: undersök lösning för svenska marknaden
+  - Alternativ att utvärdera: Stripe (global, bra Next.js-integration), Billogram (svensk faktura), Swish (engångsbetalning), Paddle (VAT-hantering ingår)
+  - Stripe Checkout med månads-/årsplan är troligen enklast att integrera med Supabase Auth + Row Level Security
 
 ### LinkedIn-delning via admin
 - Manuell trigger av LinkedIn-post med veckans topp-video
