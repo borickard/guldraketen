@@ -485,38 +485,50 @@ function HomeInner() {
     finally { setBetaLoading(false); }
   }
 
-  function onCarouselMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    dragState.current = { dragging: true, startX: e.pageX, scrollStart: carouselRef.current?.scrollLeft ?? 0 };
-    if (carouselRef.current) carouselRef.current.style.cursor = "grabbing";
-  }
-  function onCarouselMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!dragState.current.dragging) return;
-    e.preventDefault();
-    if (carouselRef.current) carouselRef.current.scrollLeft = dragState.current.scrollStart - (e.pageX - dragState.current.startX);
-  }
-  function onCarouselMouseUp() {
-    dragState.current.dragging = false;
-    if (carouselRef.current) carouselRef.current.style.cursor = "grab";
+  const CAROUSEL_DURATION = 30; // seconds for one full set
+
+  function getCarouselCurrentX(row: HTMLElement): number {
+    const mat = new DOMMatrix(getComputedStyle(row).transform);
+    return mat.m41;
   }
 
-  // Auto-scroll: JS-driven so drag can pause it
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el || carouselVideos.length === 0) return;
-    let rafId: number;
-    const speed = 0.6; // px per frame
-    const tick = () => {
-      if (!dragState.current.dragging && el) {
-        el.scrollLeft += speed;
-        // Seamless loop: 3 copies, reset at 2/3 mark
-        const oneSet = el.scrollWidth / 3;
-        if (el.scrollLeft >= oneSet * 2) el.scrollLeft -= oneSet;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [carouselVideos]);
+  function onCarouselPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const row = carouselRef.current;
+    if (!row) return;
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    const currentX = getCarouselCurrentX(row);
+    row.style.animationPlayState = "paused";
+    row.style.transform = `translateX(${currentX}px)`;
+    row.style.animation = "none";
+    dragState.current = { dragging: true, startX: e.clientX, scrollStart: currentX };
+    (e.currentTarget as HTMLDivElement).style.cursor = "grabbing";
+  }
+
+  function onCarouselPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragState.current.dragging || !carouselRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragState.current.startX;
+    const newX = dragState.current.scrollStart + dx;
+    carouselRef.current.style.transform = `translateX(${newX}px)`;
+  }
+
+  function onCarouselPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const row = carouselRef.current;
+    if (!dragState.current.dragging || !row) return;
+    dragState.current.dragging = false;
+    (e.currentTarget as HTMLDivElement).style.cursor = "grab";
+
+    // Resume CSS animation from current drag position
+    const currentX = parseFloat(row.style.transform.replace("translateX(", "").replace("px)", "")) || 0;
+    // oneSet = scrollWidth of one copy; animation moves from 0 to -oneSet
+    const oneSet = row.scrollWidth / 3;
+    // Normalise position into [0, -oneSet] range
+    const normalized = ((currentX % -oneSet) - oneSet) % -oneSet;
+    const progress = Math.abs(normalized) / oneSet; // 0..1
+    const delay = -(progress * CAROUSEL_DURATION);
+    row.style.transform = "";
+    row.style.animation = `gr-scroll-fwd ${CAROUSEL_DURATION}s ${delay}s linear infinite`;
+  }
 
   return (
     <div className="gr-root">
@@ -525,30 +537,31 @@ function HomeInner() {
       {carouselVideos.length > 0 && (
         <div
           className="gr-top-carousel"
-          ref={carouselRef}
-          onMouseDown={onCarouselMouseDown}
-          onMouseMove={onCarouselMouseMove}
-          onMouseUp={onCarouselMouseUp}
-          onMouseLeave={onCarouselMouseUp}
+          onPointerDown={onCarouselPointerDown}
+          onPointerMove={onCarouselPointerMove}
+          onPointerUp={onCarouselPointerUp}
+          onPointerCancel={onCarouselPointerUp}
         >
-          {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
-            <a
-              key={i}
-              href={v.video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gr-top-carousel-card"
-              draggable={false}
-              onClick={(e) => { if (Math.abs((carouselRef.current?.scrollLeft ?? 0) - dragState.current.scrollStart) > 4) e.preventDefault(); }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
-              <div className="gr-top-carousel-info">
-                <span className="gr-top-carousel-name">{displayName(v)}</span>
-                <span className="gr-top-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-              </div>
-            </a>
-          ))}
+          <div className="gr-top-carousel-inner" ref={carouselRef}>
+            {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
+              <a
+                key={i}
+                href={v.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gr-top-carousel-card"
+                draggable={false}
+                onClick={(e) => { if (Math.abs(dragState.current.startX - e.clientX) > 4) e.preventDefault(); }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
+                <div className="gr-top-carousel-info">
+                  <span className="gr-top-carousel-name">{displayName(v)}</span>
+                  <span className="gr-top-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       )}
 

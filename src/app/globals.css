@@ -3225,20 +3225,24 @@ body {
 /* ── KARUSELL-SEKTION ── */
 /* ── Top draggable carousel strip ── */
 .gr-top-carousel {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  cursor: grab;
+  overflow: hidden;
+  padding: 10px 0;
   background: #07253A;
   border-bottom: 1px solid rgba(237,248,251,0.08);
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  cursor: grab;
   user-select: none;
 }
 
-.gr-top-carousel::-webkit-scrollbar { display: none; }
+.gr-top-carousel:active { cursor: grabbing; }
+
+.gr-top-carousel-inner {
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  padding: 0 16px;
+  animation: gr-scroll-fwd 30s 0s linear infinite;
+  will-change: transform;
+}
 
 .gr-top-carousel-card {
   flex-shrink: 0;
