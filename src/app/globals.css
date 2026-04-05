@@ -1296,7 +1296,7 @@ body {
   border-radius: 6px 0 0 6px;
   color: #EDF8FB;
   font-family: 'Barlow', sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   padding: 14px 16px;
   outline: none;
   transition: border-color 0.15s;
@@ -2024,7 +2024,7 @@ body {
   border-radius: 6px 0 0 6px;
   color: #EDF8FB;
   font-family: 'Barlow', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   padding: 10px 14px;
   outline: none;
   transition: border-color 0.15s;
@@ -3612,7 +3612,7 @@ body {
 .gr-calc-section-input {
   flex: 1;
   font-family: var(--gr-mono);
-  font-size: 13px;
+  font-size: 16px;
   padding: 14px 16px;
   background: rgba(237, 248, 251, 0.07);
   border: 1.5px solid rgba(237, 248, 251, 0.15);
