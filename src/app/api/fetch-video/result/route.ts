@@ -113,6 +113,7 @@ export async function GET(req: NextRequest) {
     comments,
     shares,
     engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
+    source: "apify",
   });
 
   return NextResponse.json({ status: "ready", views, likes, comments, shares });

@@ -26,6 +26,18 @@ export async function POST(req: NextRequest) {
   if (recentTest) {
     const timeSinceTest = Date.now() - new Date(recentTest.tested_at).getTime();
     if (timeSinceTest <= TWO_DAYS_MS) {
+      // Log the cache hit
+      await supabaseAdmin.from("calculator_tests").insert({
+        video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+        video_id: videoId,
+        handle,
+        views: recentTest.views,
+        likes: recentTest.likes,
+        comments: recentTest.comments,
+        shares: recentTest.shares,
+        engagement_rate: recentTest.engagement_rate,
+        source: "cache",
+      });
       return NextResponse.json({
         source: "db",
         views: recentTest.views,
@@ -60,6 +72,7 @@ export async function POST(req: NextRequest) {
         comments: dbVideo.comments,
         shares: dbVideo.shares,
         engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
+        source: "db",
       });
       return NextResponse.json({
         source: "db",

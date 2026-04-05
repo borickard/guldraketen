@@ -13,6 +13,7 @@ interface CalcTest {
   shares: number | null;
   engagement_rate: number | null;
   tested_at: string;
+  source: string | null;
 }
 
 interface ContestVideo {
@@ -489,6 +490,7 @@ export default function AdminPage() {
                     <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Handle</th>
                     <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Visningar</th>
                     <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Källa</th>
                     <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
                     <th style={{ padding: "6px 8px" }}></th>
                     <th style={{ padding: "6px 8px" }}></th>
@@ -506,6 +508,14 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
                           {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>
+                          {(() => {
+                            const s = t.source;
+                            const color = s === "apify" ? "#a06000" : s === "cache" ? "#2a7a2a" : s === "db" ? "#1a5a8a" : "var(--muted)";
+                            const label = s === "apify" ? "Apify" : s === "cache" ? "Cache" : s === "db" ? "DB" : "—";
+                            return <span style={{ fontSize: 9, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>;
+                          })()}
                         </td>
                         <td style={{ padding: "6px 8px", color: "var(--muted)" }}>
                           {new Date(t.tested_at).toLocaleDateString("sv-SE")}
