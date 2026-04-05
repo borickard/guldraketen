@@ -221,7 +221,7 @@ Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
       – hämtar och sparar avatar_url per konto till Supabase Storage
 ```
 
-`daysBack` = 14 för Cron. Valbart i admin-UI.
+`daysBack` = 14 för Cron — scraper hämtar videor publicerade de senaste 14 dagarna per körning (för Veckans Raket). Valbart i admin-UI.
 Webhook fungerar bara i produktion (Vercel).
 
 ---
@@ -467,7 +467,7 @@ För att `position: sticky` ska fungera på ett grid-item måste det ha `align-s
 - **Strip-karusell** — 6 repetitioner + keyframe -16.67%
 - **Veckoväljare** — ←/→ pil-navigation i header-raden
 - **`/kalkylatorn`** — premiumsida med profil- och videoanalys
-- **Cache-logik** — skip re-scrape om videon var ≥14 dagar vid scrape OCH scrapad senaste 7 dagarna
+- **Cache-logik** — kalkylatorn cachar resultat i 48 timmar (kollar `videos`-tabellen och `calculator_tests`)
 - **Footer** — personlig tagline med LinkedIn-länk
 
 ### Äldre ändringar (2026-03-26)
