@@ -45,121 +45,108 @@ export async function GET(req: Request) {
                 height: "630px",
                 fontFamily: "sans-serif",
                 backgroundColor: navy,
+                position: "relative",
             }}
         >
-            {/* Left: thumbnail */}
-            {thumbnailUrl && (
-                <div
+            {/* Full-bleed thumbnail */}
+            {thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={thumbnailUrl}
+                    alt=""
                     style={{
-                        width: "420px",
-                        height: "630px",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                        display: "flex",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        objectPosition: "top center",
                     }}
-                >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={thumbnailUrl}
-                        alt=""
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "top center",
-                        }}
-                    />
-                </div>
-            )}
+                />
+            ) : null}
 
-            {/* Right: stats panel */}
+            {/* Gradient overlay */}
             <div
                 style={{
-                    flex: 1,
-                    backgroundColor: navy,
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "220px",
+                    background: "linear-gradient(transparent, rgba(7,37,58,0.92))",
+                    display: "flex",
+                }}
+            />
+
+            {/* Overlay text */}
+            <div
+                style={{
+                    position: "absolute",
+                    bottom: "44px",
+                    left: "52px",
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "center",
-                    padding: "56px 60px",
-                    gap: "0px",
+                    gap: "6px",
                 }}
             >
-                {/* Brand */}
-                <div
-                    style={{
-                        fontSize: "13px",
-                        letterSpacing: "0.12em",
-                        color: dim,
-                        textTransform: "uppercase",
-                        marginBottom: "28px",
-                    }}
-                >
-                    SOCIALA RAKETER
-                </div>
-
-                {/* Rank + week */}
+                {/* Rank + week + account */}
                 <div
                     style={{
                         display: "flex",
                         alignItems: "center",
                         gap: "12px",
-                        marginBottom: "20px",
                     }}
                 >
                     <span
                         style={{
-                            fontSize: "18px",
+                            fontSize: "16px",
                             fontWeight: 700,
                             color: rankColor,
-                            letterSpacing: "0.08em",
+                            letterSpacing: "0.1em",
+                            textTransform: "uppercase",
                         }}
                     >
                         {rankLabel}
                     </span>
                     {weekLabel && (
-                        <span style={{ fontSize: "16px", color: dim }}>
+                        <span style={{ fontSize: "15px", color: dim }}>
                             · {weekLabel}
                         </span>
                     )}
+                    <span style={{ fontSize: "15px", color: dim }}>
+                        · {accountName}
+                    </span>
                 </div>
 
-                {/* Account name */}
+                {/* ER row */}
                 <div
                     style={{
-                        fontSize: "38px",
-                        fontWeight: 700,
-                        color: white,
-                        lineHeight: 1.15,
-                        marginBottom: "32px",
-                        maxWidth: "600px",
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: "10px",
                     }}
                 >
-                    {accountName}
-                </div>
-
-                {/* ER value */}
-                <div
-                    style={{
-                        fontSize: "72px",
-                        fontWeight: 800,
-                        color: rankColor,
-                        lineHeight: 1,
-                        marginBottom: "8px",
-                    }}
-                >
-                    {er}
-                </div>
-
-                {/* ER label */}
-                <div
-                    style={{
-                        fontSize: "14px",
-                        letterSpacing: "0.1em",
-                        color: dim,
-                        textTransform: "uppercase",
-                    }}
-                >
-                    engagement rate
+                    <span
+                        style={{
+                            fontSize: "64px",
+                            fontWeight: 800,
+                            color: rankColor,
+                            lineHeight: 1,
+                        }}
+                    >
+                        {er}
+                    </span>
+                    <span
+                        style={{
+                            fontSize: "14px",
+                            color: dim,
+                            letterSpacing: "0.1em",
+                            textTransform: "uppercase",
+                        }}
+                    >
+                        engagement rate
+                    </span>
                 </div>
             </div>
         </div>,

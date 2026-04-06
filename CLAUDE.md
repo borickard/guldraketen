@@ -336,6 +336,19 @@ Strukturen uppifrån och ned:
 - Rankfärg på ER-värdet, "Kopiera länk"-knapp med kopierad-feedback, prev/next rank-navigation
 - Kontonamn länkas till `/konto/[handle]`
 
+### OG-bild för delningssidor (`/api/og`)
+- Genereras via `next/og` (ImageResponse) och cachas av CDN
+- Parametrar: `?week=2026-W10&rank=1`
+- Data hämtas via `lib/getVideoForRank.ts` (delad med `[week]/[rank]/page.tsx`)
+- **Nuvarande implementation (2026-04-06):** Full-bleed thumbnail (1200×630, objectFit cover, objectPosition top center) med gradient-overlay längst ned (transparent → navy rgba 0.92, 220px höjd). Rank-label, vecka, kontonamn och ER-värde visas i overlaytext (bottom 44px, left 52px).
+- Fallback utan thumbnail: solid navy bakgrund med samma overlay-text
+
+**⚠️ Känd issue — OG-bildtext behöver justeras:**
+LinkedIn-förhandsgranskning visar OG-bilden i ~300px bredd, vilket gör texten i overlay svårläst. Nästa steg:
+- Öka fontstorlekar i overlay-texten (rankLabel, ER-värde) markant
+- Eventuellt förenkla overlayinnehållet: bara rankLabel + ER, inte kontonamn + vecka
+- Alternativ övervägd men pausad: generera bilden från sidan med html2canvas/puppeteer (komplex setup på Vercel Edge)
+
 ### Admin (`/admin`)
 - Lägg till/ta bort/aktivera/avaktivera konton
 - Redigera `display_name` och `category` inline
@@ -363,6 +376,7 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 ### Snabba fixes
 - **Mobil nav** — hamburgarmenyns länkar saknar funktion, behöver wiras upp
 - **Skeleton loading** — ersätt "Laddar..."-texten i listan med skeleton-rader i rätt höjd
+- **OG-bildtext** — overlay-texten i `/api/og` är för liten vid LinkedIn-förhandsvisning; öka fontstorlekar (rankLabel, ER) och förenkla innehållet (ev. bara rankLabel + ER, ta bort kontonamn + vecka)
 
 ### Delning från listan
 - Share-ikoner på expanderade videokort → `/[week]/[rank]`-URL:er
@@ -447,7 +461,12 @@ För att `position: sticky` ska fungera på ett grid-item måste det ha `align-s
 
 ---
 
-## Senaste ändringar (2026-04-04)
+## Senaste ändringar (2026-04-06)
+
+- **OG-bild** — `/api/og` implementerad; full-bleed thumbnail 1200×630 med gradient-overlay och rank/ER-text. OG-taggar på delningssidor (`[week]/[rank]/page.tsx`) pekar på denna route. **⚠️ Känd issue:** texten i overlaybilden är för liten vid LinkedIn-förhandsvisning (~300px bredd) — behöver justeras.
+- **Benchmark-labels** — fixade felaktiga etiketter i kalkylatorns percentilvisning
+
+### Äldre ändringar (2026-04-04)
 
 - **Hall of Fame redesign** — ljus bakgrund (gr-hof-page), flat kortgrid utan veckogrupperingar, 7 sorteringsalternativ, 3 rader initialt + "Visa fler" (3 rader åt gången), filler-divs mot ensamma kort
 - **Konto-sidor** — `/konto/[handle]` lanserad; visar videor äldre än föregående ISO-vecka
