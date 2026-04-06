@@ -42,8 +42,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Group by account — one best video per handle (same logic as front page)
+    // Only qualifying videos (views >= 10 000) count, matching groupByAccount() in page.tsx
     const byHandle = new Map<string, typeof data[0]>();
     for (const v of data) {
+        if ((v.views ?? 0) < 10_000) continue;
         if (!byHandle.has(v.handle) || (v.engagement_rate ?? 0) > (byHandle.get(v.handle)!.engagement_rate ?? 0)) {
             byHandle.set(v.handle, v);
         }
