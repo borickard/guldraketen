@@ -430,7 +430,7 @@ function KalkylatornPage() {
                           <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(benchPct, 99)}%` }} />
                         </div>
                         <div className="gr-kalky-v2-bench-labels">
-                          <span>0%</span><span>Topp 25%</span><span>Topp 10%</span>
+                          <span>Låg</span><span>Medel</span><span>Hög</span>
                         </div>
                       </>
                     )}
