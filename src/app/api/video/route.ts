@@ -33,13 +33,27 @@ export async function GET(req: NextRequest) {
         .select(fields)
         .gte("published_at", start.toISOString())
         .lt("published_at", end.toISOString())
-        .gte("views", 5000)
+        .gte("views", 10000)
         .order("engagement_rate", { ascending: false })
-        .limit(rank);
+        .limit(200);
 
-    if (error || !data || data.length < rank) {
+    if (error || !data) {
         return NextResponse.json({ error: "Hittades inte" }, { status: 404 });
     }
 
-    return NextResponse.json(data[rank - 1]);
+    // Group by account — one best video per handle (same logic as front page)
+    const byHandle = new Map<string, typeof data[0]>();
+    for (const v of data) {
+        if (!byHandle.has(v.handle) || (v.engagement_rate ?? 0) > (byHandle.get(v.handle)!.engagement_rate ?? 0)) {
+            byHandle.set(v.handle, v);
+        }
+    }
+    const ranked = Array.from(byHandle.values())
+        .sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0));
+
+    if (ranked.length < rank) {
+        return NextResponse.json({ error: "Hittades inte" }, { status: 404 });
+    }
+
+    return NextResponse.json(ranked[rank - 1]);
 }

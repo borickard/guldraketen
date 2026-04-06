@@ -3432,7 +3432,7 @@ body {
 .gr-rk-week-row {
   display: none;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   max-width: 640px;
   margin: 0 auto var(--space-3);
@@ -3915,7 +3915,7 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 12px;
-    padding: 4px 10vw 28px 10vw;
+    padding: 4px 24px 28px 0;
   }
   .gr-rk-grid::-webkit-scrollbar {
     display: none;
