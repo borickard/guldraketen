@@ -76,7 +76,7 @@ export default function OmEngagemang() {
           mot svenska företagsvideor i vår databas.
         </p>
 
-        <Link href="/kalkylator" className="gr-cta-btn" style={{ display: "inline-block", marginTop: "8px" }}>
+        <Link href="/#kalkylator" className="gr-cta-btn" style={{ display: "inline-block", marginTop: "8px" }}>
           Öppna kalkylatorn
         </Link>
 

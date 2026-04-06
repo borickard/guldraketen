@@ -451,6 +451,10 @@ function HomeInner() {
     const url = h ? `https://www.tiktok.com/@${h}/video/${v}` : `https://www.tiktok.com/video/${v}`;
     setCalcUrl(url);
     startCalcFetch(v, h);
+    // Scroll to calculator section
+    setTimeout(() => {
+      document.getElementById("kalkylator")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -537,14 +541,20 @@ function HomeInner() {
     <div className="gr-root">
 
       {/* ── KARUSELL (top strip) ─────────────────────────────────────── */}
-      {carouselVideos.length > 0 && (
-        <div
-          className="gr-top-carousel"
-          onPointerDown={onCarouselPointerDown}
-          onPointerMove={onCarouselPointerMove}
-          onPointerUp={onCarouselPointerUp}
-          onPointerCancel={onCarouselPointerUp}
-        >
+      <div
+        className="gr-top-carousel"
+        onPointerDown={!loading ? onCarouselPointerDown : undefined}
+        onPointerMove={!loading ? onCarouselPointerMove : undefined}
+        onPointerUp={!loading ? onCarouselPointerUp : undefined}
+        onPointerCancel={!loading ? onCarouselPointerUp : undefined}
+      >
+        {loading ? (
+          <div className="gr-top-carousel-inner gr-top-carousel-inner--skel">
+            {Array.from({ length: 14 }, (_, i) => (
+              <div key={i} className="gr-top-carousel-skel" />
+            ))}
+          </div>
+        ) : carouselVideos.length > 0 ? (
           <div className="gr-top-carousel-inner" ref={carouselRef}>
             {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
               <a
@@ -565,8 +575,8 @@ function HomeInner() {
               </a>
             ))}
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="gr-hero-v2" id="hero">
@@ -597,67 +607,65 @@ function HomeInner() {
 
         {/* Header + week picker */}
         <div className="gr-list-section-hdr">
-          <div className="gr-page-hdr">
-            <h1 className="gr-page-title">Veckans raketer</h1>
-            {selectedWeek && (() => {
-              const weekIdx = weeks.indexOf(selectedWeek);
-              const canBack = weekIdx + 1 < weeks.length;
-              const canForward = weekIdx > 0;
-              function goToWeek(w: string) {
-                setSelectedWeek(w);
-                router.replace(`?week=${w}`, { scroll: false });
-                setWeekOpen(false);
-              }
-              return (
-                <div className="gr-wk-controls" ref={wkRef}>
+          <h1 className="gr-page-title">Veckans raketer</h1>
+          {selectedWeek && (() => {
+            const weekIdx = weeks.indexOf(selectedWeek);
+            const canBack = weekIdx + 1 < weeks.length;
+            const canForward = weekIdx > 0;
+            function goToWeek(w: string) {
+              setSelectedWeek(w);
+              router.replace(`?week=${w}`, { scroll: false });
+              setWeekOpen(false);
+            }
+            return (
+              <div className="gr-wk-controls" ref={wkRef} style={{ marginTop: 12 }}>
+                <button
+                  className="gr-wk-arrow"
+                  disabled={!canBack}
+                  onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
+                  aria-label="Föregående vecka"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <div className="gr-wk-inline">
                   <button
-                    className="gr-wk-arrow"
-                    disabled={!canBack}
-                    onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                    aria-label="Föregående vecka"
+                    className={"gr-wk-pill" + (weekOpen ? " open" : "")}
+                    onClick={() => setWeekOpen((v) => !v)}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M15 18l-6-6 6-6" />
+                    {fmtWeekShort(selectedWeek)}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="gr-wk-chev">
+                      <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                  <div className="gr-wk-inline">
-                    <button
-                      className={"gr-wk-pill" + (weekOpen ? " open" : "")}
-                      onClick={() => setWeekOpen((v) => !v)}
-                    >
-                      {fmtWeekShort(selectedWeek)}
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="gr-wk-chev">
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                    {weekOpen && (
-                      <div className="gr-wk-drop">
-                        {weeks.map((w) => (
-                          <button
-                            key={w}
-                            className={"gr-wk-opt" + (w === selectedWeek ? " active" : "")}
-                            onClick={() => goToWeek(w)}
-                          >
-                            {fmtWeek(w)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    className="gr-wk-arrow"
-                    disabled={!canForward}
-                    onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                    aria-label="Nästa vecka"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
+                  {weekOpen && (
+                    <div className="gr-wk-drop">
+                      {weeks.map((w) => (
+                        <button
+                          key={w}
+                          className={"gr-wk-opt" + (w === selectedWeek ? " active" : "")}
+                          onClick={() => goToWeek(w)}
+                        >
+                          {fmtWeek(w)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              );
-            })()}
-          </div>
+                <button
+                  className="gr-wk-arrow"
+                  disabled={!canForward}
+                  onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
+                  aria-label="Nästa vecka"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })()}
         </div>
         {dataFreshnessLabel && (
           <p className="gr-toplist-freshness">{dataFreshnessLabel}</p>
@@ -667,8 +675,16 @@ function HomeInner() {
         <div className="gr-rk-grid">
           {loading
             ? [0, 1, 2].map((i) => (
-                <div key={i} className="gr-rk-card">
-                  <div className="gr-rk-card-inner gr-rk-skel" />
+                <div key={i} className="gr-rk-card gr-rk-card--loading">
+                  <div className="gr-rk-card-inner">
+                    <div className="gr-rk-card-front">
+                      <div className="gr-rk-skel-thumb-area" />
+                      <div className="gr-rk-skel-info-area">
+                        <div className="gr-rk-skel-bar" style={{ width: "62%" }} />
+                        <div className="gr-rk-skel-bar" style={{ width: "38%", height: 22, marginTop: 2 }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))
             : accounts.slice(0, 3).map((acc, i) => {
@@ -802,9 +818,17 @@ function HomeInner() {
           )}
 
           {calcMode === "video-loading" && (
-            <div className="gr-kalky-v2-loading" style={{ marginTop: 32 }}>
-              <span className="gr-kalky-v2-spinner" />
-              <span>Hämtar engagemang och analyserar</span>
+            <div className="gr-kalky-v2-skel" style={{ marginTop: 32 }}>
+              <div className="gr-kalky-v2-skel-thumb" />
+              <div className="gr-kalky-v2-skel-right">
+                <div className="gr-kalky-v2-skel-bar" style={{ width: "35%", height: 10 }} />
+                <div className="gr-kalky-v2-skel-bar" style={{ width: "55%", height: 56, marginTop: 8 }} />
+                <div className="gr-kalky-v2-skel-bar" style={{ width: "75%", height: 10, marginTop: 14 }} />
+                <div className="gr-kalky-v2-skel-bar" style={{ height: 5, marginTop: 8 }} />
+                {[40, 30, 55, 35].map((w, i) => (
+                  <div key={i} className="gr-kalky-v2-skel-bar" style={{ width: `${w}%`, height: 14, marginTop: i === 0 ? 18 : 8 }} />
+                ))}
+              </div>
             </div>
           )}
 
@@ -822,17 +846,50 @@ function HomeInner() {
 
           {calcMode === "video-ready" && calcStats && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-              <div className="gr-kalky-v2-result-row">
-                {calcThumb && (
-                  <button className="gr-kalky-v2-thumb-btn" onClick={() => setCalcLightbox(true)} aria-label="Spela upp video">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
-                    <div className="gr-kalky-v2-play">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
-                    </div>
+
+              {/* Low-views warning */}
+              {calcStats.views < 10000 && (
+                <div className="gr-kalky-v2-notice gr-kalky-v2-notice--warn" style={{ marginBottom: 16 }}>
+                  Videon har färre än 10 000 visningar. ER-jämförelsen är mindre tillförlitlig på låg räckvidd.
+                </div>
+              )}
+
+              {/* 2-col result body */}
+              <div className="gr-kalky-v2-result-body">
+                {/* Left: thumbnail + copy + cache note */}
+                <div className="gr-kalky-v2-result-left">
+                  {/* Always reserve thumbnail space to prevent layout shift */}
+                  <button
+                    className="gr-kalky-v2-thumb-btn"
+                    onClick={calcThumb ? () => setCalcLightbox(true) : undefined}
+                    aria-label={calcThumb ? "Spela upp video" : undefined}
+                    style={{ cursor: calcThumb ? "pointer" : "default" }}
+                  >
+                    {calcThumb && (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
+                        <div className="gr-kalky-v2-play">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                      </>
+                    )}
                   </button>
-                )}
-                <div className="gr-kalky-v2-er-block">
+                  <button
+                    className="gr-kalky-v2-copy-btn"
+                    onClick={() => { navigator.clipboard.writeText(window.location.href); setCalcCopied(true); setTimeout(() => setCalcCopied(false), 2000); }}
+                  >
+                    {calcCopied ? "Kopierad!" : "Kopiera länk"}
+                  </button>
+                  {calcLastUpdated && (
+                    <p className="gr-kalky-v2-cache-note" style={{ marginBottom: 0 }}>
+                      Statistik hämtad {new Date(calcLastUpdated).toLocaleDateString("sv-SE")}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right: ER + bench + stats */}
+                <div className="gr-kalky-v2-result-right">
                   {calcEr !== null ? (
                     <>
                       <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
@@ -851,31 +908,24 @@ function HomeInner() {
                           </div>
                         </>
                       )}
+                      <div className="gr-kalky-v2-stats-col">
+                        {[
+                          { lbl: "Visningar", val: calcStats.views },
+                          { lbl: "Likes", val: calcStats.likes },
+                          { lbl: "Kommentarer", val: calcStats.comments },
+                          { lbl: "Delningar", val: calcStats.shares },
+                        ].map(({ lbl, val }) => (
+                          <div key={lbl} className="gr-kalky-v2-stat-row">
+                            <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
+                            <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   ) : (
                     <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
                   )}
                 </div>
-              </div>
-
-              {calcLastUpdated && (
-                <p className="gr-kalky-v2-cache-note">
-                  Statistik hämtad {new Date(calcLastUpdated).toLocaleDateString("sv-SE")} — vi hämtar ny data om det gått mer än 48 timmar.
-                </p>
-              )}
-
-              <div className="gr-kalky-v2-stats">
-                {[
-                  { lbl: "Visningar", val: calcStats.views },
-                  { lbl: "Likes", val: calcStats.likes },
-                  { lbl: "Kommentarer", val: calcStats.comments },
-                  { lbl: "Delningar", val: calcStats.shares },
-                ].map(({ lbl, val }) => (
-                  <div key={lbl} className="gr-kalky-v2-stat">
-                    <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
-                    <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
-                  </div>
-                ))}
               </div>
 
               <details className="gr-kalky-v2-weights">
@@ -905,18 +955,6 @@ function HomeInner() {
                   </button>
                 )}
               </details>
-
-              <div className="gr-kalky-v2-share">
-                <span className="gr-kalky-v2-share-url">
-                  {typeof window !== "undefined" ? window.location.href : ""}
-                </span>
-                <button
-                  className="gr-kalky-v2-copy-btn"
-                  onClick={() => { navigator.clipboard.writeText(window.location.href); setCalcCopied(true); setTimeout(() => setCalcCopied(false), 2000); }}
-                >
-                  {calcCopied ? "Kopierad!" : "Kopiera länk"}
-                </button>
-              </div>
 
               <div className="gr-kalky-beta">
                 <p className="gr-kalky-beta-desc">

@@ -23,12 +23,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ange en giltig e-postadress." }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from("beta_signups").upsert(
-    { email: email.trim().toLowerCase(), video_url: videoUrl ?? null },
-    { onConflict: "email", ignoreDuplicates: true }
-  );
+  const { error } = await supabaseAdmin.from("beta_signups").insert({
+    email: email.trim().toLowerCase(),
+    video_url: videoUrl ?? null,
+  });
 
   if (error) {
+    // 23505 = unique constraint violation — email already registered, treat as success
+    if (error.code === "23505") {
+      return NextResponse.json({ ok: true });
+    }
     console.error("beta_signups insert error", error);
     return NextResponse.json({ error: "Kunde inte spara. Prova igen." }, { status: 500 });
   }

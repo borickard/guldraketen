@@ -13,7 +13,7 @@ const homeLinks = [
 
 const otherLinks = [
   { href: "/#topplistan",   label: "Topplistan" },
-  { href: "/kalkylator",    label: "Kalkylator" },
+  { href: "/#kalkylator",   label: "Kalkylator" },
   { href: "/hall-of-fame",  label: "Hall of Fame" },
   { href: "/om-engagemang", label: "Om engagemang" },
 ];

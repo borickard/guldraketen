@@ -102,7 +102,7 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="gr-kalky-v2-head">
           <p className="gr-kalky-v2-back-link">
-            <a href="/kalkylator">← Kalkylatorn</a>
+            <a href="/#kalkylator">← Kalkylatorn</a>
           </p>
           <h1 className="gr-kalky-v2-title">@{handle}</h1>
           <p className="gr-kalky-v2-sub">Profilanalys</p>
