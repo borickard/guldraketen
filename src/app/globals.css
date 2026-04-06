@@ -3435,7 +3435,7 @@ body {
   justify-content: flex-start;
   gap: 12px;
   max-width: 640px;
-  margin: 0 auto var(--space-3);
+  margin: 0 auto var(--space-1);
 }
 
 .gr-rk-week-label {
