@@ -1,29 +1,16 @@
 import { ImageResponse } from "next/og";
 import { getVideoForRank } from "@/lib/getVideoForRank";
+import fs from "fs";
+import path from "path";
 
 export const runtime = "nodejs";
 
-async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
-  try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=${family}:wght@${weight}&display=swap`,
-      { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" } }
-    ).then((r) => r.text());
-
-    // Google Fonts returns multiple @font-face blocks for unicode subsets.
-    // The last block is always the `latin` subset — sufficient for Swedish.
-    // Match both single- and double-quoted format() values.
-    const matches = [...css.matchAll(/src: url\((.+?)\) format\(['"](woff2)['"]\)/g)];
-    const url = matches[matches.length - 1]?.[1];
-    if (!url) {
-      console.error(`No woff2 URL found for ${family} ${weight}. CSS snippet:`, css.slice(0, 500));
-      return null;
-    }
-    return fetch(url).then((r) => r.arrayBuffer());
-  } catch (err) {
-    console.error(`Failed to load font ${family} ${weight}:`, err);
-    return null;
-  }
+function loadFont(weight: 600 | 800): ArrayBuffer {
+  const file = path.join(
+    process.cwd(),
+    `node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-${weight}-normal.woff2`
+  );
+  return fs.readFileSync(file).buffer as ArrayBuffer;
 }
 
 const RANK_LABELS: Record<string, string> = {
@@ -59,15 +46,10 @@ export async function GET(req: Request) {
     const navy = "#07253A";
     const white = "#ffffff";
     const magenta = "rgb(254,44,85)";
-    const [bc600, bc800] = await Promise.all([
-        loadGoogleFont("Barlow+Condensed", 600),
-        loadGoogleFont("Barlow+Condensed", 800),
-    ]);
-
     const fonts = [
-        bc600 && { name: "Barlow Condensed", data: bc600, weight: 600 as const, style: "normal" as const },
-        bc800 && { name: "Barlow Condensed", data: bc800, weight: 800 as const, style: "normal" as const },
-    ].filter(Boolean) as { name: string; data: ArrayBuffer; weight: 600 | 800; style: "normal" }[];
+        { name: "Barlow Condensed", data: loadFont(600), weight: 600 as const, style: "normal" as const },
+        { name: "Barlow Condensed", data: loadFont(800), weight: 800 as const, style: "normal" as const },
+    ];
 
     return new ImageResponse(
         <div style={{ display: "flex", width: "1200px", height: "630px", fontFamily: "Barlow, sans-serif" }}>
