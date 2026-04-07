@@ -3,15 +3,15 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 
 export const runtime = "nodejs";
 
-const RANK_COLORS: Record<string, string> = {
-    "1": "#C8962A",
-    "2": "#8A9299",
-    "3": "#96614A",
-};
 const RANK_LABELS: Record<string, string> = {
-    "1": "GULD",
-    "2": "SILVER",
-    "3": "BRONS",
+    "1": "Guldraket",
+    "2": "Silverraket",
+    "3": "Bronsraket",
+};
+const RANK_MEDALS: Record<string, string> = {
+    "1": "🥇",
+    "2": "🥈",
+    "3": "🥉",
 };
 
 export async function GET(req: Request) {
@@ -28,131 +28,78 @@ export async function GET(req: Request) {
         : "–";
 
     const weekNum = week ? parseInt(week.split("-W")[1]) : 0;
-    const rankColor = RANK_COLORS[String(rank)] ?? "#EDF8FB";
-    const rankLabel = RANK_LABELS[String(rank)] ?? `PLATS ${rank}`;
+    const rankLabel = RANK_LABELS[String(rank)] ?? `Plats ${rank}`;
+    const medal = RANK_MEDALS[String(rank)] ?? "";
     const weekLabel = weekNum ? `Vecka ${weekNum}` : "";
     const thumbnailUrl = video?.thumbnail_url ?? null;
 
     const navy = "#07253A";
-    const dim = "rgba(237,248,251,0.5)";
-    const white = "#EDF8FB";
+    const white = "#ffffff";
+    const magenta = "rgb(254,44,85)";
+    const dim = "rgba(237,248,251,0.55)";
 
     return new ImageResponse(
-        <div
-            style={{
+        <div style={{ display: "flex", width: "1200px", height: "630px", fontFamily: "sans-serif" }}>
+
+            {/* ── Left panel: dark blue + text ── */}
+            <div style={{
                 display: "flex",
-                width: "1200px",
+                flexDirection: "column",
+                justifyContent: "center",
+                width: "600px",
                 height: "630px",
-                fontFamily: "sans-serif",
                 backgroundColor: navy,
-                position: "relative",
-            }}
-        >
-            {/* Full-bleed thumbnail */}
-            {thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                    src={thumbnailUrl}
-                    alt=""
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        objectPosition: "top center",
-                    }}
-                />
-            ) : null}
-
-            {/* Gradient overlay */}
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "220px",
-                    background: "linear-gradient(transparent, rgba(7,37,58,0.92))",
-                    display: "flex",
-                }}
-            />
-
-            {/* Overlay text */}
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: "44px",
-                    left: "52px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px",
-                }}
-            >
-                {/* Rank + week + account */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: "16px",
-                            fontWeight: 700,
-                            color: rankColor,
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                        }}
-                    >
-                        {rankLabel}
-                    </span>
-                    {weekLabel && (
-                        <span style={{ fontSize: "15px", color: dim }}>
-                            · {weekLabel}
-                        </span>
-                    )}
-                    <span style={{ fontSize: "15px", color: dim }}>
-                        · {accountName}
-                    </span>
-                </div>
-
-                {/* ER row */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "10px",
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: "64px",
-                            fontWeight: 800,
-                            color: rankColor,
-                            lineHeight: 1,
-                        }}
-                    >
+                padding: "56px 56px",
+                gap: "14px",
+                flexShrink: 0,
+            }}>
+                {/* Week */}
+                <span style={{ fontSize: "36px", color: white, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    {weekLabel}
+                </span>
+                {/* Account name — magenta */}
+                <span style={{ fontSize: "75px", fontWeight: 800, color: magenta, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
+                    {accountName}
+                </span>
+                {/* Rank label + medal */}
+                <span style={{ fontSize: "42px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
+                    {rankLabel} {medal}
+                </span>
+                {/* ER — magenta number, white label below */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "10px" }}>
+                    <span style={{ fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
                         {er}
                     </span>
-                    <span
-                        style={{
-                            fontSize: "14px",
-                            color: dim,
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                        }}
-                    >
+                    <span style={{ fontSize: "36px", color: white, letterSpacing: "0.08em" }}>
                         engagement rate
                     </span>
                 </div>
             </div>
+
+            {/* ── Right panel: thumbnail center-cropped to fill 600×630 ── */}
+            <div style={{
+                display: "flex",
+                width: "600px",
+                height: "630px",
+                backgroundColor: navy,
+                flexShrink: 0,
+            }}>
+                {thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={thumbnailUrl}
+                        alt=""
+                        style={{
+                            width: "600px",
+                            height: "630px",
+                            objectFit: "cover",
+                        }}
+                    />
+                ) : null}
+            </div>
+
         </div>,
-        {
-            width: 1200,
-            height: 630,
-        }
+        { width: 1200, height: 630 }
     );
 }
+

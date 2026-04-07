@@ -242,6 +242,7 @@ function HomeInner() {
   const calcPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const calcStartedRef = useRef(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const videoCacheRef = useRef<Map<string, RawVideo[]>>(new Map());
   const dragState = useRef({ dragging: false, startX: 0, scrollStart: 0 });
 
   // Karusell-tooltip
@@ -269,25 +270,49 @@ function HomeInner() {
       });
   }, []);
 
-  // Fetch current + previous week videos
+  // Fetch current + adjacent weeks, with cache so navigation is instant
   useEffect(() => {
-    if (!selectedWeek) return;
-    setLoading(true);
+    if (!selectedWeek || weeks.length === 0) return;
     setExpanded(null);
 
-    const fetchCurrent = fetch(`/api/videos?week=${selectedWeek}`).then((r) => r.json());
-
+    const cache = videoCacheRef.current;
     const weekIdx = weeks.indexOf(selectedWeek);
     const prevWeek = weekIdx + 1 < weeks.length ? weeks[weekIdx + 1] : null;
-    const fetchPrev = prevWeek
-      ? fetch(`/api/videos?week=${prevWeek}`).then((r) => r.json())
-      : Promise.resolve([]);
+    const nextWeek = weekIdx > 0 ? weeks[weekIdx - 1] : null;
 
-    Promise.all([fetchCurrent, fetchPrev]).then(([curr, prev]) => {
-      setVideos(curr);
-      setPrevVideos(prev);
+    // Show cached data immediately
+    const cachedCurrent = cache.get(selectedWeek);
+    const cachedPrev = prevWeek ? cache.get(prevWeek) : [];
+    if (cachedCurrent !== undefined) {
+      setVideos(cachedCurrent);
+      setPrevVideos(cachedPrev ?? []);
       setLoading(false);
+    } else {
+      setLoading(true);
+      if (cachedPrev !== undefined) setPrevVideos(cachedPrev);
+    }
+
+    // Fetch anything missing (current + prev for trend + next for preload)
+    const missing = [
+      cachedCurrent === undefined ? selectedWeek : null,
+      prevWeek && cachedPrev === undefined ? prevWeek : null,
+      nextWeek && !cache.has(nextWeek) ? nextWeek : null,
+    ].filter((w): w is string => w !== null);
+
+    if (missing.length === 0) return;
+    let active = true;
+
+    Promise.all(
+      missing.map((w) => fetch(`/api/videos?week=${w}`).then((r) => r.json()).then((data) => [w, data] as const))
+    ).then((results) => {
+      if (!active) return;
+      results.forEach(([w, data]) => cache.set(w, data));
+      const curr = cache.get(selectedWeek);
+      if (curr) { setVideos(curr); setLoading(false); }
+      if (prevWeek) { const prev = cache.get(prevWeek); if (prev) setPrevVideos(prev); }
     });
+
+    return () => { active = false; };
   }, [selectedWeek, weeks]);
 
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
@@ -462,7 +487,7 @@ function HomeInner() {
     finally { setBetaLoading(false); }
   }
 
-  const CAROUSEL_DURATION = 30; // seconds for one full set
+  const CAROUSEL_DURATION = 60; // seconds for one full set
 
   function getCarouselCurrentX(row: HTMLElement): number {
     const mat = new DOMMatrix(getComputedStyle(row).transform);
@@ -492,8 +517,24 @@ function HomeInner() {
   function onCarouselPointerUp(e: React.PointerEvent<HTMLDivElement>) {
     const row = carouselRef.current;
     if (!dragState.current.dragging || !row) return;
+    const dx = Math.abs(e.clientX - dragState.current.startX);
     dragState.current.dragging = false;
     (e.currentTarget as HTMLDivElement).style.cursor = "grab";
+
+    // Treat as a tap — navigate to the card under the pointer
+    if (dx < 5) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const card = el?.closest<HTMLAnchorElement>("a.gr-top-carousel-card");
+      if (card?.href) {
+        // On mobile, use same-tab navigation so iOS/Android Universal Links
+        // can intercept and open the TikTok app. Desktop gets a new tab.
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+          window.location.href = card.href;
+        } else {
+          window.open(card.href, "_blank", "noopener,noreferrer");
+        }
+      }
+    }
 
     // Resume CSS animation from current drag position
     const currentX = parseFloat(row.style.transform.replace("translateX(", "").replace("px)", "")) || 0;
@@ -534,7 +575,6 @@ function HomeInner() {
                 rel="noopener noreferrer"
                 className="gr-top-carousel-card"
                 draggable={false}
-                onClick={(e) => { if (Math.abs(dragState.current.startX - e.clientX) > 4) e.preventDefault(); }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
@@ -571,6 +611,15 @@ function HomeInner() {
           </div>
         </div>
       </section>
+
+      {/* ── SCROLL HINT ───────────────────────────────────────────────── */}
+      <div className="gr-scroll-hint" aria-hidden="true">
+        <a href="#topplistan" className="gr-scroll-hint-arrow">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </a>
+      </div>
 
       {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
       <section id="topplistan" className="gr-list-section">
@@ -768,7 +817,7 @@ function HomeInner() {
           <h2 className="gr-calc-h2">Hur engagerande är ditt innehåll?</h2>
           <div className="gr-calc-desc">
             <p>
-              Klistra in en länk till en TikTok-video så räknar vi ut engagemangsgraden och visar om ditt innehåll berör.
+              För att ta reda på hur engagerande ditt innehåll är, klistra in länken här, så räknar vi ut ett resultat och jämför det mot andra framgångsrika svenska TikTok-konton.
             </p>
           </div>
           <div className="gr-calc-input-wrap">

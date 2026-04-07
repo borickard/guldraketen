@@ -546,7 +546,7 @@ body {
 .gr-nav {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 52;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3131,7 +3131,7 @@ body {
 
 /* ── HERO v2 ── */
 .gr-hero-v2 {
-  min-height: 80vh;
+  min-height: 50vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3236,6 +3236,32 @@ body {
   .gr-hero-v2-link { flex: 1; justify-content: center; padding: 12px 16px; }
 }
 
+/* ── SCROLL HINT ── */
+@keyframes gr-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(6px); }
+}
+
+.gr-scroll-hint {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+
+.gr-scroll-hint-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(237, 248, 251, 0.45);
+  animation: gr-bounce 1.8s ease-in-out infinite;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.gr-scroll-hint-arrow:hover {
+  color: rgba(237, 248, 251, 0.85);
+}
+
 /* ── KARUSELL-SEKTION ── */
 /* ── Top draggable carousel strip ── */
 .gr-top-carousel {
@@ -3245,16 +3271,17 @@ body {
   border-bottom: 1px solid rgba(237,248,251,0.08);
   cursor: grab;
   user-select: none;
+  touch-action: none;
 }
 
 .gr-top-carousel:active { cursor: grabbing; }
 
 .gr-top-carousel-inner {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   width: max-content;
   padding: 0 16px 0 var(--space-3);
-  animation: gr-top-scroll 30s 0s linear infinite;
+  animation: gr-top-scroll 60s 0s linear infinite;
   will-change: transform;
 }
 
@@ -3265,8 +3292,8 @@ body {
 
 .gr-top-carousel-card {
   flex-shrink: 0;
-  width: 80px;
-  border-radius: 8px;
+  width: 160px;
+  border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
   background: rgba(237,248,251,0.06);
@@ -3280,24 +3307,24 @@ body {
 }
 
 .gr-top-carousel-thumb {
-  width: 80px;
-  height: 110px;
+  width: 160px;
+  height: 220px;
   object-fit: cover;
   display: block;
   pointer-events: none;
 }
 
 .gr-top-carousel-info {
-  padding: 4px 6px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 8px;
 }
 
 .gr-top-carousel-name {
   font-family: var(--gr-mono);
-  font-size: 8px;
+  font-size: 13px;
   letter-spacing: .03em;
   color: rgba(237,248,251,0.6);
   text-overflow: ellipsis;
@@ -3307,7 +3334,7 @@ body {
 
 .gr-top-carousel-er {
   font-family: var(--gr-mono);
-  font-size: 8px;
+  font-size: 13px;
   color: var(--gr-gold);
   flex-shrink: 0;
   font-weight: 500;
@@ -3320,8 +3347,8 @@ body {
 }
 .gr-top-carousel-skel {
   flex-shrink: 0;
-  width: 80px;
-  height: 130px;
+  width: 160px;
+  height: 260px;
   border-radius: 8px;
   background: rgba(237,248,251,0.06);
   animation: gr-shimmer 1.6s ease-in-out infinite;
@@ -3409,7 +3436,7 @@ body {
 
 /* ── TOPPLISTA-SEKTION ── */
 .gr-list-section {
-  background: #07253A;
+  background: #EBE7E2;
   padding: var(--space-6) var(--space-3);
 }
 
@@ -3502,9 +3529,9 @@ body {
   .gr-rk-grid { padding-bottom: var(--space-4); }
 }
 
-/* Week-picker overrides for dark section */
+/* Topplista section — light background overrides */
 .gr-list-section .gr-page-title {
-  color: #EDF8FB;
+  color: #1C1B19;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
   font-size: clamp(2rem, 5vw, 3.5rem);
@@ -3513,27 +3540,55 @@ body {
   line-height: 1;
 }
 
+.gr-list-section .gr-week-subtitle {
+  color: rgba(28, 27, 25, 0.5);
+}
+
+.gr-list-section .gr-rk-week-label {
+  color: rgba(28, 27, 25, 0.6);
+}
+
 .gr-list-section .gr-page-hdr {
   border-bottom: none;
 }
 
 .gr-list-section .gr-entry:hover {
-  background: rgba(237, 248, 251, 0.04);
+  background: rgba(28, 27, 25, 0.04);
 }
 
 .gr-list-section .gr-skel-row {
-  background: rgba(237, 248, 251, 0.05);
+  background: rgba(28, 27, 25, 0.06);
 }
 
 .gr-list-section .gr-skel-row-dark {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(28, 27, 25, 0.12);
 }
 
 .gr-list-section .gr-skel-rank,
 .gr-list-section .gr-skel-name,
 .gr-list-section .gr-skel-meta,
 .gr-list-section .gr-skel-rate {
-  background: rgba(237, 248, 251, 0.1);
+  background: rgba(28, 27, 25, 0.1);
+}
+
+.gr-list-section .gr-wk-arrow {
+  background: rgba(28, 27, 25, 0.08);
+  border-color: rgba(28, 27, 25, 0.15);
+  color: #1C1B19;
+}
+
+.gr-list-section .gr-wk-arrow:hover:not(:disabled) {
+  background: rgba(28, 27, 25, 0.15);
+}
+
+.gr-list-section .gr-rk-nav-arrow {
+  background: rgba(28, 27, 25, 0.08);
+  border-color: rgba(28, 27, 25, 0.15);
+  color: #1C1B19;
+}
+
+.gr-list-section .gr-rk-nav-arrow:hover:not(:disabled) {
+  background: rgba(28, 27, 25, 0.15);
 }
 
 /* ── HALL OF FAME SEKTION ── */
