@@ -3,8 +3,9 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 
 export const runtime = "edge";
 
-async function loadFont(origin: string, weight: 600 | 800): Promise<ArrayBuffer> {
-  const res = await fetch(`${origin}/fonts/barlow-condensed-${weight}.woff2`);
+async function loadFont(weight: 600 | 800): Promise<ArrayBuffer> {
+  const url = `https://cdn.jsdelivr.net/npm/@fontsource/barlow-condensed@5.2.8/files/barlow-condensed-latin-${weight}-normal.woff2`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
   return res.arrayBuffer();
 }
@@ -25,8 +26,10 @@ export async function GET(req: Request) {
   const week = searchParams.get("week") ?? "";
   const rank = parseInt(searchParams.get("rank") ?? "0");
 
-  const [video] = await Promise.all([
+  const [video, font600, font800] = await Promise.all([
     getVideoForRank(week, rank),
+    loadFont(600),
+    loadFont(800),
   ]);
 
   const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
@@ -44,6 +47,11 @@ export async function GET(req: Request) {
   const navy = "#07253A";
   const white = "#ffffff";
   const magenta = "rgb(254,44,85)";
+
+  const fonts = [
+    { name: "Barlow Condensed", data: font600, weight: 600 as const, style: "normal" as const },
+    { name: "Barlow Condensed", data: font800, weight: 800 as const, style: "normal" as const },
+  ];
 
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%" }}>
@@ -88,6 +96,6 @@ export async function GET(req: Request) {
       </div>
 
     </div>,
-    { width: 1200, height: 630 }
+    { width: 1200, height: 630, fonts }
   );
 }
