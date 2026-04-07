@@ -3,6 +3,26 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 
 export const runtime = "nodejs";
 
+async function loadGoogleFont(family: string, weights: number[], text?: string) {
+  const params = new URLSearchParams({
+    family: `${family}:wght@${weights.join(";")}`,
+    display: "swap",
+  });
+  if (text) params.set("text", text);
+  const css = await fetch(`https://fonts.googleapis.com/css2?${params}`, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+  }).then((r) => r.text());
+
+  const urls = [...css.matchAll(/src: url\((.+?)\) format\('(opentype|truetype|woff2)'\)/g)].map((m) => m[1]);
+  return Promise.all(
+    urls.map(async (url, i) => {
+      const data = await fetch(url).then((r) => r.arrayBuffer());
+      const weightMatch = css.split("src:")[i]?.match(/font-weight:\s*(\d+)/);
+      return { data, weight: weightMatch ? (parseInt(weightMatch[1]) as 400 | 600 | 800) : 400 };
+    })
+  );
+}
+
 const RANK_LABELS: Record<string, string> = {
     "1": "Guldraket",
     "2": "Silverraket",
@@ -36,10 +56,18 @@ export async function GET(req: Request) {
     const navy = "#07253A";
     const white = "#ffffff";
     const magenta = "rgb(254,44,85)";
-    const dim = "rgba(237,248,251,0.55)";
+    const [barlowFonts, barlowCondensedFonts] = await Promise.all([
+        loadGoogleFont("Barlow", [400, 600, 800]),
+        loadGoogleFont("Barlow+Condensed", [600, 800]),
+    ]);
+
+    const fonts: ImageResponse["arguments"][1]["fonts"] = [
+        ...barlowFonts.map((f) => ({ name: "Barlow", data: f.data, weight: f.weight, style: "normal" as const })),
+        ...barlowCondensedFonts.map((f) => ({ name: "Barlow Condensed", data: f.data, weight: f.weight, style: "normal" as const })),
+    ];
 
     return new ImageResponse(
-        <div style={{ display: "flex", width: "1200px", height: "630px", fontFamily: "sans-serif" }}>
+        <div style={{ display: "flex", width: "1200px", height: "630px", fontFamily: "Barlow, sans-serif" }}>
 
             {/* ── Left panel: dark blue + text ── */}
             <div style={{
@@ -54,23 +82,23 @@ export async function GET(req: Request) {
                 flexShrink: 0,
             }}>
                 {/* Week */}
-                <span style={{ fontSize: "36px", color: white, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "36px", fontWeight: 600, color: white, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {weekLabel}
                 </span>
                 {/* Account name — magenta */}
-                <span style={{ fontSize: "75px", fontWeight: 800, color: magenta, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
+                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "75px", fontWeight: 800, color: magenta, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
                     {accountName}
                 </span>
                 {/* Rank label + medal */}
-                <span style={{ fontSize: "42px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
+                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "42px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
                     {rankLabel} {medal}
                 </span>
                 {/* ER — magenta number, white label below */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "10px" }}>
-                    <span style={{ fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
+                    <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
                         {er}
                     </span>
-                    <span style={{ fontSize: "36px", color: white, letterSpacing: "0.08em" }}>
+                    <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "36px", fontWeight: 600, color: white, letterSpacing: "0.08em" }}>
                         engagement rate
                     </span>
                 </div>
@@ -99,7 +127,7 @@ export async function GET(req: Request) {
             </div>
 
         </div>,
-        { width: 1200, height: 630 }
+        { width: 1200, height: 630, fonts }
     );
 }
 
