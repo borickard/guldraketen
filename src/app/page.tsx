@@ -319,10 +319,12 @@ function HomeInner() {
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
   const carouselVideos = useMemo(() => {
-    return videos
-      .filter((v) => v.thumbnail_url)
-      .sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0))
-      .slice(0, 20);
+    const filtered = videos.filter((v) => v.thumbnail_url).slice(0, 20);
+    for (let i = filtered.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+    }
+    return filtered;
   }, [videos]);
 
   const [carouselRow1, carouselRow2] = useMemo(() => {
