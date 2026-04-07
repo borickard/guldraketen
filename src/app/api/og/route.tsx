@@ -4,9 +4,14 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 export const runtime = "edge";
 
 const RANK_LABELS: Record<string, string> = {
-  "1": "Guldraket",
-  "2": "Silverraket",
-  "3": "Bronsraket",
+  "1": "Guld",
+  "2": "Silver",
+  "3": "Brons",
+};
+const RANK_COLORS: Record<string, string> = {
+  "1": "#C8962A",
+  "2": "#8A9299",
+  "3": "#96614A",
 };
 const RANK_MEDALS: Record<string, string> = {
   "1": "🥇",
@@ -19,23 +24,23 @@ export async function GET(req: Request) {
   const week = searchParams.get("week") ?? "";
   const rank = parseInt(searchParams.get("rank") ?? "0");
 
-  // Try to load fonts — if anything fails, fall back to sans-serif
-  let fonts: { name: string; data: ArrayBuffer; weight: 600 | 800; style: "normal" }[] = [];
+  // Try to load fonts — fall back to sans-serif if anything fails
+  let fonts: { name: string; data: ArrayBuffer; weight: 500 | 700; style: "normal" }[] = [];
   let fontFamily = "sans-serif";
   try {
-    const [f600, f800] = await Promise.all([
-      fetch(new URL("./barlow-condensed-600.woff", import.meta.url)).then((r) => {
+    const [f500, f700] = await Promise.all([
+      fetch(new URL("./barlow-condensed-500.woff", import.meta.url)).then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.arrayBuffer();
       }),
-      fetch(new URL("./barlow-condensed-800.woff", import.meta.url)).then((r) => {
+      fetch(new URL("./barlow-condensed-700.woff", import.meta.url)).then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.arrayBuffer();
       }),
     ]);
     fonts = [
-      { name: "Barlow Condensed", data: f600, weight: 600, style: "normal" },
-      { name: "Barlow Condensed", data: f800, weight: 800, style: "normal" },
+      { name: "Barlow Condensed", data: f500, weight: 500, style: "normal" },
+      { name: "Barlow Condensed", data: f700, weight: 700, style: "normal" },
     ];
     fontFamily = "Barlow Condensed";
   } catch {
@@ -50,8 +55,8 @@ export async function GET(req: Request) {
     : "–";
   const weekNum = week ? parseInt(week.split("-W")[1]) : 0;
   const rankLabel = RANK_LABELS[String(rank)] ?? `Plats ${rank}`;
+  const rankColor = RANK_COLORS[String(rank)] ?? "#ffffff";
   const medal = RANK_MEDALS[String(rank)] ?? "";
-  const weekLabel = weekNum ? `Vecka ${weekNum}` : "";
   const thumbnailUrl = video?.thumbnail_url ?? null;
 
   const navy = "#07253A";
@@ -61,26 +66,34 @@ export async function GET(req: Request) {
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", background: navy }}>
 
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: "50%", height: "100%", padding: "56px", gap: "14px" }}>
-        <span style={{ fontFamily, fontSize: 36, fontWeight: 600, color: white, letterSpacing: "0.1em" }}>
-          {weekLabel}
-        </span>
-        <span style={{ fontFamily, fontSize: 75, fontWeight: 800, color: magenta, lineHeight: 1 }}>
+      {/* Left panel */}
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: "50%", height: "100%", padding: "64px 56px", gap: "0px" }}>
+
+        {/* Row 1: Account name — Bold 75px */}
+        <span style={{ fontFamily, fontSize: 75, fontWeight: 700, color: white, lineHeight: 1.05 }}>
           {accountName}
         </span>
-        <span style={{ fontFamily, fontSize: 42, fontWeight: 600, color: white }}>
-          {rankLabel} {medal}
-        </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "10px" }}>
-          <span style={{ fontFamily, fontSize: 84, fontWeight: 800, color: magenta, lineHeight: 1 }}>
-            {er}
-          </span>
-          <span style={{ fontFamily, fontSize: 36, fontWeight: 600, color: white, letterSpacing: "0.08em" }}>
-            engagement rate
-          </span>
+
+        {/* Row 2: "Guld vecka 12 🥇" — Medium 50px, rank word colored */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "48px" }}>
+          <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: rankColor }}>{rankLabel}</span>
+          <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: white }}>vecka {weekNum} {medal}</span>
         </div>
+
+        {/* Row 3: ER number — Bold 120px */}
+        <span style={{ fontFamily, fontSize: 120, fontWeight: 700, color: magenta, lineHeight: 1 }}>
+          {er}
+        </span>
+
+        {/* Row 4: "engagement rate / på TikTok" — Medium 50px, two lines */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: white, lineHeight: 1.2 }}>engagement rate</span>
+          <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: white, lineHeight: 1.2 }}>på TikTok</span>
+        </div>
+
       </div>
 
+      {/* Right panel: thumbnail */}
       <div style={{ display: "flex", width: "50%", height: "100%", flexShrink: 0 }}>
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
