@@ -1,14 +1,11 @@
 import { ImageResponse } from "next/og";
 import { getVideoForRank } from "@/lib/getVideoForRank";
-import fs from "fs";
-import path from "path";
-
 export const runtime = "nodejs";
 
-function loadFont(weight: 600 | 800): ArrayBuffer {
-  const file = path.join(process.cwd(), `public/fonts/barlow-condensed-${weight}.woff2`);
-  const buf = fs.readFileSync(file);
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+async function loadFont(origin: string, weight: 600 | 800): Promise<ArrayBuffer> {
+  const res = await fetch(`${origin}/fonts/barlow-condensed-${weight}.woff2`);
+  if (!res.ok) throw new Error(`Font fetch failed: ${res.status} for weight ${weight}`);
+  return res.arrayBuffer();
 }
 
 const RANK_LABELS: Record<string, string> = {
@@ -32,7 +29,7 @@ export async function GET(req: Request) {
 }
 
 async function handleOG(req: Request) {
-    const { searchParams } = new URL(req.url);
+    const { searchParams, origin } = new URL(req.url);
     const week = searchParams.get("week") ?? "";
     const rank = parseInt(searchParams.get("rank") ?? "0");
 
@@ -53,9 +50,10 @@ async function handleOG(req: Request) {
     const navy = "#07253A";
     const white = "#ffffff";
     const magenta = "rgb(254,44,85)";
+    const [font600, font800] = await Promise.all([loadFont(origin, 600), loadFont(origin, 800)]);
     const fonts = [
-        { name: "Barlow Condensed", data: loadFont(600), weight: 600 as const, style: "normal" as const },
-        { name: "Barlow Condensed", data: loadFont(800), weight: 800 as const, style: "normal" as const },
+        { name: "Barlow Condensed", data: font600, weight: 600 as const, style: "normal" as const },
+        { name: "Barlow Condensed", data: font800, weight: 800 as const, style: "normal" as const },
     ];
 
     return new ImageResponse(
