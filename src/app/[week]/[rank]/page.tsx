@@ -3,7 +3,8 @@ import SharePageClient from "./SharePageClient";
 import { getVideoForRank } from "@/lib/getVideoForRank";
 
 const RANK_MAP: Record<string, number> = { guld: 1, silver: 2, brons: 3 };
-const RANK_LABELS: Record<string, string> = { guld: "Guld 🥇", silver: "Silver 🥈", brons: "Brons 🥉" };
+const RANK_ROCKET_LABEL: Record<string, string> = { guld: "Guldraket", silver: "Silverraket", brons: "Bronsraket" };
+const RANK_MEDAL: Record<string, string> = { guld: "🥇", silver: "🥈", brons: "🥉" };
 
 export async function generateMetadata({
     params,
@@ -22,11 +23,11 @@ export async function generateMetadata({
     const er = video?.engagement_rate != null
         ? Number(video.engagement_rate).toFixed(2).replace(".", ",")
         : "–";
-    const rankLabel = RANK_LABELS[rankParam] ?? `Plats ${rankNum}`;
-    const rankLabelPlain = rankParam === "guld" ? "guld" : rankParam === "silver" ? "silver" : rankParam === "brons" ? "brons" : `plats ${rankNum}`;
+    const rocketLabel = RANK_ROCKET_LABEL[rankParam] ?? `Plats ${rankNum}`;
+    const medal = RANK_MEDAL[rankParam] ?? "";
 
-    const title = `${accountName} — Veckans Raket ${rankLabel}`;
-    const description = `${accountName} tog ${rankLabelPlain}platsen vecka ${weekNum} med ${er}% engagement rate. Sociala Raketer rankar Sveriges mest engagerande TikTok-konton.`;
+    const title = `${accountName} är ${rocketLabel} vecka ${weekNum}! ${medal}`;
+    const description = `${accountName}s video hade ${er}% engagement rate. Sociala Raketer rankar Sveriges mest engagerande företag och organisationer på TikTok.`;
     const ogImage = `${siteUrl}/api/og?week=${week}&rank=${rankNum}`;
     const pageUrl = `${siteUrl}/${week}/${rankParam}`;
 

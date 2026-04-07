@@ -9,9 +9,14 @@ const RANK_COLORS: Record<string, string> = {
     "3": "#96614A",
 };
 const RANK_LABELS: Record<string, string> = {
-    "1": "GULD",
-    "2": "SILVER",
-    "3": "BRONS",
+    "1": "Guldraket",
+    "2": "Silverraket",
+    "3": "Bronsraket",
+};
+const RANK_MEDALS: Record<string, string> = {
+    "1": "🥇",
+    "2": "🥈",
+    "3": "🥉",
 };
 
 export async function GET(req: Request) {
@@ -29,13 +34,14 @@ export async function GET(req: Request) {
 
     const weekNum = week ? parseInt(week.split("-W")[1]) : 0;
     const rankColor = RANK_COLORS[String(rank)] ?? "#EDF8FB";
-    const rankLabel = RANK_LABELS[String(rank)] ?? `PLATS ${rank}`;
+    const rankLabel = RANK_LABELS[String(rank)] ?? `Plats ${rank}`;
+    const medal = RANK_MEDALS[String(rank)] ?? "";
     const weekLabel = weekNum ? `Vecka ${weekNum}` : "";
     const thumbnailUrl = video?.thumbnail_url ?? null;
 
     const navy = "#07253A";
-    const dim = "rgba(237,248,251,0.5)";
     const white = "#EDF8FB";
+    const dim = "rgba(237,248,251,0.65)";
 
     return new ImageResponse(
         <div
@@ -66,15 +72,15 @@ export async function GET(req: Request) {
                 />
             ) : null}
 
-            {/* Gradient overlay */}
+            {/* Gradient overlay — taller for more text room */}
             <div
                 style={{
                     position: "absolute",
                     bottom: 0,
                     left: 0,
                     width: "100%",
-                    height: "220px",
-                    background: "linear-gradient(transparent, rgba(7,37,58,0.92))",
+                    height: "360px",
+                    background: "linear-gradient(transparent, rgba(7,37,58,0.97))",
                     display: "flex",
                 }}
             />
@@ -83,69 +89,35 @@ export async function GET(req: Request) {
             <div
                 style={{
                     position: "absolute",
-                    bottom: "44px",
-                    left: "52px",
+                    bottom: "48px",
+                    left: "60px",
+                    right: "60px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "6px",
+                    gap: "10px",
                 }}
             >
-                {/* Rank + week + account */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: "16px",
-                            fontWeight: 700,
-                            color: rankColor,
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                        }}
-                    >
-                        {rankLabel}
-                    </span>
-                    {weekLabel && (
-                        <span style={{ fontSize: "15px", color: dim }}>
-                            · {weekLabel}
-                        </span>
-                    )}
-                    <span style={{ fontSize: "15px", color: dim }}>
-                        · {accountName}
+                {/* Week label */}
+                <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+                    <span style={{ fontSize: "26px", color: dim, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                        {weekLabel}
                     </span>
                 </div>
 
-                {/* ER row */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "10px",
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: "64px",
-                            fontWeight: 800,
-                            color: rankColor,
-                            lineHeight: 1,
-                        }}
-                    >
-                        {er}
+                {/* Account name */}
+                <div style={{ display: "flex" }}>
+                    <span style={{ fontSize: "56px", fontWeight: 800, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>
+                        {accountName}
                     </span>
-                    <span
-                        style={{
-                            fontSize: "14px",
-                            color: dim,
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                        }}
-                    >
-                        engagement rate
+                </div>
+
+                {/* Rank label */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ fontSize: "36px", fontWeight: 700, color: rankColor, letterSpacing: "0.02em" }}>
+                        {rankLabel} {medal}
+                    </span>
+                    <span style={{ fontSize: "26px", color: dim, letterSpacing: "0.04em" }}>
+                        · {er} engagement rate
                     </span>
                 </div>
             </div>
@@ -156,3 +128,4 @@ export async function GET(req: Request) {
         }
     );
 }
+
