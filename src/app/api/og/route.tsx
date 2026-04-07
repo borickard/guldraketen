@@ -54,7 +54,7 @@ export async function GET(req: Request) {
                 flexShrink: 0,
             }}>
                 {/* Week */}
-                <span style={{ fontSize: "27px", color: dim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <span style={{ fontSize: "36px", color: white, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {weekLabel}
                 </span>
                 {/* Account name — magenta */}
@@ -65,12 +65,12 @@ export async function GET(req: Request) {
                 <span style={{ fontSize: "42px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
                     {rankLabel} {medal}
                 </span>
-                {/* ER — magenta number, white label */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginTop: "10px" }}>
+                {/* ER — magenta number, white label below */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "10px" }}>
                     <span style={{ fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
                         {er}
                     </span>
-                    <span style={{ fontSize: "24px", color: dim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <span style={{ fontSize: "24px", color: white, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         engagement rate
                     </span>
                 </div>
