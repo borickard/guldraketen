@@ -55,7 +55,7 @@ export async function GET(req: Request) {
         loadGoogleFont("Barlow+Condensed", 800),
     ]);
 
-    const fonts: ConstructorParameters<typeof ImageResponse>[1]["fonts"] = [
+    const fonts: { name: string; data: ArrayBuffer; weight: number; style: "normal" }[] = [
         { name: "Barlow Condensed", data: bc600, weight: 600, style: "normal" },
         { name: "Barlow Condensed", data: bc800, weight: 800, style: "normal" },
     ];
