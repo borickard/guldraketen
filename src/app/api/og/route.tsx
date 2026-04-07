@@ -55,7 +55,7 @@ export async function GET(req: Request) {
                     alt=""
                     style={{
                         position: "absolute",
-                        top: 0,
+                        top: "-700px",
                         left: 0,
                         width: "1200px",
                         height: "2133px",
@@ -70,7 +70,7 @@ export async function GET(req: Request) {
                     bottom: 0,
                     left: 0,
                     width: "100%",
-                    height: "380px",
+                    height: "760px",
                     background: "linear-gradient(transparent, rgba(190,20,110,0.97))",
                     display: "flex",
                 }}
