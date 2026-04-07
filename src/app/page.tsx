@@ -487,7 +487,7 @@ function HomeInner() {
     finally { setBetaLoading(false); }
   }
 
-  const CAROUSEL_DURATION = 30; // seconds for one full set
+  const CAROUSEL_DURATION = 60; // seconds for one full set
 
   function getCarouselCurrentX(row: HTMLElement): number {
     const mat = new DOMMatrix(getComputedStyle(row).transform);
@@ -517,8 +517,16 @@ function HomeInner() {
   function onCarouselPointerUp(e: React.PointerEvent<HTMLDivElement>) {
     const row = carouselRef.current;
     if (!dragState.current.dragging || !row) return;
+    const dx = Math.abs(e.clientX - dragState.current.startX);
     dragState.current.dragging = false;
     (e.currentTarget as HTMLDivElement).style.cursor = "grab";
+
+    // Treat as a tap — navigate to the card under the pointer
+    if (dx < 5) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const card = el?.closest<HTMLAnchorElement>("a.gr-top-carousel-card");
+      if (card?.href) window.open(card.href, "_blank", "noopener,noreferrer");
+    }
 
     // Resume CSS animation from current drag position
     const currentX = parseFloat(row.style.transform.replace("translateX(", "").replace("px)", "")) || 0;
@@ -559,7 +567,6 @@ function HomeInner() {
                 rel="noopener noreferrer"
                 className="gr-top-carousel-card"
                 draggable={false}
-                onClick={(e) => { if (Math.abs(dragState.current.startX - e.clientX) > 4) e.preventDefault(); }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
