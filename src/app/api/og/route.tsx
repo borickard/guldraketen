@@ -24,11 +24,11 @@ export async function GET(req: Request) {
   let fontFamily = "sans-serif";
   try {
     const [f600, f800] = await Promise.all([
-      fetch(new URL("./barlow-condensed-600.woff2", import.meta.url)).then((r) => {
+      fetch(new URL("./barlow-condensed-600.woff", import.meta.url)).then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.arrayBuffer();
       }),
-      fetch(new URL("./barlow-condensed-800.woff2", import.meta.url)).then((r) => {
+      fetch(new URL("./barlow-condensed-800.woff", import.meta.url)).then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.arrayBuffer();
       }),
