@@ -13,12 +13,8 @@ export default async function OgPreviewPage({
   const rankNum = RANK_MAP[rankParam] ?? (parseInt(rankParam.replace("top", "")) || 1);
   const video = await getVideoForRank(week, rankNum);
 
-  // Use the current deployment URL so preview branches show their own OG image.
-  // VERCEL_URL is set automatically by Vercel for every deployment (no protocol prefix).
-  const deployUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : (process.env.NEXT_PUBLIC_SITE_URL ?? "https://guldraketen.vercel.app");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://guldraketen.vercel.app";
+  const deployUrl = siteUrl;
   const weekNum = parseInt(week.split("-W")[1]);
   const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
   const accountName = acct?.display_name ?? (video ? `@${video.handle}` : "Okänt konto");
