@@ -525,7 +525,15 @@ function HomeInner() {
     if (dx < 5) {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const card = el?.closest<HTMLAnchorElement>("a.gr-top-carousel-card");
-      if (card?.href) window.open(card.href, "_blank", "noopener,noreferrer");
+      if (card?.href) {
+        // On mobile, use same-tab navigation so iOS/Android Universal Links
+        // can intercept and open the TikTok app. Desktop gets a new tab.
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+          window.location.href = card.href;
+        } else {
+          window.open(card.href, "_blank", "noopener,noreferrer");
+        }
+      }
     }
 
     // Resume CSS animation from current drag position
