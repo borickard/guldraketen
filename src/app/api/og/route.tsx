@@ -1,13 +1,14 @@
 import { ImageResponse } from "next/og";
 import { getVideoForRank } from "@/lib/getVideoForRank";
+import { barlowCondensed600, barlowCondensed800 } from "./fonts";
 
 export const runtime = "edge";
 
-async function loadFont(weight: 600 | 800): Promise<ArrayBuffer> {
-  const url = `https://cdn.jsdelivr.net/npm/@fontsource/barlow-condensed@5.2.8/files/barlow-condensed-latin-${weight}-normal.woff2`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
-  return res.arrayBuffer();
+function b64ToArrayBuffer(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const buf = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+  return buf.buffer;
 }
 
 const RANK_LABELS: Record<string, string> = {
@@ -26,11 +27,9 @@ export async function GET(req: Request) {
   const week = searchParams.get("week") ?? "";
   const rank = parseInt(searchParams.get("rank") ?? "0");
 
-  const [video, font600, font800] = await Promise.all([
-    getVideoForRank(week, rank),
-    loadFont(600),
-    loadFont(800),
-  ]);
+  const video = await getVideoForRank(week, rank);
+  const font600 = b64ToArrayBuffer(barlowCondensed600);
+  const font800 = b64ToArrayBuffer(barlowCondensed800);
 
   const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
   const accountName = acct?.display_name ?? (video ? `@${video.handle}` : "Sociala Raketer");
