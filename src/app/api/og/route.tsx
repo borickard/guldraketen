@@ -57,8 +57,8 @@ export async function GET(req: Request) {
                         position: "absolute",
                         top: 0,
                         left: 0,
-                        width: "100%",
-                        height: "auto",
+                        width: "1200px",
+                        height: "2133px",
                     }}
                 />
             ) : null}
