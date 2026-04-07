@@ -51,7 +51,6 @@ export async function GET(req: Request) {
                 backgroundColor: navy,
                 padding: "56px 56px",
                 gap: "14px",
-                boxSizing: "border-box",
                 flexShrink: 0,
             }}>
                 {/* Week */}
@@ -77,13 +76,12 @@ export async function GET(req: Request) {
                 </div>
             </div>
 
-            {/* ── Right panel: thumbnail centered + cropped to fill 600×630 ── */}
+            {/* ── Right panel: thumbnail center-cropped to fill 600×630 ── */}
             <div style={{
-                position: "relative",
+                display: "flex",
                 width: "600px",
                 height: "630px",
                 backgroundColor: navy,
-                overflow: "hidden",
                 flexShrink: 0,
             }}>
                 {thumbnailUrl ? (
@@ -92,11 +90,9 @@ export async function GET(req: Request) {
                         src={thumbnailUrl}
                         alt=""
                         style={{
-                            position: "absolute",
-                            top: "-218px",
-                            left: 0,
                             width: "600px",
-                            height: "1067px",
+                            height: "630px",
+                            objectFit: "cover",
                         }}
                     />
                 ) : null}
