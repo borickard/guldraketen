@@ -25,14 +25,17 @@ export default async function OgPreviewPage({
 
   const title = `${accountName} är ${rocketLabel} vecka ${weekNum}! ${medal}`;
   const description = `${accountName}s video hade ${er}% engagement rate. Sociala Raketer rankar Sveriges mest engagerande företag och organisationer på TikTok.`;
-  const ogImageUrl = `${siteUrl}/api/og?week=${week}&rank=${rankNum}`;
+  // Use a relative URL so the preview page always hits THIS deployment's OG route,
+  // not the production URL stored in NEXT_PUBLIC_SITE_URL.
+  const ogImageUrl = `/api/og?week=${week}&rank=${rankNum}`;
+  const ogImageAbsolute = `${siteUrl}/api/og?week=${week}&rank=${rankNum}`;
   const pageUrl = `${siteUrl}/${week}/${rankParam}`;
 
   const fields = [
     { label: "og:title", value: title },
     { label: "og:description", value: description },
     { label: "og:url", value: pageUrl },
-    { label: "og:image", value: ogImageUrl },
+    { label: "og:image", value: ogImageAbsolute },
     { label: "og:image:width", value: "1200" },
     { label: "og:image:height", value: "630" },
     { label: "twitter:card", value: "summary_large_image" },
