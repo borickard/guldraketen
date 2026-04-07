@@ -3131,7 +3131,7 @@ body {
 
 /* ── HERO v2 ── */
 .gr-hero-v2 {
-  min-height: 80vh;
+  min-height: 50vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3277,10 +3277,10 @@ body {
 
 .gr-top-carousel-inner {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   width: max-content;
   padding: 0 16px 0 var(--space-3);
-  animation: gr-top-scroll 30s 0s linear infinite;
+  animation: gr-top-scroll 60s 0s linear infinite;
   will-change: transform;
 }
 
@@ -3291,8 +3291,8 @@ body {
 
 .gr-top-carousel-card {
   flex-shrink: 0;
-  width: 80px;
-  border-radius: 8px;
+  width: 160px;
+  border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
   background: rgba(237,248,251,0.06);
@@ -3306,24 +3306,24 @@ body {
 }
 
 .gr-top-carousel-thumb {
-  width: 80px;
-  height: 110px;
+  width: 160px;
+  height: 220px;
   object-fit: cover;
   display: block;
   pointer-events: none;
 }
 
 .gr-top-carousel-info {
-  padding: 4px 6px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 8px;
 }
 
 .gr-top-carousel-name {
   font-family: var(--gr-mono);
-  font-size: 8px;
+  font-size: 13px;
   letter-spacing: .03em;
   color: rgba(237,248,251,0.6);
   text-overflow: ellipsis;
@@ -3333,7 +3333,7 @@ body {
 
 .gr-top-carousel-er {
   font-family: var(--gr-mono);
-  font-size: 8px;
+  font-size: 13px;
   color: var(--gr-gold);
   flex-shrink: 0;
   font-weight: 500;
@@ -3346,8 +3346,8 @@ body {
 }
 .gr-top-carousel-skel {
   flex-shrink: 0;
-  width: 80px;
-  height: 130px;
+  width: 160px;
+  height: 260px;
   border-radius: 8px;
   background: rgba(237,248,251,0.06);
   animation: gr-shimmer 1.6s ease-in-out infinite;
