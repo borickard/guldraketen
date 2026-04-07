@@ -46,43 +46,41 @@ export async function GET(req: Request) {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
-                width: "480px",
+                width: "600px",
                 height: "630px",
                 backgroundColor: navy,
-                padding: "52px 48px",
-                gap: "10px",
+                padding: "56px 56px",
+                gap: "14px",
                 boxSizing: "border-box",
                 flexShrink: 0,
             }}>
                 {/* Week */}
-                <span style={{ fontSize: "18px", color: dim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <span style={{ fontSize: "27px", color: dim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {weekLabel}
                 </span>
                 {/* Account name — magenta */}
-                <span style={{ fontSize: "50px", fontWeight: 800, color: magenta, lineHeight: 1.05, letterSpacing: "-0.01em" }}>
+                <span style={{ fontSize: "75px", fontWeight: 800, color: magenta, lineHeight: 1.0, letterSpacing: "-0.01em" }}>
                     {accountName}
                 </span>
                 {/* Rank label + medal */}
-                <span style={{ fontSize: "28px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
+                <span style={{ fontSize: "42px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
                     {rankLabel} {medal}
                 </span>
                 {/* ER — magenta number, white label */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "8px" }}>
-                    <span style={{ fontSize: "56px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginTop: "10px" }}>
+                    <span style={{ fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
                         {er}
                     </span>
-                    <span style={{ fontSize: "16px", color: dim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <span style={{ fontSize: "24px", color: dim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         engagement rate
                     </span>
                 </div>
             </div>
 
-            {/* ── Right panel: thumbnail centered ── */}
+            {/* ── Right panel: thumbnail centered + cropped to fill 600×630 ── */}
             <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "720px",
+                position: "relative",
+                width: "600px",
                 height: "630px",
                 backgroundColor: navy,
                 overflow: "hidden",
@@ -93,7 +91,13 @@ export async function GET(req: Request) {
                     <img
                         src={thumbnailUrl}
                         alt=""
-                        style={{ width: "354px", height: "630px", flexShrink: 0 }}
+                        style={{
+                            position: "absolute",
+                            top: "-218px",
+                            left: 0,
+                            width: "600px",
+                            height: "1067px",
+                        }}
                     />
                 ) : null}
             </div>
