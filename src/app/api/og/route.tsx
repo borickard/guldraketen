@@ -9,7 +9,7 @@ const RANK_LABELS: Record<string, string> = {
   "3": "Brons",
 };
 const RANK_COLORS: Record<string, string> = {
-  "1": "#C8962A",
+  "1": "#FCC417",
   "2": "#8A9299",
   "3": "#96614A",
 };
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 
   const navy = "#07253A";
   const white = "#ffffff";
-  const magenta = "rgb(254,44,85)";
+  const magenta = "#F52C69";
 
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", background: navy }}>
