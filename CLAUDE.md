@@ -374,6 +374,19 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ## TODO
 
+### FAQ-sektion på startsidan
+Ersätt den sista sektionen på startsidan ("Om engagemang" — tre förklaringskort) med en FAQ med expanderbara dropdown-rader (accordion). Frågorna:
+- "Vad räknas som engagemang?"
+- "Hur räknas engagement rate ut?"
+- "Vilka typer av konton mäts av Sociala Raketer?"
+- "Vem ligger bakom Sociala Raketer?"
+- "Jag vill att mitt content ska mätas här"
+- (Eventuellt fler efter behov)
+
+Implementation: klient-komponent med `useState` per rad eller en gemensam `openIndex`-state. Styling ska matcha övrig startsida (bakgrund `#EBE7E2`, mörk text, `--gr-dark`). Varje rad: fråga som klickbar rubrik + chevron-ikon som roterar vid öppning, svar som expanderbar text nedanför.
+
+---
+
 ### Snabba fixes
 - **Mobil nav** — hamburgarmenyns länkar saknar funktion, behöver wiras upp
 - **Skeleton loading** — ersätt "Laddar..."-texten i listan med skeleton-rader i rätt höjd
