@@ -3436,7 +3436,7 @@ body {
 
 /* ── TOPPLISTA-SEKTION ── */
 .gr-list-section {
-  background: #07253A;
+  background: #EBE7E2;
   padding: var(--space-6) var(--space-3);
 }
 
@@ -3529,9 +3529,9 @@ body {
   .gr-rk-grid { padding-bottom: var(--space-4); }
 }
 
-/* Week-picker overrides for dark section */
+/* Topplista section — light background overrides */
 .gr-list-section .gr-page-title {
-  color: #EDF8FB;
+  color: #1C1B19;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
   font-size: clamp(2rem, 5vw, 3.5rem);
@@ -3540,27 +3540,55 @@ body {
   line-height: 1;
 }
 
+.gr-list-section .gr-week-subtitle {
+  color: rgba(28, 27, 25, 0.5);
+}
+
+.gr-list-section .gr-rk-week-label {
+  color: rgba(28, 27, 25, 0.6);
+}
+
 .gr-list-section .gr-page-hdr {
   border-bottom: none;
 }
 
 .gr-list-section .gr-entry:hover {
-  background: rgba(237, 248, 251, 0.04);
+  background: rgba(28, 27, 25, 0.04);
 }
 
 .gr-list-section .gr-skel-row {
-  background: rgba(237, 248, 251, 0.05);
+  background: rgba(28, 27, 25, 0.06);
 }
 
 .gr-list-section .gr-skel-row-dark {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(28, 27, 25, 0.12);
 }
 
 .gr-list-section .gr-skel-rank,
 .gr-list-section .gr-skel-name,
 .gr-list-section .gr-skel-meta,
 .gr-list-section .gr-skel-rate {
-  background: rgba(237, 248, 251, 0.1);
+  background: rgba(28, 27, 25, 0.1);
+}
+
+.gr-list-section .gr-wk-arrow {
+  background: rgba(28, 27, 25, 0.08);
+  border-color: rgba(28, 27, 25, 0.15);
+  color: #1C1B19;
+}
+
+.gr-list-section .gr-wk-arrow:hover:not(:disabled) {
+  background: rgba(28, 27, 25, 0.15);
+}
+
+.gr-list-section .gr-rk-nav-arrow {
+  background: rgba(28, 27, 25, 0.08);
+  border-color: rgba(28, 27, 25, 0.15);
+  color: #1C1B19;
+}
+
+.gr-list-section .gr-rk-nav-arrow:hover:not(:disabled) {
+  background: rgba(28, 27, 25, 0.15);
 }
 
 /* ── HALL OF FAME SEKTION ── */
