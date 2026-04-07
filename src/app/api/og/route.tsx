@@ -66,11 +66,11 @@ export async function GET(req: Request) {
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", background: navy }}>
 
-      {/* Left panel */}
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: "50%", height: "100%", padding: "64px 56px", gap: "0px" }}>
+      {/* Left panel — centered text so cropping either side keeps content readable */}
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "50%", height: "100%", padding: "64px 48px", gap: "0px" }}>
 
         {/* Row 1: Account name — Bold 75px */}
-        <span style={{ fontFamily, fontSize: 75, fontWeight: 700, color: white, lineHeight: 1.05 }}>
+        <span style={{ fontFamily, fontSize: 75, fontWeight: 700, color: white, lineHeight: 1.05, textAlign: "center" }}>
           {accountName}
         </span>
 
@@ -81,12 +81,12 @@ export async function GET(req: Request) {
         </div>
 
         {/* Row 3: ER number — Bold 120px */}
-        <span style={{ fontFamily, fontSize: 120, fontWeight: 700, color: magenta, lineHeight: 1 }}>
+        <span style={{ fontFamily, fontSize: 120, fontWeight: 700, color: magenta, lineHeight: 1, textAlign: "center" }}>
           {er}
         </span>
 
         {/* Row 4: "engagement rate / på TikTok" — Medium 50px, two lines */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: white, lineHeight: 1.2 }}>engagement rate</span>
           <span style={{ fontFamily, fontSize: 50, fontWeight: 500, color: white, lineHeight: 1.2 }}>på TikTok</span>
         </div>
