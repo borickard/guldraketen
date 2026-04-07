@@ -222,6 +222,7 @@ Vercel Cron (måndag kl 07 UTC) ELLER admin-knapp
 ```
 
 `daysBack` = 14 för Cron — scraper hämtar videor publicerade de senaste 14 dagarna per körning (för Veckans Raket). Valbart i admin-UI.
+`RESULTS_PER_PROFILE` = 100 (i `src/lib/scrape.ts`) — max antal videor per konto och körning, skickas som `resultsPerPage` till Apify. Datumsnittet `oldestPostDateUnified` är den primära begränsningen; detta är ett säkerhetstak. Höj vid behov om konton postar extremt frekvent.
 Webhook fungerar bara i produktion (Vercel).
 
 ---
@@ -408,6 +409,23 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ### LinkedIn-delning via admin
 - Manuell trigger av LinkedIn-post med veckans topp-video
+
+### Permanent vinnarhistorik (weekly snapshots)
+Ranking beräknas live vid varje request — inga snapshots finns. Risk: om någon delar `/2026-W10/guld` på LinkedIn och vi sedan retroaktivt ändrar data, kan länken visa en annan vinnare.
+
+**Varför cron-jobbet inte är huvudrisken:** `daysBack=14` innebär att W-2 (den senast synliga veckan) uppdateras av cron-körningen *samma måndag morgon* som den first blir synlig. Nästa måndag når inte W-2 längre (den är då >14 dagar gammal). Alltså stabiliseras rankingen naturligt efter den första cron-körningen.
+
+**Faktiska riskscenarier (admin-åtgärder):**
+- Manuellt godkänna/avslå tävlingsflagga på en äldre video
+- Backfill-scrape med större `daysBack` som lägger till nya videor i en gammal vecka
+- Nytt konto läggs till + backfill som täcker tidigare veckor
+
+**Föreslagen implementation:**
+- Ny tabell `weekly_snapshots (week text, rank int, handle text, video_url text, views int, likes int, comments int, shares int, engagement_rate numeric, locked_at timestamptz, PRIMARY KEY (week, rank))`
+- Auto-lock: steg i `processScrapeResults()` — efter upsert, snapshotar veckor som är äldre än 14 dagar
+- Admin UI: visa låsta vs. live-rankingar, knapp för manuell lås/upplås
+- Berörda filer: `src/lib/scrape.ts`, `src/app/api/video/route.ts`, `src/app/api/tidigare-raketer/route.ts`, ny admin-endpoint
+- Hall of Fame bör också läsa från snapshots för konsekvens
 
 ---
 

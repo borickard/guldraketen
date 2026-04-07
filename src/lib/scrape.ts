@@ -4,7 +4,7 @@ import { uploadThumbnailsBatch, uploadAvatar, isStoredThumbnail } from "@/lib/th
 const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
 const DAYS_BACK = 14;
-const RESULTS_PER_PROFILE = 50;
+const RESULTS_PER_PROFILE = 100;
 
 // ─── Starta Apify-jobb asynkront ──────────────────────────────────────────────
 // Returnerar direkt med ett runId – väntar INTE på att scraping ska bli klar.
