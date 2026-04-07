@@ -3,11 +3,6 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 
 export const runtime = "nodejs";
 
-const RANK_COLORS: Record<string, string> = {
-    "1": "#C8962A",
-    "2": "#8A9299",
-    "3": "#96614A",
-};
 const RANK_LABELS: Record<string, string> = {
     "1": "Guldraket",
     "2": "Silverraket",
@@ -33,15 +28,13 @@ export async function GET(req: Request) {
         : "–";
 
     const weekNum = week ? parseInt(week.split("-W")[1]) : 0;
-    const rankColor = RANK_COLORS[String(rank)] ?? "#EDF8FB";
     const rankLabel = RANK_LABELS[String(rank)] ?? `Plats ${rank}`;
     const medal = RANK_MEDALS[String(rank)] ?? "";
     const weekLabel = weekNum ? `Vecka ${weekNum}` : "";
     const thumbnailUrl = video?.thumbnail_url ?? null;
 
     const navy = "#07253A";
-    const white = "#EDF8FB";
-    const dim = "rgba(237,248,251,0.65)";
+    const white = "#ffffff";
 
     return new ImageResponse(
         <div
@@ -72,20 +65,20 @@ export async function GET(req: Request) {
                 />
             ) : null}
 
-            {/* Gradient overlay — taller for more text room */}
+            {/* Magenta gradient overlay */}
             <div
                 style={{
                     position: "absolute",
                     bottom: 0,
                     left: 0,
                     width: "100%",
-                    height: "360px",
-                    background: "linear-gradient(transparent, rgba(7,37,58,0.97))",
+                    height: "380px",
+                    background: "linear-gradient(transparent, rgba(190,20,110,0.97))",
                     display: "flex",
                 }}
             />
 
-            {/* Overlay text */}
+            {/* Overlay text — medal left, text block right */}
             <div
                 style={{
                     position: "absolute",
@@ -93,31 +86,26 @@ export async function GET(req: Request) {
                     left: "60px",
                     right: "60px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: "28px",
                 }}
             >
-                {/* Week label */}
-                <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
-                    <span style={{ fontSize: "26px", color: dim, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                {/* Medal emoji — same height as the text block */}
+                <div style={{ display: "flex", fontSize: "130px", lineHeight: 1 }}>
+                    {medal}
+                </div>
+
+                {/* Text block */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <span style={{ fontSize: "24px", color: white, opacity: 0.75, letterSpacing: "0.07em", textTransform: "uppercase" }}>
                         {weekLabel}
                     </span>
-                </div>
-
-                {/* Account name */}
-                <div style={{ display: "flex" }}>
-                    <span style={{ fontSize: "56px", fontWeight: 800, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>
+                    <span style={{ fontSize: "58px", fontWeight: 800, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>
                         {accountName}
                     </span>
-                </div>
-
-                {/* Rank label */}
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ fontSize: "36px", fontWeight: 700, color: rankColor, letterSpacing: "0.02em" }}>
-                        {rankLabel} {medal}
-                    </span>
-                    <span style={{ fontSize: "26px", color: dim, letterSpacing: "0.04em" }}>
-                        · {er} engagement rate
+                    <span style={{ fontSize: "34px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
+                        {rankLabel} · {er} engagement rate
                     </span>
                 </div>
             </div>
