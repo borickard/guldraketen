@@ -10,7 +10,9 @@ function loadFont(weight: 600 | 800): ArrayBuffer {
     process.cwd(),
     `node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-${weight}-normal.woff2`
   );
-  return fs.readFileSync(file).buffer as ArrayBuffer;
+  const buf = fs.readFileSync(file);
+  // Buffer.buffer is the shared pool — slice to get only this file's bytes
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
 }
 
 const RANK_LABELS: Record<string, string> = {
@@ -25,6 +27,15 @@ const RANK_MEDALS: Record<string, string> = {
 };
 
 export async function GET(req: Request) {
+  try {
+    return await handleOG(req);
+  } catch (err) {
+    console.error("OG route error:", err);
+    return new Response(`OG image error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
+  }
+}
+
+async function handleOG(req: Request) {
     const { searchParams } = new URL(req.url);
     const week = searchParams.get("week") ?? "";
     const rank = parseInt(searchParams.get("rank") ?? "0");
