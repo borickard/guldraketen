@@ -35,83 +35,71 @@ export async function GET(req: Request) {
 
     const navy = "#07253A";
     const white = "#ffffff";
+    const magenta = "rgb(254,44,85)";
+    const dim = "rgba(237,248,251,0.55)";
 
     return new ImageResponse(
-        <div
-            style={{
+        <div style={{ display: "flex", width: "1200px", height: "630px", fontFamily: "sans-serif" }}>
+
+            {/* ── Left panel: dark blue + text ── */}
+            <div style={{
                 display: "flex",
-                width: "1200px",
+                flexDirection: "column",
+                justifyContent: "center",
+                width: "480px",
                 height: "630px",
-                fontFamily: "sans-serif",
                 backgroundColor: navy,
-                position: "relative",
-            }}
-        >
-            {/* Full-bleed thumbnail */}
-            {thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                    src={thumbnailUrl}
-                    alt=""
-                    style={{
-                        position: "absolute",
-                        top: "-427px",
-                        left: 0,
-                        width: "1200px",
-                        height: "2133px",
-                    }}
-                />
-            ) : null}
-
-            {/* Magenta gradient overlay */}
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "760px",
-                    background: "linear-gradient(transparent, rgba(190,20,110,0.97))",
-                    display: "flex",
-                }}
-            />
-
-            {/* Overlay text — medal left, text block right */}
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: "48px",
-                    left: "60px",
-                    right: "60px",
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: "28px",
-                }}
-            >
-                {/* Medal emoji — same height as the text block */}
-                <div style={{ display: "flex", fontSize: "130px", lineHeight: 1 }}>
-                    {medal}
-                </div>
-
-                {/* Text block */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <span style={{ fontSize: "24px", color: white, opacity: 0.75, letterSpacing: "0.07em", textTransform: "uppercase" }}>
-                        {weekLabel}
+                padding: "52px 48px",
+                gap: "10px",
+                boxSizing: "border-box",
+                flexShrink: 0,
+            }}>
+                {/* Week */}
+                <span style={{ fontSize: "18px", color: dim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    {weekLabel}
+                </span>
+                {/* Account name — magenta */}
+                <span style={{ fontSize: "50px", fontWeight: 800, color: magenta, lineHeight: 1.05, letterSpacing: "-0.01em" }}>
+                    {accountName}
+                </span>
+                {/* Rank label + medal */}
+                <span style={{ fontSize: "28px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
+                    {rankLabel} {medal}
+                </span>
+                {/* ER — magenta number, white label */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "8px" }}>
+                    <span style={{ fontSize: "56px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
+                        {er}
                     </span>
-                    <span style={{ fontSize: "58px", fontWeight: 800, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>
-                        {accountName}
-                    </span>
-                    <span style={{ fontSize: "34px", fontWeight: 600, color: white, letterSpacing: "0.01em" }}>
-                        {rankLabel} · {er} engagement rate
+                    <span style={{ fontSize: "16px", color: dim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        engagement rate
                     </span>
                 </div>
             </div>
+
+            {/* ── Right panel: thumbnail centered ── */}
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "720px",
+                height: "630px",
+                backgroundColor: navy,
+                overflow: "hidden",
+                flexShrink: 0,
+            }}>
+                {thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={thumbnailUrl}
+                        alt=""
+                        style={{ width: "354px", height: "630px", flexShrink: 0 }}
+                    />
+                ) : null}
+            </div>
+
         </div>,
-        {
-            width: 1200,
-            height: 630,
-        }
+        { width: 1200, height: 630 }
     );
 }
 
