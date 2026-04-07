@@ -55,7 +55,7 @@ export async function GET(req: Request) {
                     alt=""
                     style={{
                         position: "absolute",
-                        top: "-853px",
+                        top: "-427px",
                         left: 0,
                         width: "1200px",
                         height: "2133px",
