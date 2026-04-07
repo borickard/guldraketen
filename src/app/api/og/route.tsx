@@ -3,24 +3,18 @@ import { getVideoForRank } from "@/lib/getVideoForRank";
 
 export const runtime = "nodejs";
 
-async function loadGoogleFont(family: string, weights: number[], text?: string) {
-  const params = new URLSearchParams({
-    family: `${family}:wght@${weights.join(";")}`,
-    display: "swap",
-  });
-  if (text) params.set("text", text);
-  const css = await fetch(`https://fonts.googleapis.com/css2?${params}`, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-  }).then((r) => r.text());
+async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuffer> {
+  const css = await fetch(
+    `https://fonts.googleapis.com/css2?family=${family}:wght@${weight}&display=swap`,
+    { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" } }
+  ).then((r) => r.text());
 
-  const urls = [...css.matchAll(/src: url\((.+?)\) format\('(opentype|truetype|woff2)'\)/g)].map((m) => m[1]);
-  return Promise.all(
-    urls.map(async (url, i) => {
-      const data = await fetch(url).then((r) => r.arrayBuffer());
-      const weightMatch = css.split("src:")[i]?.match(/font-weight:\s*(\d+)/);
-      return { data, weight: weightMatch ? (parseInt(weightMatch[1]) as 400 | 600 | 800) : 400 };
-    })
-  );
+  // Google Fonts returns multiple @font-face blocks for unicode subsets.
+  // The last block is always the `latin` subset — sufficient for Swedish.
+  const matches = [...css.matchAll(/src: url\((.+?)\) format\('woff2'\)/g)];
+  const url = matches[matches.length - 1]?.[1];
+  if (!url) throw new Error(`No woff2 URL found for ${family} ${weight}`);
+  return fetch(url).then((r) => r.arrayBuffer());
 }
 
 const RANK_LABELS: Record<string, string> = {
@@ -56,14 +50,14 @@ export async function GET(req: Request) {
     const navy = "#07253A";
     const white = "#ffffff";
     const magenta = "rgb(254,44,85)";
-    const [barlowFonts, barlowCondensedFonts] = await Promise.all([
-        loadGoogleFont("Barlow", [400, 600, 800]),
-        loadGoogleFont("Barlow+Condensed", [600, 800]),
+    const [bc600, bc800] = await Promise.all([
+        loadGoogleFont("Barlow+Condensed", 600),
+        loadGoogleFont("Barlow+Condensed", 800),
     ]);
 
-    const fonts: ImageResponse["arguments"][1]["fonts"] = [
-        ...barlowFonts.map((f) => ({ name: "Barlow", data: f.data, weight: f.weight, style: "normal" as const })),
-        ...barlowCondensedFonts.map((f) => ({ name: "Barlow Condensed", data: f.data, weight: f.weight, style: "normal" as const })),
+    const fonts: ConstructorParameters<typeof ImageResponse>[1]["fonts"] = [
+        { name: "Barlow Condensed", data: bc600, weight: 600, style: "normal" },
+        { name: "Barlow Condensed", data: bc800, weight: 800, style: "normal" },
     ];
 
     return new ImageResponse(
