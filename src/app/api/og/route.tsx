@@ -25,10 +25,8 @@ export async function GET(req: Request) {
   const week = searchParams.get("week") ?? "";
   const rank = parseInt(searchParams.get("rank") ?? "0");
 
-  const [video, font600, font800] = await Promise.all([
+  const [video] = await Promise.all([
     getVideoForRank(week, rank),
-    loadFont(origin, 600),
-    loadFont(origin, 800),
   ]);
 
   const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
@@ -47,13 +45,8 @@ export async function GET(req: Request) {
   const white = "#ffffff";
   const magenta = "rgb(254,44,85)";
 
-  const fonts = [
-    { name: "Barlow Condensed", data: font600, weight: 600 as const, style: "normal" as const },
-    { name: "Barlow Condensed", data: font800, weight: 800 as const, style: "normal" as const },
-  ];
-
   return new ImageResponse(
-    <div style={{ display: "flex", width: "1200px", height: "630px" }}>
+    <div style={{ display: "flex", width: "100%", height: "100%" }}>
 
       {/* ── Left panel ── */}
       <div style={{
@@ -95,6 +88,6 @@ export async function GET(req: Request) {
       </div>
 
     </div>,
-    { width: 1200, height: 630, fonts }
+    { width: 1200, height: 630 }
   );
 }
