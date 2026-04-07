@@ -6,12 +6,8 @@ import path from "path";
 export const runtime = "nodejs";
 
 function loadFont(weight: 600 | 800): ArrayBuffer {
-  const file = path.join(
-    process.cwd(),
-    `node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-${weight}-normal.woff2`
-  );
+  const file = path.join(process.cwd(), `public/fonts/barlow-condensed-${weight}.woff2`);
   const buf = fs.readFileSync(file);
-  // Buffer.buffer is the shared pool — slice to get only this file's bytes
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
 }
 
