@@ -546,7 +546,7 @@ body {
 .gr-nav {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 52;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3271,6 +3271,7 @@ body {
   border-bottom: 1px solid rgba(237,248,251,0.08);
   cursor: grab;
   user-select: none;
+  touch-action: none;
 }
 
 .gr-top-carousel:active { cursor: grabbing; }
