@@ -70,7 +70,7 @@ export async function GET(req: Request) {
                     <span style={{ fontSize: "84px", fontWeight: 800, color: magenta, lineHeight: 1 }}>
                         {er}
                     </span>
-                    <span style={{ fontSize: "24px", color: white, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <span style={{ fontSize: "36px", color: white, letterSpacing: "0.08em" }}>
                         engagement rate
                     </span>
                 </div>
