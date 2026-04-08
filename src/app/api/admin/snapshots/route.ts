@@ -64,8 +64,9 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  type VideoRow = { handle: string; video_url: string; views: number | null; likes: number | null; comments: number | null; shares: number | null; engagement_rate: number | null };
   // Best video per account (min views filter)
-  const byAccount = new Map<string, typeof videos![0]>();
+  const byAccount = new Map<string, VideoRow>();
   for (const v of videos ?? []) {
     if ((v.views ?? 0) < MIN_VIDEO_VIEWS) continue;
     const existing = byAccount.get(v.handle);
