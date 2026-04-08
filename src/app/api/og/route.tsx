@@ -11,7 +11,7 @@ const RANK_LABELS: Record<string, string> = {
 const RANK_COLORS: Record<string, string> = {
   "1": "#FCC417",
   "2": "#8A9299",
-  "3": "#96614A",
+  "3": "#D96525",
 };
 const RANK_MEDALS: Record<string, string> = {
   "1": "🥇",
