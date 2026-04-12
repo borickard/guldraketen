@@ -2,6 +2,21 @@
 
 import { useEffect, useState } from "react";
 
+const CATEGORIES = [
+  "Mat & dryck",
+  "Handel & e-handel",
+  "Mode & skönhet",
+  "Hälsa & välmående",
+  "Media & underhållning",
+  "Bank & finans",
+  "Teknik & IT",
+  "Sport & fritid",
+  "Resor & upplevelser",
+  "Utbildning",
+  "Fordon",
+  "Offentlig sektor & ideell",
+];
+
 
 interface CalcTest {
   id: string;
@@ -47,6 +62,7 @@ interface Account {
   id: string;
   handle: string;
   display_name: string | null;
+  category: string | null;
   is_active: boolean;
   followers: number | null;
   followers_updated_at: string | null;
@@ -168,6 +184,15 @@ export default function AdminPage() {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
+    });
+    await fetchAccounts();
+  }
+
+  async function handleCategoryChange(account: Account, newCategory: string) {
+    await fetch("/api/accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: account.id, category: newCategory || null }),
     });
     await fetchAccounts();
   }
@@ -353,50 +378,21 @@ export default function AdminPage() {
           ) : accounts.length === 0 ? (
             <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
           ) : (
-            <ul className="account-list">
-              {accounts.map((a) => (
-                <li key={a.id} className={`account-row ${a.is_active ? "" : "account-row--inactive"}`}>
-                  <label className="toggle-label">
-                    <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => handleToggle(a)} />
-                    <span className="toggle-track"><span className="toggle-thumb" /></span>
-                  </label>
-                  <div className="account-info">
-                    <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
-                      @{a.handle}
-                    </a>
-                    <input
-                      className="display-name-input"
-                      type="text"
-                      placeholder="Visningsnamn (t.ex. Lidl Sverige)"
-                      defaultValue={a.display_name ?? ""}
-                      onBlur={async (e) => {
-                        const val = e.target.value.trim();
-                        if (val !== (a.display_name ?? "")) {
-                          await fetch("/api/accounts", {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ id: a.id, display_name: val }),
-                          });
-                          await fetchAccounts();
-                        }
-                      }}
-                    />
-                    {a.followers && (
-                      <span className="account-meta">
-                        {a.followers.toLocaleString("sv-SE")} följare
-                        {a.followers_updated_at && (
-                          <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  <span className={`status-badge ${a.is_active ? "status-badge--active" : ""}`}>
-                    {a.is_active ? "Aktiv" : "Pausad"}
-                  </span>
-                  <button className="delete-btn" onClick={() => handleDelete(a.id)} aria-label="Ta bort">✕</button>
-                </li>
-              ))}
-            </ul>
+            <>
+              {active.length > 0 && (
+                <ul className="account-list">
+                  {active.map((a) => <AccountRow key={a.id} a={a} onToggle={handleToggle} onDelete={handleDelete} onCategoryChange={handleCategoryChange} onRename={fetchAccounts} />)}
+                </ul>
+              )}
+              {inactive.length > 0 && (
+                <>
+                  <p className="accounts-divider">Inaktiva ({inactive.length})</p>
+                  <ul className="account-list">
+                    {inactive.map((a) => <AccountRow key={a.id} a={a} onToggle={handleToggle} onDelete={handleDelete} onCategoryChange={handleCategoryChange} onRename={fetchAccounts} />)}
+                  </ul>
+                </>
+              )}
+            </>
           )}
 
           <div className="admin-tools">
@@ -667,6 +663,69 @@ export default function AdminPage() {
   );
 }
 
+function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
+  a: Account;
+  onToggle: (a: Account) => void;
+  onDelete: (id: string) => void;
+  onCategoryChange: (a: Account, cat: string) => void;
+  onRename: () => void;
+}) {
+  return (
+    <li className={`account-row${a.is_active ? "" : " account-row--inactive"}`}>
+      <label className="toggle-label">
+        <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => onToggle(a)} />
+        <span className="toggle-track"><span className="toggle-thumb" /></span>
+      </label>
+      <div className="account-info">
+        <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
+          @{a.handle}
+        </a>
+        <div className="account-fields">
+          <input
+            className="display-name-input"
+            type="text"
+            placeholder="Visningsnamn (t.ex. Lidl Sverige)"
+            defaultValue={a.display_name ?? ""}
+            onBlur={async (e) => {
+              const val = e.target.value.trim();
+              if (val !== (a.display_name ?? "")) {
+                await fetch("/api/accounts", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: a.id, display_name: val }),
+                });
+                onRename();
+              }
+            }}
+          />
+          <select
+            className="category-select"
+            value={a.category ?? ""}
+            onChange={(e) => onCategoryChange(a, e.target.value)}
+          >
+            <option value="">— Kategori —</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        {a.followers && (
+          <span className="account-meta">
+            {a.followers.toLocaleString("sv-SE")} följare
+            {a.followers_updated_at && (
+              <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
+            )}
+          </span>
+        )}
+      </div>
+      <span className={`status-badge${a.is_active ? " status-badge--active" : ""}`}>
+        {a.is_active ? "Aktiv" : "Pausad"}
+      </span>
+      <button className="delete-btn" onClick={() => onDelete(a.id)} aria-label="Ta bort">✕</button>
+    </li>
+  );
+}
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
@@ -925,6 +984,37 @@ const styles = `
 
   .display-name-input::placeholder { color: var(--muted); }
   .display-name-input:focus { border-bottom-color: var(--ink); }
+
+  .account-fields {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 2px;
+  }
+
+  .category-select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--border-light);
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: var(--mid);
+    padding: 1px 2px;
+    cursor: pointer;
+    max-width: 160px;
+  }
+
+  .category-select:focus { border-bottom-color: var(--ink); }
+
+  .accounts-divider {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 1rem 0 0.4rem;
+  }
 
   .account-meta {
     font-size: 10px;
