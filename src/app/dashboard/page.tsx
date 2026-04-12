@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "./components/LogoutButton";
+import VideoGrid from "./components/VideoGrid";
 
 interface ProfileData {
   handle: string;
@@ -138,6 +139,8 @@ export default async function DashboardPage() {
               </div>
             ))
           )}
+          <VideoGrid />
+
         </main>
 
       </div>
