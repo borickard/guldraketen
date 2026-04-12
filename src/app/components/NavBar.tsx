@@ -20,6 +20,7 @@ const otherLinks = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  if (pathname.startsWith("/dashboard")) return null;
   const isHome = pathname === "/";
   const links = isHome ? homeLinks : otherLinks;
 
