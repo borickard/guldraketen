@@ -89,6 +89,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  const [showVerktyg, setShowVerktyg] = useState(false);
+
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState("");
   const [daysBack, setDaysBack] = useState(14);
@@ -426,22 +428,33 @@ export default function AdminPage() {
               </div>
               {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
             </div>
-            <div className="admin-tool">
-              <p className="admin-tool-label">Thumbnails</p>
-              <p className="admin-tool-desc">Laddar upp thumbnails från TikTok CDN till Supabase Storage (50 st per körning).</p>
-              <button className="scrape-btn" onClick={handleBackfill} disabled={backfilling}>
-                {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
-              </button>
-              {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
-            </div>
-            <div className="admin-tool">
-              <p className="admin-tool-label">Avatarer</p>
-              <p className="admin-tool-desc">Hämtar profilavatarer för alla aktiva konton via ett minimalt Apify-anrop (1 item/konto) och sparar till Supabase Storage.</p>
-              <button className="scrape-btn" onClick={handleBackfillAvatars} disabled={backfillingAvatars}>
-                {backfillingAvatars ? "Hämtar…" : "Hämta avatarer"}
-              </button>
-              {backfillAvatarsMsg && <p className="scrape-msg">{backfillAvatarsMsg}</p>}
-            </div>
+          </div>
+
+          <div className="verktyg-section">
+            <button className="verktyg-toggle" onClick={() => setShowVerktyg(!showVerktyg)}>
+              <span>Underhållsverktyg</span>
+              <span style={{ display: "inline-block", transition: "transform 0.2s", transform: showVerktyg ? "rotate(180deg)" : "none" }}>▾</span>
+            </button>
+            {showVerktyg && (
+              <div className="admin-tools" style={{ marginTop: "1rem" }}>
+                <div className="admin-tool">
+                  <p className="admin-tool-label">Thumbnails (backfill)</p>
+                  <p className="admin-tool-desc">Laddar upp thumbnails från TikTok CDN till Supabase Storage (50 st per körning). Behövs normalt inte — sker automatiskt vid scraping.</p>
+                  <button className="scrape-btn" onClick={handleBackfill} disabled={backfilling}>
+                    {backfilling ? "Laddar upp…" : "Ladda upp thumbnails"}
+                  </button>
+                  {backfillMsg && <p className="scrape-msg">{backfillMsg}</p>}
+                </div>
+                <div className="admin-tool">
+                  <p className="admin-tool-label">Avatarer (backfill)</p>
+                  <p className="admin-tool-desc">Hämtar profilavatarer för alla aktiva konton via Apify och sparar till Supabase Storage. Behövs normalt inte — sker automatiskt vid scraping.</p>
+                  <button className="scrape-btn" onClick={handleBackfillAvatars} disabled={backfillingAvatars}>
+                    {backfillingAvatars ? "Hämtar…" : "Hämta avatarer"}
+                  </button>
+                  {backfillAvatarsMsg && <p className="scrape-msg">{backfillAvatarsMsg}</p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1076,7 +1089,12 @@ const styles = `
     gap: 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 2rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+
+  .admin-tabs::-webkit-scrollbar { display: none; }
 
   .admin-tab {
     display: flex;
@@ -1086,6 +1104,8 @@ const styles = `
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
     margin-bottom: -1px;
     padding: 0.75rem 1.25rem;
     font-family: 'Inter', sans-serif;
@@ -1170,6 +1190,31 @@ const styles = `
     margin-bottom: 0.75rem;
     letter-spacing: 0.02em;
   }
+
+  .verktyg-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .verktyg-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0.75rem 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+
+  .verktyg-toggle:hover { color: var(--ink); }
 
   /* Scraping section */
   .scrape-section {
