@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from "react";
 
+function toWeekLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const year = d.getUTCFullYear();
+  const week = Math.ceil(((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000 + 1) / 7);
+  return `V${week} ${year}`;
+}
+
 const CATEGORIES = [
   "Mat & dryck",
   "Handel & e-handel",
@@ -455,12 +465,16 @@ export default function AdminPage() {
               {contestVideos.map((v) => {
                 const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
                 const name = acct?.display_name ?? `@${v.handle}`;
+                const weekLabel = v.published_at ? toWeekLabel(v.published_at) : null;
                 return (
                   <li key={v.id} className={`account-row ${v.contest_approved ? "" : "account-row--inactive"}`}>
                     <div className="account-info">
-                      <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
-                        {name}
-                      </a>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                          {name}
+                        </a>
+                        {weekLabel && <span className="week-badge">{weekLabel}</span>}
+                      </div>
                       {v.caption && (
                         <span className="account-meta" style={{ fontStyle: "italic" }}>
                           {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
@@ -1014,6 +1028,17 @@ const styles = `
     text-transform: uppercase;
     color: var(--muted);
     padding: 1rem 0 0.4rem;
+  }
+
+  .week-badge {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--bg2);
+    border: 1px solid var(--border-light);
+    color: var(--mid);
+    padding: 1px 6px;
+    white-space: nowrap;
   }
 
   .account-meta {
