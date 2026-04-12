@@ -1,12 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
-// GET – hämta alla konton
+// GET – hämta alla konton (aktiva först, sedan äldst-spårade)
 export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("accounts")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("is_active", { ascending: false })
+        .order("created_at", { ascending: true });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
@@ -37,13 +38,14 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: 201 });
 }
 
-// PATCH – uppdatera is_active och/eller display_name
+// PATCH – uppdatera is_active, display_name och/eller category
 export async function PATCH(req: Request) {
-    const { id, is_active, display_name } = await req.json();
+    const { id, is_active, display_name, category } = await req.json();
 
     const updates: Record<string, unknown> = {};
     if (is_active !== undefined) updates.is_active = is_active;
     if (display_name !== undefined) updates.display_name = display_name || null;
+    if (category !== undefined) updates.category = category || null;
 
     const { data, error } = await supabaseAdmin
         .from("accounts")
