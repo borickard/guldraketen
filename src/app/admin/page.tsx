@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-// Set NEXT_PUBLIC_ADMIN_PASSWORD in Vercel environment variables to override
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "raketen2026";
 
 interface CalcTest {
   id: string;
@@ -114,9 +112,14 @@ export default function AdminPage() {
     if (authed) fetchCalcTests(calcSort);
   }, [calcSort]); // eslint-disable-line
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (pwInput === ADMIN_PASSWORD) {
+    const res = await fetch("/api/admin/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwInput }),
+    });
+    if (res.ok) {
       localStorage.setItem("adminAuth", "ok");
       setAuthed(true);
       setPwError(false);
