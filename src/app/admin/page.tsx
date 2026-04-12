@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+// Set NEXT_PUBLIC_ADMIN_PASSWORD in Vercel environment variables to override
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "raketen2026";
+
 interface CalcTest {
   id: string;
   handle: string | null;
@@ -53,6 +56,10 @@ interface Account {
 }
 
 export default function AdminPage() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState(false);
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -95,8 +102,34 @@ export default function AdminPage() {
     setLoadingCalcTests(false);
   }
 
-  useEffect(() => { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); }, []);
-  useEffect(() => { fetchCalcTests(calcSort); }, [calcSort]);
+  useEffect(() => {
+    setAuthed(localStorage.getItem("adminAuth") === "ok");
+  }, []);
+
+  useEffect(() => {
+    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); }
+  }, [authed]); // eslint-disable-line
+
+  useEffect(() => {
+    if (authed) fetchCalcTests(calcSort);
+  }, [calcSort]); // eslint-disable-line
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (pwInput === ADMIN_PASSWORD) {
+      localStorage.setItem("adminAuth", "ok");
+      setAuthed(true);
+      setPwError(false);
+    } else {
+      setPwError(true);
+      setPwInput("");
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("adminAuth");
+    setAuthed(false);
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -225,13 +258,43 @@ export default function AdminPage() {
   const active = accounts.filter((a) => a.is_active);
   const inactive = accounts.filter((a) => !a.is_active);
 
+  if (authed === null) return null;
+
+  if (!authed) return (
+    <>
+      <style>{styles}</style>
+      <div className="login-root">
+        <form className="login-form" onSubmit={handleLogin}>
+          <span className="admin-eyebrow">Sociala Raketer · Admin</span>
+          <h1 className="admin-title" style={{ margin: "0.75rem 0 1.5rem" }}>Logga in</h1>
+          <input
+            className="handle-input"
+            style={{ border: "1px solid var(--border)", padding: "0.65rem 0.85rem", width: "100%", marginBottom: "0.75rem", background: "var(--bg1)", fontSize: 13 }}
+            type="password"
+            placeholder="Lösenord"
+            value={pwInput}
+            onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
+            autoFocus
+          />
+          {pwError && <p className="form-error">Fel lösenord. Försök igen.</p>}
+          <button className="add-btn" type="submit" style={{ padding: "0.7rem", alignSelf: "auto" }}>
+            Logga in
+          </button>
+        </form>
+      </div>
+    </>
+  );
+
   return (
     <>
       <style>{styles}</style>
       <div className="admin-root">
         <div className="admin-header">
-          <span className="admin-eyebrow">Sociala Raketer · Admin</span>
-          <h1 className="admin-title">Admin</h1>
+          <div>
+            <span className="admin-eyebrow">Sociala Raketer · Admin</span>
+            <h1 className="admin-title">Admin</h1>
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>Logga ut</button>
         </div>
 
         <div className="admin-tabs">
@@ -629,7 +692,51 @@ const styles = `
     padding: 0 1.5rem 6rem;
   }
 
+  .login-root {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg2);
+    padding: 1.5rem;
+  }
+
+  .login-form {
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    box-shadow: 3px 3px 0 var(--ink);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .logout-btn {
+    background: none;
+    border: 1px solid var(--border-light);
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .logout-btn:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
   .admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     padding: 3rem 0 2rem;
     border-bottom: 1px solid var(--border);
     margin-bottom: 1.5rem;
