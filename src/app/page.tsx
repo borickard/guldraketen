@@ -594,8 +594,7 @@ function HomeInner() {
       <section className="gr-hero-v2" id="hero">
         <div className="gr-hero-v2-inner">
           <h1 className="gr-hero-v2-h1">
-            Vad{" "}
-            <span style={{ color: C.accent }}>engagerar</span>
+            <span style={{ whiteSpace: "nowrap" }}>Vad <span style={{ color: C.accent }}>engagerar</span></span>
             <br />på TikTok?
           </h1>
           <div className="gr-hero-v2-manifest">
