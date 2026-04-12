@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+interface User {
+  id: string;
+  username: string;
+  is_active: boolean;
+  created_at: string;
+  notes: string | null;
+  handles: string[];
+}
+
 function toWeekLabel(dateStr: string): string {
   const date = new Date(dateStr);
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -283,7 +292,7 @@ export default function AdminPage() {
     if (res.ok) await fetchAccounts();
   }
 
-  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log">("konton");
+  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log" | "users">("konton");
   const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
   const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
 
@@ -293,6 +302,91 @@ export default function AdminPage() {
     const data = await res.json();
     setScrapeRuns(Array.isArray(data) ? data : []);
     setLoadingScrapeRuns(false);
+  }
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [addUserError, setAddUserError] = useState("");
+  const [addingUser, setAddingUser] = useState(false);
+  const [pwChangeId, setPwChangeId] = useState<string | null>(null);
+  const [pwChangeValue, setPwChangeValue] = useState("");
+
+  async function fetchUsers() {
+    setLoadingUsers(true);
+    const res = await fetch("/api/admin/users");
+    const data = await res.json();
+    setUsers(Array.isArray(data) ? data : []);
+    setLoadingUsers(false);
+  }
+
+  async function handleAddUser(e: React.FormEvent) {
+    e.preventDefault();
+    setAddingUser(true);
+    setAddUserError("");
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: newUsername, password: newPassword }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setNewUsername("");
+      setNewPassword("");
+      await fetchUsers();
+    } else {
+      setAddUserError(data.error ?? "Fel");
+    }
+    setAddingUser(false);
+  }
+
+  async function handleDeleteUser(id: string) {
+    if (!confirm("Ta bort användaren?")) return;
+    await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await fetchUsers();
+  }
+
+  async function handleToggleUser(user: User) {
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: user.id, is_active: !user.is_active }),
+    });
+    await fetchUsers();
+  }
+
+  async function handleChangePassword(id: string) {
+    if (!pwChangeValue.trim()) return;
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, password: pwChangeValue }),
+    });
+    setPwChangeId(null);
+    setPwChangeValue("");
+  }
+
+  async function handleAddHandleToUser(userId: string, handle: string) {
+    await fetch("/api/admin/users/handles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, handle }),
+    });
+    await fetchUsers();
+  }
+
+  async function handleRemoveHandleFromUser(userId: string, handle: string) {
+    await fetch("/api/admin/users/handles", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, handle }),
+    });
+    await fetchUsers();
   }
 
   const active = accounts.filter((a) => a.is_active);
@@ -343,6 +437,7 @@ export default function AdminPage() {
             { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.length} flaggade` },
             { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
             { key: "scrape-log", label: "Scrape-log", meta: "" },
+            { key: "users", label: "Användare", meta: `${users.length}` },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -350,6 +445,7 @@ export default function AdminPage() {
               onClick={() => {
                 setActiveSection(tab.key);
                 if (tab.key === "scrape-log") fetchScrapeRuns();
+                if (tab.key === "users") fetchUsers();
               }}
             >
               {tab.label}
@@ -684,6 +780,128 @@ export default function AdminPage() {
           )}
         </div>
         }
+
+        {/* ── Section 5: Användare ── */}
+        {activeSection === "users" && (
+          <div className="admin-section">
+            <div className="admin-section-hdr">
+              <h2 className="admin-section-title">Användare</h2>
+              <span className="admin-section-meta">{users.length} användare</span>
+            </div>
+            <p className="admin-section-desc">
+              Skapa inloggningar för dashboard-åtkomst. Varje användare kopplas till ett eller flera spårade konton.
+            </p>
+
+            <form className="add-form" onSubmit={handleAddUser} style={{ marginBottom: "1.5rem" }}>
+              <div className="input-row">
+                <input
+                  className="handle-input"
+                  type="text"
+                  placeholder="användarnamn"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  disabled={addingUser}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  className="handle-input"
+                  type="password"
+                  placeholder="lösenord"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={addingUser}
+                  style={{ borderLeft: "1px solid var(--border-light)" }}
+                />
+                <button className="add-btn" type="submit" disabled={addingUser || !newUsername.trim() || !newPassword.trim()}>
+                  {addingUser ? "Skapar…" : "Skapa"}
+                </button>
+              </div>
+              {addUserError && <p className="form-error">{addUserError}</p>}
+            </form>
+
+            {loadingUsers ? (
+              <p className="loading">Laddar…</p>
+            ) : users.length === 0 ? (
+              <p className="empty">Inga användare ännu.</p>
+            ) : (
+              <ul className="account-list">
+                {users.map((u) => {
+                  const availableHandles = accounts
+                    .filter((a) => a.is_active && !u.handles.includes(a.handle))
+                    .map((a) => a.handle);
+                  return (
+                    <li key={u.id} className={`account-row${u.is_active ? "" : " account-row--inactive"}`} style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", width: "100%" }}>
+                        <label className="toggle-label">
+                          <input type="checkbox" className="toggle-input" checked={u.is_active} onChange={() => handleToggleUser(u)} />
+                          <span className="toggle-track"><span className="toggle-thumb" /></span>
+                        </label>
+                        <span className="account-handle" style={{ flex: 1 }}>{u.username}</span>
+                        <span className="account-meta">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
+                        <button
+                          className="scrape-btn"
+                          style={{ fontSize: 9, padding: "0.25rem 0.6rem", boxShadow: "none" }}
+                          onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
+                        >
+                          Byt lösenord
+                        </button>
+                        <button className="delete-btn" onClick={() => handleDeleteUser(u.id)} aria-label="Ta bort">✕</button>
+                      </div>
+
+                      {pwChangeId === u.id && (
+                        <div style={{ display: "flex", gap: "0.5rem", paddingLeft: "2.5rem" }}>
+                          <input
+                            className="handle-input"
+                            type="password"
+                            placeholder="Nytt lösenord"
+                            value={pwChangeValue}
+                            onChange={(e) => setPwChangeValue(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleChangePassword(u.id)}
+                            style={{ border: "1px solid var(--border)", padding: "0.4rem 0.6rem", fontSize: 12, width: 200 }}
+                            autoFocus
+                          />
+                          <button
+                            className="scrape-btn"
+                            style={{ fontSize: 9, padding: "0.25rem 0.75rem", boxShadow: "none" }}
+                            onClick={() => handleChangePassword(u.id)}
+                            disabled={!pwChangeValue.trim()}
+                          >
+                            Spara
+                          </button>
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", paddingLeft: "2.5rem", alignItems: "center" }}>
+                        {u.handles.map((h) => (
+                          <span key={h} className="handle-chip">
+                            @{h}
+                            <button onClick={() => handleRemoveHandleFromUser(u.id, h)} aria-label="Ta bort handle">×</button>
+                          </span>
+                        ))}
+                        {availableHandles.length > 0 && (
+                          <select
+                            className="category-select"
+                            value=""
+                            onChange={(e) => { if (e.target.value) handleAddHandleToUser(u.id, e.target.value); }}
+                          >
+                            <option value="">+ Lägg till konto</option>
+                            {availableHandles.map((h) => (
+                              <option key={h} value={h}>@{h}</option>
+                            ))}
+                          </select>
+                        )}
+                        {u.handles.length === 0 && availableHandles.length === 0 && (
+                          <span className="account-meta">Inga aktiva konton att tilldela</span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
       </div>
     </>
@@ -1042,6 +1260,31 @@ const styles = `
     color: var(--muted);
     padding: 1rem 0 0.4rem;
   }
+
+  .handle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg2);
+    border: 1px solid var(--border-light);
+    color: var(--mid);
+    padding: 1px 6px 1px 8px;
+  }
+
+  .handle-chip button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .handle-chip button:hover { color: #a33; }
 
   .week-badge {
     font-size: 9px;
