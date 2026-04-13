@@ -101,6 +101,81 @@ export async function startScrape(
     return { runId: run.id, handles: handles.length, scrapeRunId };
 }
 
+// ─── Scrapa ett specifikt set av handles (backfill för nya konton) ────────────
+// Hämtar de senaste `postsPerHandle` inläggen per konto oavsett datum.
+
+export async function startScrapeForHandles(
+    handles: string[],
+    webhookUrl: string,
+    postsPerHandle = 50,
+    triggeredBy: "cron" | "manual" = "manual"
+): Promise<{ runId: string; handles: number; scrapeRunId: string }> {
+    const apifyToken = process.env.APIFY_TOKEN;
+    if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
+    if (handles.length === 0) throw new Error("Inga handles angavs");
+
+    const { data: runRow, error: insertErr } = await supabaseAdmin
+        .from("scrape_runs")
+        .insert({ triggered_by: triggeredBy, handles: handles.length, status: "started" })
+        .select("id")
+        .single();
+    if (insertErr) console.error("scrape_runs insert error:", insertErr.message);
+    const scrapeRunId: string = runRow?.id ?? "";
+
+    const url = `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs` +
+        `?webhooks=${encodeURIComponent(btoa(JSON.stringify([
+            { eventTypes: ["ACTOR.RUN.SUCCEEDED"], requestUrl: webhookUrl }
+        ])))}`;
+
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apifyToken}`,
+            },
+            body: JSON.stringify({
+                profiles: handles,
+                profileScrapeSections: ["videos"],
+                profileSorting: "latest",
+                resultsPerPage: postsPerHandle,
+                excludePinnedPosts: false,
+                oldestPostDateUnified: "2020-01-01", // far back — resultsPerPage is the real limit
+            }),
+        });
+    } catch (err) {
+        if (scrapeRunId) {
+            await supabaseAdmin.from("scrape_runs").update({
+                status: "failed",
+                error: err instanceof Error ? err.message : String(err),
+                completed_at: new Date().toISOString(),
+            }).eq("id", scrapeRunId);
+        }
+        throw err;
+    }
+
+    if (!res.ok) {
+        const text = await res.text();
+        const errMsg = `Apify start error ${res.status}: ${text}`;
+        if (scrapeRunId) {
+            await supabaseAdmin.from("scrape_runs").update({
+                status: "failed",
+                error: errMsg,
+                completed_at: new Date().toISOString(),
+            }).eq("id", scrapeRunId);
+        }
+        throw new Error(errMsg);
+    }
+
+    const { data: run } = await res.json();
+    if (scrapeRunId) {
+        await supabaseAdmin.from("scrape_runs").update({ run_id: run.id }).eq("id", scrapeRunId);
+    }
+
+    return { runId: run.id, handles: handles.length, scrapeRunId };
+}
+
 // ─── Bearbeta Apify-resultat (anropas från webhook) ───────────────────────────
 // Hämtar dataset-items via datasetId och skriver till Supabase.
 

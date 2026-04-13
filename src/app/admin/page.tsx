@@ -313,6 +313,38 @@ export default function AdminPage() {
   const [pwChangeId, setPwChangeId] = useState<string | null>(null);
   const [pwChangeValue, setPwChangeValue] = useState("");
 
+  // New-handle-for-user form
+  const [newHandleUserId, setNewHandleUserId] = useState<string | null>(null);
+  const [newHandleInput, setNewHandleInput] = useState("");
+  const [newHandlePosts, setNewHandlePosts] = useState(50);
+  const [newHandleLoading, setNewHandleLoading] = useState(false);
+  const [newHandleResult, setNewHandleResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function handleAddNewHandle(userId: string) {
+    const h = newHandleInput.trim().replace(/^@/, "");
+    if (!h) return;
+    setNewHandleLoading(true);
+    setNewHandleResult(null);
+    const res = await fetch("/api/admin/add-handle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, handle: h, postsBack: newHandlePosts }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const msg = data.scrapeError
+        ? `@${h} tillagt — scraping misslyckades: ${data.scrapeError}`
+        : `@${h} tillagt och scraping startad (${newHandlePosts} inlägg)`;
+      setNewHandleResult({ ok: true, msg });
+      setNewHandleInput("");
+      await fetchUsers();
+      setTimeout(() => { setNewHandleUserId(null); setNewHandleResult(null); }, 4000);
+    } else {
+      setNewHandleResult({ ok: false, msg: data.error ?? "Okänt fel" });
+    }
+    setNewHandleLoading(false);
+  }
+
   async function fetchUsers() {
     setLoadingUsers(true);
     const res = await fetch("/api/admin/users");
@@ -885,16 +917,68 @@ export default function AdminPage() {
                             value=""
                             onChange={(e) => { if (e.target.value) handleAddHandleToUser(u.id, e.target.value); }}
                           >
-                            <option value="">+ Lägg till konto</option>
+                            <option value="">+ Befintligt konto</option>
                             {availableHandles.map((h) => (
                               <option key={h} value={h}>@{h}</option>
                             ))}
                           </select>
                         )}
-                        {u.handles.length === 0 && availableHandles.length === 0 && (
-                          <span className="account-meta">Inga aktiva konton att tilldela</span>
-                        )}
+                        <button
+                          className="scrape-btn"
+                          style={{ fontSize: 10, padding: "0.25rem 0.65rem", boxShadow: "none" }}
+                          onClick={() => {
+                            const opening = newHandleUserId !== u.id;
+                            setNewHandleUserId(opening ? u.id : null);
+                            setNewHandleInput("");
+                            setNewHandleResult(null);
+                          }}
+                        >
+                          {newHandleUserId === u.id ? "Avbryt" : "+ Nytt konto"}
+                        </button>
                       </div>
+
+                      {/* ── Inline new-handle + scrape form ── */}
+                      {newHandleUserId === u.id && (
+                        <div style={{ paddingLeft: "2.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                            <input
+                              className="handle-input"
+                              type="text"
+                              placeholder="@handle"
+                              value={newHandleInput}
+                              onChange={(e) => setNewHandleInput(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && !newHandleLoading && handleAddNewHandle(u.id)}
+                              disabled={newHandleLoading}
+                              autoFocus
+                              style={{ width: 160 }}
+                            />
+                            <select
+                              className="category-select"
+                              value={newHandlePosts}
+                              onChange={(e) => setNewHandlePosts(Number(e.target.value))}
+                              disabled={newHandleLoading}
+                              title="Antal inlägg att hämta"
+                            >
+                              <option value={20}>20 inlägg</option>
+                              <option value={50}>50 inlägg</option>
+                              <option value={100}>100 inlägg</option>
+                              <option value={200}>200 inlägg</option>
+                            </select>
+                            <button
+                              className="add-btn"
+                              onClick={() => handleAddNewHandle(u.id)}
+                              disabled={newHandleLoading || !newHandleInput.trim()}
+                            >
+                              {newHandleLoading ? "Skapar…" : "Lägg till & scrapa"}
+                            </button>
+                          </div>
+                          {newHandleResult && (
+                            <p style={{ fontSize: 11, margin: 0, color: newHandleResult.ok ? "#2a7a2a" : "#c0392b" }}>
+                              {newHandleResult.msg}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </li>
                   );
                 })}
