@@ -42,11 +42,18 @@ async function fetchProfile(handle: string): Promise<ProfileData | null> {
       ? erValues.reduce((sum, er) => sum + er, 0) / erValues.length
       : null;
 
-  const weeks_tracked = Math.max(
-    (Date.now() - new Date(account.created_at).getTime()) / (7 * 24 * 3600 * 1000),
-    1
-  );
-  const posts_per_week = post_count / weeks_tracked;
+  const publishedTimestamps = (videos ?? [])
+    .filter((v) => v.published_at)
+    .map((v) => new Date(v.published_at!).getTime());
+
+  const spanMs =
+    publishedTimestamps.length >= 2
+      ? Math.max(...publishedTimestamps) - Math.min(...publishedTimestamps)
+      : 0;
+
+  // Use the actual video date range; fall back to 1 week minimum to avoid inflating frequency
+  const weeks_span = Math.max(spanMs / (7 * 24 * 3600 * 1000), 1);
+  const posts_per_week = post_count / weeks_span;
 
   return {
     handle: account.handle,
