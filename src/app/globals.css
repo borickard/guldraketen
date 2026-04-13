@@ -3253,7 +3253,7 @@ body {
 .gr-scroll-hint {
   display: flex;
   justify-content: center;
-  padding: 16px 0 24px;
+  padding: 8px 0 56px;
 }
 
 .gr-scroll-hint-arrow {
@@ -3276,7 +3276,6 @@ body {
   overflow: hidden;
   padding: 8px 0;
   background: #07253A;
-  border-bottom: 1px solid rgba(237,248,251,0.08);
   margin-bottom: 20px;
   cursor: grab;
   user-select: none;

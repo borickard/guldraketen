@@ -312,6 +312,7 @@ const css = `
     height: 320px;
     perspective: 1000px;
     cursor: pointer;
+    border-radius: 18px;
   }
 
   .vg-card-inner {
@@ -320,6 +321,7 @@ const css = `
     height: 100%;
     transform-style: preserve-3d;
     transition: transform 0.4s ease;
+    border-radius: 18px;
   }
 
   .vg-card-inner--flipped {
@@ -333,6 +335,7 @@ const css = `
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     overflow: hidden;
+    border-radius: 18px;
   }
 
   /* Front */
@@ -385,7 +388,7 @@ const css = `
   .vg-card-back {
     transform: rotateY(180deg);
     background: #fff;
-    border: 1px solid rgba(28,27,25,0.1);
+    border: 1.5px solid rgba(28,27,25,0.1);
     padding: 1rem;
     display: flex;
     flex-direction: column;
