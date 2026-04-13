@@ -253,7 +253,7 @@ export default function AdminPage() {
   async function handleRescrapeAccount() {
     if (!rescrapeHandle) return;
     setRescrapingHandle(true);
-    setRescrapeMsg("");
+    setRescrapeMsg("Hämtar från Apify…");
     const res = await fetch("/api/admin/rescrape", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -262,7 +262,7 @@ export default function AdminPage() {
     const data = await res.json();
     setRescrapeMsg(
       res.ok
-        ? `Scraping startad för @${rescrapeHandle} (${rescrapePosts} inlägg) – runId: ${data.runId}`
+        ? `Klar — ${data.upserted ?? 0} videor sparade, ${data.skipped ?? 0} hoppade över (runId: ${data.runId})`
         : `Fel: ${data.error}`
     );
     setRescrapingHandle(false);
@@ -624,7 +624,7 @@ export default function AdminPage() {
                   onClick={handleRescrapeAccount}
                   disabled={rescrapingHandle || !rescrapeHandle}
                 >
-                  {rescrapingHandle ? "Startar…" : "Kör"}
+                  {rescrapingHandle ? "Hämtar…" : "Kör"}
                 </button>
               </div>
               {rescrapeMsg && <p className="scrape-msg">{rescrapeMsg}</p>}

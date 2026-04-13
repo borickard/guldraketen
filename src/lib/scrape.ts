@@ -106,7 +106,7 @@ export async function startScrape(
 
 export async function startScrapeForHandles(
     handles: string[],
-    webhookUrl: string,
+    webhookUrl: string | null,
     postsPerHandle = 50,
     triggeredBy: "cron" | "manual" = "manual"
 ): Promise<{ runId: string; handles: number; scrapeRunId: string }> {
@@ -122,10 +122,12 @@ export async function startScrapeForHandles(
     if (insertErr) console.error("scrape_runs insert error:", insertErr.message);
     const scrapeRunId: string = runRow?.id ?? "";
 
-    const url = `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs` +
-        `?webhooks=${encodeURIComponent(btoa(JSON.stringify([
-            { eventTypes: ["ACTOR.RUN.SUCCEEDED"], requestUrl: webhookUrl }
-        ])))}`;
+    const webhookParam = webhookUrl
+        ? `?webhooks=${encodeURIComponent(btoa(JSON.stringify([
+              { eventTypes: ["ACTOR.RUN.SUCCEEDED"], requestUrl: webhookUrl }
+          ])))}`
+        : "";
+    const url = `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs${webhookParam}`;
 
     let res: Response;
     try {
