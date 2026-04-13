@@ -135,13 +135,13 @@ export default function VideoGrid() {
               <div key={v.id} className="vg-card">
 
                 {/* Thumbnail */}
-                <div className="vg-thumb-wrap">
+                <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
                   {v.thumbnail_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
                     : <div className="vg-thumb vg-thumb--empty" />
                   }
-                </div>
+                </a>
 
                 {/* ER + link bar */}
                 <div className="vg-card-bar">
@@ -351,13 +351,13 @@ const css = `
   }
 
   .vg-stat-lbl {
-    font-size: 10px;
+    font-size: 14px;
     color: #999;
     white-space: nowrap;
   }
 
   .vg-stat-val {
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 700;
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
