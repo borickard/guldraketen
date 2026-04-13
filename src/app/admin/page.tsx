@@ -108,6 +108,11 @@ export default function AdminPage() {
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState("");
   const [daysBack, setDaysBack] = useState(14);
+  const [rescrapeHandle, setRescrapeHandle] = useState("");
+  const [rescrapePosts, setRescrapePosts] = useState(50);
+  const [rescrapingHandle, setRescrapingHandle] = useState(false);
+  const [rescrapeMsg, setRescrapeMsg] = useState("");
+
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMsg, setBackfillMsg] = useState("");
   const [backfillingAvatars, setBackfillingAvatars] = useState(false);
@@ -243,6 +248,24 @@ export default function AdminPage() {
         : `Fel: ${data.error}`
     );
     setScraping(false);
+  }
+
+  async function handleRescrapeAccount() {
+    if (!rescrapeHandle) return;
+    setRescrapingHandle(true);
+    setRescrapeMsg("");
+    const res = await fetch("/api/admin/rescrape", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: rescrapeHandle, postsBack: rescrapePosts }),
+    });
+    const data = await res.json();
+    setRescrapeMsg(
+      res.ok
+        ? `Scraping startad för @${rescrapeHandle} (${rescrapePosts} inlägg) – runId: ${data.runId}`
+        : `Fel: ${data.error}`
+    );
+    setRescrapingHandle(false);
   }
 
   async function handleContestToggle(video: ContestVideo) {
@@ -566,6 +589,45 @@ export default function AdminPage() {
                 </button>
               </div>
               {scrapeMsg && <p className="scrape-msg">{scrapeMsg}</p>}
+            </div>
+
+            <div className="admin-tool" style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+              <p className="admin-tool-label">Scrapa enskilt konto</p>
+              <p className="admin-tool-desc">Välj ett befintligt konto och hämta de senaste X inläggen.</p>
+              <div className="scrape-row">
+                <select
+                  className="handle-input"
+                  style={{ flex: 2, height: 36 }}
+                  value={rescrapeHandle}
+                  onChange={(e) => setRescrapeHandle(e.target.value)}
+                >
+                  <option value="">Välj konto…</option>
+                  {accounts.map((a) => (
+                    <option key={a.handle} value={a.handle}>
+                      {a.display_name ? `${a.display_name} (@${a.handle})` : `@${a.handle}`}
+                    </option>
+                  ))}
+                </select>
+                <div className="days-input-wrap">
+                  <input
+                    className="days-input"
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={rescrapePosts}
+                    onChange={(e) => setRescrapePosts(Number(e.target.value))}
+                  />
+                  <span className="days-label">inlägg</span>
+                </div>
+                <button
+                  className="scrape-btn"
+                  onClick={handleRescrapeAccount}
+                  disabled={rescrapingHandle || !rescrapeHandle}
+                >
+                  {rescrapingHandle ? "Startar…" : "Kör"}
+                </button>
+              </div>
+              {rescrapeMsg && <p className="scrape-msg">{rescrapeMsg}</p>}
             </div>
           </div>
 
