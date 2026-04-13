@@ -259,10 +259,9 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         }
     }
 
-    // Ladda upp thumbnails till Supabase Storage
-    await uploadThumbnailsBatch(videoRows);
-
-    // Upserta videos i batchar om 100
+    // ── Critical path: upsert videos first (with original thumbnail URLs) ────────
+    // Thumbnail uploads are slow and can exhaust Vercel's function timeout.
+    // We write video rows now so data is safe, then upload thumbnails afterwards.
     const BATCH = 100;
     let upserted = 0;
     for (let i = 0; i < videoRows.length; i += BATCH) {
@@ -274,7 +273,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         upserted += batch.length;
     }
 
-    // Uppdatera följarantal + avatar
+    // Uppdatera följarantal
     const now = new Date().toISOString();
     for (const [handle, followers] of Object.entries(followerMap)) {
         await supabaseAdmin
@@ -286,7 +285,6 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
     // Ladda upp avatarer till Supabase Storage och spara URL
     for (const [handle, rawAvatarUrl] of Object.entries(avatarMap)) {
         if (isStoredThumbnail(rawAvatarUrl)) {
-            // Redan i Storage — spara direkt
             await supabaseAdmin
                 .from("accounts")
                 .update({ avatar_url: rawAvatarUrl })
@@ -309,7 +307,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         followers: Object.keys(followerMap).length,
     };
 
-    // Update scrape_runs row on completion
+    // Mark scrape_run completed BEFORE thumbnail uploads (thumbnails are slow)
     if (apifyRunId) {
         await supabaseAdmin
             .from("scrape_runs")
@@ -321,6 +319,27 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
                 completed_at: new Date().toISOString(),
             })
             .eq("run_id", apifyRunId);
+    }
+
+    // ── Best-effort: upload thumbnails to Supabase Storage ───────────────────────
+    // uploadThumbnailsBatch mutates thumbnail_url in-place on each row.
+    // After uploading, patch only the rows that now have a stored URL.
+    try {
+        await uploadThumbnailsBatch(videoRows);
+        const stored = videoRows.filter(r => r.thumbnail_url && isStoredThumbnail(r.thumbnail_url));
+        for (let i = 0; i < stored.length; i += BATCH) {
+            const batchRows = stored.slice(i, i + BATCH);
+            await Promise.all(
+                batchRows.map(row =>
+                    supabaseAdmin
+                        .from("videos")
+                        .update({ thumbnail_url: row.thumbnail_url })
+                        .eq("video_url", row.video_url)
+                )
+            );
+        }
+    } catch {
+        // Thumbnail upload failures are non-fatal — videos and run record are already saved
     }
 
     return result;
