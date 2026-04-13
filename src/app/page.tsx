@@ -319,7 +319,7 @@ function HomeInner() {
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
   const carouselVideos = useMemo(() => {
-    const filtered = videos.filter((v) => v.thumbnail_url).slice(0, 20);
+    const filtered = videos.filter((v) => v.thumbnail_url && (v.views ?? 0) >= 10000).slice(0, 20);
     for (let i = filtered.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
