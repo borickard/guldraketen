@@ -19,7 +19,6 @@ interface Video {
 type SortKey = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
 
 type GridItem =
-  | { type: "month"; label: string; key: string }
   | { type: "week"; label: string; key: string }
   | { type: "video"; video: Video };
 
@@ -35,21 +34,16 @@ function toWeekLabel(dateStr: string): string {
   return `V${week} ${year}`;
 }
 
-function toMonthLabel(dateStr: string): string {
-  const s = new Date(dateStr).toLocaleDateString("sv-SE", { month: "long", year: "numeric" });
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 function sorted(videos: Video[], sort: SortKey): Video[] {
   const c = [...videos];
   switch (sort) {
-    case "newest":  return c.sort((a, b) => new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime());
-    case "oldest":  return c.sort((a, b) => new Date(a.published_at ?? 0).getTime() - new Date(b.published_at ?? 0).getTime());
-    case "er":      return c.sort((a, b) => (Number(b.engagement_rate) || 0) - (Number(a.engagement_rate) || 0));
-    case "views":   return c.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
-    case "likes":   return c.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
-    case "comments":return c.sort((a, b) => (b.comments ?? 0) - (a.comments ?? 0));
-    case "shares":  return c.sort((a, b) => (b.shares ?? 0) - (a.shares ?? 0));
+    case "newest":   return c.sort((a, b) => new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime());
+    case "oldest":   return c.sort((a, b) => new Date(a.published_at ?? 0).getTime() - new Date(b.published_at ?? 0).getTime());
+    case "er":       return c.sort((a, b) => (Number(b.engagement_rate) || 0) - (Number(a.engagement_rate) || 0));
+    case "views":    return c.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+    case "likes":    return c.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    case "comments": return c.sort((a, b) => (b.comments ?? 0) - (a.comments ?? 0));
+    case "shares":   return c.sort((a, b) => (b.shares ?? 0) - (a.shares ?? 0));
   }
 }
 
@@ -61,22 +55,15 @@ function buildItems(videos: Video[], sort: SortKey): GridItem[] {
   }
 
   const items: GridItem[] = [];
-  let lastMonth = "";
   let lastWeek = "";
 
   for (const video of vids) {
-    if (!video.published_at) { items.push({ type: "video", video }); continue; }
-    const month = toMonthLabel(video.published_at);
-    const week  = toWeekLabel(video.published_at);
-
-    if (month !== lastMonth) {
-      items.push({ type: "month", label: month, key: `m-${month}` });
-      lastMonth = month;
-      lastWeek = "";
-    }
-    if (week !== lastWeek) {
-      items.push({ type: "week", label: week, key: `w-${week}` });
-      lastWeek = week;
+    if (video.published_at) {
+      const week = toWeekLabel(video.published_at);
+      if (week !== lastWeek) {
+        items.push({ type: "week", label: week, key: `w-${week}-${video.id}` });
+        lastWeek = week;
+      }
     }
     items.push({ type: "video", video });
   }
@@ -93,11 +80,14 @@ const SORTS: { key: SortKey; label: string }[] = [
   { key: "shares",   label: "Delningar" },
 ];
 
+function fmt(n: number | null): string {
+  return n != null ? n.toLocaleString("sv-SE") : "—";
+}
+
 export default function VideoGrid() {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
-  const [flipped, setFlipped] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/dashboard/videos")
@@ -114,6 +104,7 @@ export default function VideoGrid() {
     <>
       <style>{css}</style>
       <div className="vg-root">
+
         <div className="vg-toolbar">
           <h2 className="vg-title">
             Videor <span className="vg-count">{videos.length} st</span>
@@ -123,7 +114,7 @@ export default function VideoGrid() {
               <button
                 key={s.key}
                 className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
-                onClick={() => { setSort(s.key); setFlipped(null); }}
+                onClick={() => setSort(s.key)}
               >
                 {s.label}
               </button>
@@ -133,78 +124,65 @@ export default function VideoGrid() {
 
         <div className="vg-grid">
           {items.map((item) => {
-            if (item.type === "month") return (
-              <div key={item.key} className="vg-divider vg-divider--month">{item.label}</div>
-            );
             if (item.type === "week") return (
-              <div key={item.key} className="vg-divider vg-divider--week">{item.label}</div>
+              <div key={item.key} className="vg-week-label">{item.label}</div>
             );
 
             const v = item.video;
-            const isFlipped = flipped === v.id;
             const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
-            const date = v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : "—";
 
             return (
-              <div key={v.id} className="vg-card" onClick={() => setFlipped(isFlipped ? null : v.id)}>
-                <div className={`vg-card-inner${isFlipped ? " vg-card-inner--flipped" : ""}`}>
+              <div key={v.id} className="vg-card">
 
-                  {/* ── Front ── */}
-                  <div className="vg-card-front">
-                    {v.thumbnail_url
-                      // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
-                      : <div className="vg-thumb vg-thumb--empty" />
-                    }
-                    <div className="vg-overlay">
-                      <span className="vg-overlay-handle">@{v.handle}</span>
-                      <span className="vg-overlay-er">
-                        {er != null ? `${er.toFixed(2)}%` : "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* ── Back ── */}
-                  <div className="vg-card-back">
-                    <div className="vg-back-top">
-                      <span className="vg-back-date">{date}</span>
-                      <span className="vg-back-er">
-                        {er != null ? `${er.toFixed(2)}%` : "—"}
-                      </span>
-                    </div>
-                    <div className="vg-back-er-label">Engagement rate</div>
-                    <div className="vg-divider-line" />
-                    <div className="vg-metrics">
-                      {[
-                        { val: v.views,    lbl: "Visningar" },
-                        { val: v.likes,    lbl: "Likes" },
-                        { val: v.comments, lbl: "Kommentarer" },
-                        { val: v.shares,   lbl: "Delningar" },
-                      ].map(({ val, lbl }) => (
-                        <div key={lbl} className="vg-metric">
-                          <span className="vg-metric-val">
-                            {val != null ? val.toLocaleString("sv-SE") : "—"}
-                          </span>
-                          <span className="vg-metric-lbl">{lbl}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <a
-                      href={v.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="vg-link"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Visa video
-                    </a>
-                  </div>
-
+                {/* Thumbnail */}
+                <div className="vg-thumb-wrap">
+                  {v.thumbnail_url
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
+                    : <div className="vg-thumb vg-thumb--empty" />
+                  }
                 </div>
+
+                {/* ER + link bar */}
+                <div className="vg-card-bar">
+                  <span className="vg-card-er">
+                    {er != null ? `${er.toFixed(2)}%` : "—"}
+                  </span>
+                  <a
+                    href={v.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vg-card-link"
+                    title="Öppna video"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </a>
+                </div>
+
+                {/* Stats */}
+                <div className="vg-stats">
+                  {([
+                    ["Visningar", fmt(v.views)],
+                    ["Likes",     fmt(v.likes)],
+                    ["Komment.",  fmt(v.comments)],
+                    ["Delningar", fmt(v.shares)],
+                  ] as [string, string][]).map(([lbl, val]) => (
+                    <div key={lbl} className="vg-stat-row">
+                      <span className="vg-stat-lbl">{lbl}</span>
+                      <span className="vg-stat-val">{val}</span>
+                    </div>
+                  ))}
+                </div>
+
               </div>
             );
           })}
         </div>
+
       </div>
     </>
   );
@@ -212,7 +190,7 @@ export default function VideoGrid() {
 
 const css = `
   .vg-root {
-    margin-top: 2.5rem;
+    margin-top: 2rem;
     font-family: 'Barlow', sans-serif;
   }
 
@@ -273,74 +251,47 @@ const css = `
   /* Grid */
   .vg-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 0.75rem 0.75rem;
+    align-items: start;
   }
 
-  /* Dividers span full width */
-  .vg-divider {
+  /* Week label spans full row */
+  .vg-week-label {
     grid-column: 1 / -1;
     font-family: 'Barlow Condensed', sans-serif;
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-  }
-
-  .vg-divider--month {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #1C1B19;
-    padding: 1.5rem 0 0.25rem;
-    border-top: 2px solid #1C1B19;
-    margin-top: 0.5rem;
-  }
-
-  .vg-divider--month:first-child {
-    border-top: none;
-    margin-top: 0;
-    padding-top: 0;
-  }
-
-  .vg-divider--week {
-    font-size: 11px;
-    font-weight: 700;
     color: #888;
-    padding: 0.5rem 0 0.1rem;
+    padding: 1rem 0 0.25rem;
+    border-top: 1px solid rgba(28,27,25,0.12);
+    margin-top: 0.25rem;
+  }
+
+  .vg-week-label:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
   }
 
   /* Card */
   .vg-card {
-    height: 320px;
-    perspective: 1000px;
-    cursor: pointer;
-    border-radius: 18px;
-  }
-
-  .vg-card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.4s ease;
-    border-radius: 18px;
-  }
-
-  .vg-card-inner--flipped {
-    transform: rotateY(180deg);
-  }
-
-  .vg-card-front,
-  .vg-card-back {
-    position: absolute;
-    inset: 0;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.1);
+    border-radius: 12px;
     overflow: hidden;
-    border-radius: 18px;
   }
 
-  /* Front */
-  .vg-card-front {
-    background: #1C1B19;
+  /* Thumbnail: 4:5 */
+  .vg-thumb-wrap {
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: rgba(28,27,25,0.08);
+    flex-shrink: 0;
   }
 
   .vg-thumb {
@@ -352,127 +303,64 @@ const css = `
   }
 
   .vg-thumb--empty {
-    background: rgba(28,27,25,0.15);
+    width: 100%;
+    height: 100%;
   }
 
-  .vg-overlay {
-    position: absolute;
-    inset: auto 0 0 0;
-    padding: 2rem 0.75rem 0.75rem;
-    background: linear-gradient(to top, rgba(28,27,25,0.88) 0%, transparent 100%);
+  /* ER + link row */
+  .vg-card-bar {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid rgba(28,27,25,0.07);
   }
 
-  .vg-overlay-handle {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(237,248,251,0.8);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .vg-overlay-er {
+  .vg-card-er {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #C8962A;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  /* Back */
-  .vg-card-back {
-    transform: rotateY(180deg);
-    background: #fff;
-    border: 1.5px solid rgba(28,27,25,0.1);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .vg-back-top {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .vg-back-date {
-    font-size: 11px;
-    color: #888;
-  }
-
-  .vg-back-er {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.6rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #C8962A;
     line-height: 1;
   }
 
-  .vg-back-er-label {
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #aaa;
-    text-align: right;
-    margin-top: -4px;
+  .vg-card-link {
+    display: flex;
+    align-items: center;
+    color: #E8116A;
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity 0.12s;
   }
 
-  .vg-divider-line {
-    height: 1px;
-    background: rgba(28,27,25,0.08);
-    margin: 0.25rem 0;
-  }
+  .vg-card-link:hover { opacity: 1; }
 
-  .vg-metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    flex: 1;
-  }
-
-  .vg-metric {
+  /* Stats */
+  .vg-stats {
+    padding: 0.45rem 0.65rem 0.55rem;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
   }
 
-  .vg-metric-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.1rem;
+  .vg-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .vg-stat-lbl {
+    font-size: 10px;
+    color: #999;
+    white-space: nowrap;
+  }
+
+  .vg-stat-val {
+    font-size: 10px;
     font-weight: 700;
     color: #1C1B19;
-    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
-
-  .vg-metric-lbl {
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #aaa;
-  }
-
-  .vg-link {
-    display: block;
-    background: #E8116A;
-    color: #fff;
-    text-align: center;
-    text-decoration: none;
-    font-family: 'Barlow', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.5rem;
-    transition: background 0.12s;
-    margin-top: auto;
-  }
-
-  .vg-link:hover { background: #c40d5a; }
 `;

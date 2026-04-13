@@ -197,7 +197,7 @@ const styles = `
   }
 
   .db-main {
-    max-width: 900px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 2.5rem 1.5rem 6rem;
   }
@@ -209,6 +209,7 @@ const styles = `
   }
 
   .db-profile-block {
+    max-width: 860px;
     margin-bottom: 2.5rem;
   }
 
