@@ -84,10 +84,54 @@ function fmt(n: number | null): string {
   return n != null ? n.toLocaleString("sv-SE") : "—";
 }
 
+type Filters = {
+  views_min: string; views_max: string;
+  likes_min: string; likes_max: string;
+  comments_min: string; comments_max: string;
+  shares_min: string; shares_max: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  views_min: "", views_max: "",
+  likes_min: "", likes_max: "",
+  comments_min: "", comments_max: "",
+  shares_min: "", shares_max: "",
+};
+
+function applyFilters(videos: Video[], f: Filters): Video[] {
+  return videos.filter((v) => {
+    const check = (val: number | null, min: string, max: string) => {
+      const n = val ?? 0;
+      if (min !== "" && n < Number(min)) return false;
+      if (max !== "" && n > Number(max)) return false;
+      return true;
+    };
+    return (
+      check(v.views,    f.views_min,    f.views_max)    &&
+      check(v.likes,    f.likes_min,    f.likes_max)    &&
+      check(v.comments, f.comments_min, f.comments_max) &&
+      check(v.shares,   f.shares_min,   f.shares_max)
+    );
+  });
+}
+
+function activeFilterCount(f: Filters): number {
+  return Object.values(f).filter((v) => v !== "").length;
+}
+
+const FILTER_ROWS: { label: string; min: keyof Filters; max: keyof Filters }[] = [
+  { label: "Visningar", min: "views_min",    max: "views_max"    },
+  { label: "Likes",     min: "likes_min",    max: "likes_max"    },
+  { label: "Komment.",  min: "comments_min", max: "comments_max" },
+  { label: "Delningar", min: "shares_min",   max: "shares_max"   },
+];
+
 export default function VideoGrid() {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard/videos")
@@ -98,7 +142,13 @@ export default function VideoGrid() {
   if (loading) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Laddar videor…</p>;
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
-  const items = buildItems(videos, sort);
+  const filtered = applyFilters(videos, filters);
+  const items = buildItems(filtered, sort);
+  const nActive = activeFilterCount(filters);
+
+  function setFilter(key: keyof Filters, val: string) {
+    setFilters((prev) => ({ ...prev, [key]: val }));
+  }
 
   return (
     <>
@@ -107,7 +157,7 @@ export default function VideoGrid() {
 
         <div className="vg-toolbar">
           <h2 className="vg-title">
-            Videor <span className="vg-count">{videos.length} st</span>
+            Videor <span className="vg-count">{filtered.length}/{videos.length} st</span>
           </h2>
           <div className="vg-sorts">
             {SORTS.map((s) => (
@@ -119,8 +169,53 @@ export default function VideoGrid() {
                 {s.label}
               </button>
             ))}
+            <button
+              className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              Filter{nActive > 0 ? ` (${nActive})` : ""}
+            </button>
           </div>
         </div>
+
+        {showFilters && (
+          <div className="vg-filter-panel">
+            {FILTER_ROWS.map((row) => (
+              <div key={row.label} className="vg-filter-row">
+                <span className="vg-filter-label">{row.label}</span>
+                <div className="vg-filter-inputs">
+                  <div className="vg-filter-field">
+                    <span className="vg-filter-sign">&gt;</span>
+                    <input
+                      className="vg-filter-input"
+                      type="number"
+                      min={0}
+                      placeholder="min"
+                      value={filters[row.min]}
+                      onChange={(e) => setFilter(row.min, e.target.value)}
+                    />
+                  </div>
+                  <div className="vg-filter-field">
+                    <span className="vg-filter-sign">&lt;</span>
+                    <input
+                      className="vg-filter-input"
+                      type="number"
+                      min={0}
+                      placeholder="max"
+                      value={filters[row.max]}
+                      onChange={(e) => setFilter(row.max, e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {nActive > 0 && (
+              <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
+                Rensa filter
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="vg-grid">
           {items.map((item) => {
@@ -362,5 +457,91 @@ const css = `
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+
+  /* Filter pill variant */
+  .vg-pill--filter { margin-left: 0.25rem; }
+  .vg-pill--active:not(.vg-pill--on) {
+    border-color: #C8962A;
+    color: #C8962A;
+  }
+
+  /* Filter panel */
+  .vg-filter-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    align-items: center;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.1);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .vg-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .vg-filter-label {
+    font-size: 12px;
+    color: #888;
+    min-width: 56px;
+  }
+
+  .vg-filter-inputs {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .vg-filter-field {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: #f5f4f2;
+    border: 1px solid rgba(28,27,25,0.12);
+    border-radius: 5px;
+    padding: 0 0.4rem;
+    height: 28px;
+  }
+
+  .vg-filter-sign {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .vg-filter-input {
+    width: 64px;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    color: #1C1B19;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vg-filter-input::placeholder { color: #bbb; }
+
+  /* hide number spinners */
+  .vg-filter-input::-webkit-outer-spin-button,
+  .vg-filter-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .vg-filter-input[type=number] { -moz-appearance: textfield; }
+
+  .vg-filter-clear {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    color: #E8116A;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 `;
