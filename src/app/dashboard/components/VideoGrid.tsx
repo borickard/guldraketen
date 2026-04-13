@@ -156,25 +156,33 @@ export default function VideoGrid() {
       <div className="vg-root">
 
         <div className="vg-toolbar">
-          <h2 className="vg-title">
-            Videor <span className="vg-count">{filtered.length}/{videos.length} st</span>
-          </h2>
-          <div className="vg-sorts">
-            {SORTS.map((s) => (
-              <button
-                key={s.key}
-                className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
-                onClick={() => setSort(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
+          <div className="vg-toolbar-row">
+            <span className="vg-row-label">Sortering</span>
+            <div className="vg-sorts">
+              {SORTS.map((s) => (
+                <button
+                  key={s.key}
+                  className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
+                  onClick={() => setSort(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="vg-toolbar-row">
+            <span className="vg-row-label">Filter</span>
             <button
               className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
               onClick={() => setShowFilters((v) => !v)}
             >
-              Filter{nActive > 0 ? ` (${nActive})` : ""}
+              {nActive > 0 ? `${nActive} aktiva` : "Visa filter"}
             </button>
+            {nActive > 0 && (
+              <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
+                Rensa
+              </button>
+            )}
           </div>
         </div>
 
@@ -209,11 +217,6 @@ export default function VideoGrid() {
                 </div>
               </div>
             ))}
-            {nActive > 0 && (
-              <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
-                Rensa filter
-              </button>
-            )}
           </div>
         )}
 
@@ -291,26 +294,26 @@ const css = `
 
   .vg-toolbar {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
     margin-bottom: 1.25rem;
   }
 
-  .vg-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #1C1B19;
+  .vg-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
   }
 
-  .vg-count {
+  .vg-row-label {
     font-family: 'Barlow', sans-serif;
     font-size: 12px;
-    font-weight: 400;
+    font-weight: 600;
     color: #888;
-    margin-left: 0.4rem;
+    min-width: 64px;
+    letter-spacing: 0.03em;
   }
 
   .vg-sorts {
@@ -540,7 +543,6 @@ const css = `
     border: none;
     cursor: pointer;
     padding: 0;
-    margin-left: auto;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
