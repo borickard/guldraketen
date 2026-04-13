@@ -1,21 +1,78 @@
 import { getVideoForRank } from "@/lib/getVideoForRank";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const RANK_MAP: Record<string, number> = { guld: 1, silver: 2, brons: 3 };
 const RANK_ROCKET_LABEL: Record<string, string> = { guld: "Guldraket", silver: "Silverraket", brons: "Bronsraket" };
 const RANK_MEDAL: Record<string, string> = { guld: "🥇", silver: "🥈", brons: "🥉" };
+
+function toISOWeek(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNum =
+    1 + Math.round(
+      ((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
+    );
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function isoWeekMinus(week: string, n: number): string {
+  const [yearStr, weekStr] = week.split("-W");
+  const year = parseInt(yearStr);
+  const weekNum = parseInt(weekStr);
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+  const monday = new Date(startOfWeek1);
+  monday.setUTCDate(startOfWeek1.getUTCDate() + (weekNum - 1) * 7 - n * 7);
+  return toISOWeek(monday);
+}
+
+async function getAvailableWeeks(): Promise<string[]> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 12 * 7);
+
+  const { data } = await supabaseAdmin
+    .from("videos")
+    .select("published_at")
+    .gte("published_at", cutoff.toISOString())
+    .gte("views", 5000);
+
+  const currentWeek = toISOWeek(new Date());
+  const previousWeek = isoWeekMinus(currentWeek, 1);
+
+  const weekSet = new Set<string>();
+  for (const row of data ?? []) {
+    if (row.published_at) {
+      const w = toISOWeek(new Date(row.published_at));
+      if (w !== currentWeek && w !== previousWeek) weekSet.add(w);
+    }
+  }
+
+  return Array.from(weekSet).sort((a, b) => (b > a ? 1 : -1));
+}
 
 export default async function OgPreviewPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string; rank?: string }>;
 }) {
-  const { week = "2026-W12", rank: rankParam = "guld" } = await searchParams;
+  const { week: weekParam, rank: rankParam = "guld" } = await searchParams;
+
+  const weeks = await getAvailableWeeks();
+  const week = weekParam ?? weeks[0] ?? "2026-W01";
+
+  const weekIdx = weeks.indexOf(week);
+  const prevWeek = weekIdx + 1 < weeks.length ? weeks[weekIdx + 1] : null;
+  const nextWeek = weekIdx > 0 ? weeks[weekIdx - 1] : null;
+
   const rankNum = RANK_MAP[rankParam] ?? (parseInt(rankParam.replace("top", "")) || 1);
   const video = await getVideoForRank(week, rankNum);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://guldraketen.vercel.app";
-  const deployUrl = siteUrl;
   const weekNum = parseInt(week.split("-W")[1]);
+  const weekYear = week.split("-W")[0];
   const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
   const accountName = acct?.display_name ?? (video ? `@${video.handle}` : "Okänt konto");
   const er = video?.engagement_rate != null
@@ -27,8 +84,7 @@ export default async function OgPreviewPage({
   const title = `${accountName} är ${rocketLabel} vecka ${weekNum}! ${medal}`;
   const description = `${accountName}s video hade ${er}% engagement rate. Sociala Raketer rankar Sveriges mest engagerande företag och organisationer på TikTok.`;
   const ogImageUrl = `/api/og?week=${week}&rank=${rankNum}`;
-  // Fields table shows the current deployment's URL so the link is actually openable.
-  const ogImageAbsolute = `${deployUrl}/api/og?week=${week}&rank=${rankNum}`;
+  const ogImageAbsolute = `${siteUrl}/api/og?week=${week}&rank=${rankNum}`;
   const pageUrl = `${siteUrl}/${week}/${rankParam}`;
 
   const fields = [
@@ -49,8 +105,26 @@ export default async function OgPreviewPage({
     { label: "LinkedIn mobile (~328px wide)", width: 328, note: "Mobile feed card" },
   ];
 
-  // Build quick-switch links for week/rank combos
   const ranks = ["guld", "silver", "brons"];
+
+  const navBtnBase: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "8px 16px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: 600,
+    textDecoration: "none",
+    background: "#1C1B19",
+    color: "#fff",
+  };
+  const navBtnDisabled: React.CSSProperties = {
+    ...navBtnBase,
+    background: "#e0dbd5",
+    color: "#aaa",
+    pointerEvents: "none",
+  };
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", background: "#f5f5f0", minHeight: "100vh", padding: "32px 24px" }}>
@@ -61,10 +135,31 @@ export default async function OgPreviewPage({
           <h1 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 8px", color: "#1C1B19" }}>
             OG Image Preview
           </h1>
-          <p style={{ margin: "0 0 16px", color: "#666", fontSize: "14px" }}>
-            Visar hur OG-bilden ser ut i olika storlekar. Ändra <code>?week=2026-W12&rank=guld</code> i URL:en för att testa andra veckor/placeringar.
-          </p>
-          {/* Quick-switch */}
+
+          {/* Week navigation */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+            {prevWeek ? (
+              <a href={`/og-preview?week=${prevWeek}&rank=${rankParam}`} style={navBtnBase}>
+                ← {prevWeek.replace("-W", " V")}
+              </a>
+            ) : (
+              <span style={navBtnDisabled}>←</span>
+            )}
+
+            <span style={{ fontSize: "16px", fontWeight: 700, color: "#1C1B19", minWidth: "100px", textAlign: "center" }}>
+              V{weekNum} {weekYear}
+            </span>
+
+            {nextWeek ? (
+              <a href={`/og-preview?week=${nextWeek}&rank=${rankParam}`} style={navBtnBase}>
+                {nextWeek.replace("-W", " V")} →
+              </a>
+            ) : (
+              <span style={navBtnDisabled}>→</span>
+            )}
+          </div>
+
+          {/* Rank switcher */}
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {ranks.map((r) => (
               <a

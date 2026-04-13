@@ -3193,6 +3193,8 @@ body {
 .gr-hero-v2-btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   gap: 8px;
   background: #FE2C55;
   color: #EDF8FB;
@@ -3215,6 +3217,8 @@ body {
 .gr-hero-v2-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   gap: 8px;
   border: 1.5px solid rgba(237, 248, 251, 0.35);
   border-radius: 6px;
