@@ -67,13 +67,12 @@ async function fetchProfile(handle: string): Promise<ProfileData | null> {
   };
 }
 
-function formatTrackedSince(dateStr: string): string {
-  const date = new Date(dateStr);
-  const days = Math.floor((Date.now() - date.getTime()) / (1000 * 3600 * 24));
-  if (days < 7) return `${days} dagar`;
-  if (days < 30) return `${Math.floor(days / 7)} veckor`;
-  if (days < 365) return `${Math.floor(days / 30)} månader`;
-  return `${Math.floor(days / 365)} år`;
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("sv-SE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default async function DashboardPage() {
@@ -116,7 +115,7 @@ export default async function DashboardPage() {
                     <p className="db-handle">@{p.handle}</p>
                     <p className="db-meta">
                       {p.followers != null ? `${p.followers.toLocaleString("sv-SE")} följare · ` : ""}
-                      Spårad i {formatTrackedSince(p.tracked_since)}
+                      Videor inhämtade sedan {formatDate(p.tracked_since)}
                     </p>
                   </div>
                 </div>
@@ -127,11 +126,11 @@ export default async function DashboardPage() {
                     <span className="db-stat-value">
                       {p.avg_er != null ? `${p.avg_er.toFixed(2)}%` : "—"}
                     </span>
-                    <span className="db-stat-label">Snitt-ER</span>
+                    <span className="db-stat-label">Genomsnittlig engagemangsrate</span>
                   </div>
                   <div className="db-stat">
                     <span className="db-stat-value">{p.post_count}</span>
-                    <span className="db-stat-label">Videor spårade</span>
+                    <span className="db-stat-label">Videor inhämtade</span>
                   </div>
                   <div className="db-stat">
                     <span className="db-stat-value">
