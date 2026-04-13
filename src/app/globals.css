@@ -565,7 +565,7 @@ body {
 .gr-nav-logo {
   font-family: 'VT323', monospace;
   font-weight: 400;
-  font-size: 24px;
+  font-size: 84px;
   letter-spacing: .05em;
   text-transform: uppercase;
   color: #EDF8FB;
@@ -576,8 +576,16 @@ body {
   cursor: pointer;
 }
 
+@media (max-width: 640px) {
+  .gr-nav-logo { font-size: 40px; }
+}
+
 .gr-nav--compact .gr-nav-logo {
-  font-size: 18px;
+  font-size: 40px;
+}
+
+@media (max-width: 640px) {
+  .gr-nav--compact .gr-nav-logo { font-size: 24px; }
 }
 
 .gr-nav-links {
@@ -3266,7 +3274,7 @@ body {
 /* ── Top draggable carousel strip ── */
 .gr-top-carousel {
   overflow: hidden;
-  padding: 10px 0;
+  padding: 8px 0;
   background: #07253A;
   border-bottom: 1px solid rgba(237,248,251,0.08);
   cursor: grab;
@@ -3278,9 +3286,9 @@ body {
 
 .gr-top-carousel-inner {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   width: max-content;
-  padding: 0 16px 0 var(--space-3);
+  padding: 0 10px 0 var(--space-3);
   animation: gr-top-scroll 60s 0s linear infinite;
   will-change: transform;
 }
@@ -3292,8 +3300,8 @@ body {
 
 .gr-top-carousel-card {
   flex-shrink: 0;
-  width: 160px;
-  border-radius: 16px;
+  width: 110px;
+  border-radius: 12px;
   overflow: hidden;
   text-decoration: none;
   background: rgba(237,248,251,0.06);
@@ -3307,24 +3315,24 @@ body {
 }
 
 .gr-top-carousel-thumb {
-  width: 160px;
-  height: 220px;
+  width: 110px;
+  height: 155px;
   object-fit: cover;
   display: block;
   pointer-events: none;
 }
 
 .gr-top-carousel-info {
-  padding: 8px 12px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .gr-top-carousel-name {
   font-family: var(--gr-mono);
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: .03em;
   color: rgba(237,248,251,0.6);
   text-overflow: ellipsis;
@@ -3334,7 +3342,7 @@ body {
 
 .gr-top-carousel-er {
   font-family: var(--gr-mono);
-  font-size: 13px;
+  font-size: 11px;
   color: var(--gr-gold);
   flex-shrink: 0;
   font-weight: 500;
@@ -3347,8 +3355,8 @@ body {
 }
 .gr-top-carousel-skel {
   flex-shrink: 0;
-  width: 160px;
-  height: 260px;
+  width: 110px;
+  height: 185px;
   border-radius: 8px;
   background: rgba(237,248,251,0.06);
   animation: gr-shimmer 1.6s ease-in-out infinite;

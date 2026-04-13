@@ -553,7 +553,39 @@ function HomeInner() {
   return (
     <div className="gr-root">
 
-      {/* ── KARUSELL (top strip) ─────────────────────────────────────── */}
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <section className="gr-hero-v2" id="hero">
+        <div className="gr-hero-v2-inner">
+          <h1 className="gr-hero-v2-h1">
+            <span style={{ whiteSpace: "nowrap" }}>Vad <span style={{ color: C.accent }}>engagerar</span></span>
+            <br />på TikTok?
+          </h1>
+          <div className="gr-hero-v2-manifest">
+            <p>
+              Många företag finns på sociala medier. Få skapar innehåll som faktiskt berör. Siffrorna avslöjar vem.
+            </p>
+          </div>
+          <div className="gr-hero-v2-ctas">
+            <a href="#topplistan" className="gr-hero-v2-btn-primary">
+              Veckans topplista
+            </a>
+            <a href="#kalkylator" className="gr-hero-v2-link">
+              Testa din video
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SCROLL HINT ───────────────────────────────────────────────── */}
+      <div className="gr-scroll-hint" aria-hidden="true">
+        <a href="#topplistan" className="gr-scroll-hint-arrow">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </a>
+      </div>
+
+      {/* ── KARUSELL (strip above topplistan) ───────────────────────── */}
       <div
         className="gr-top-carousel"
         onPointerDown={!loading ? onCarouselPointerDown : undefined}
@@ -588,38 +620,6 @@ function HomeInner() {
             ))}
           </div>
         ) : null}
-      </div>
-
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className="gr-hero-v2" id="hero">
-        <div className="gr-hero-v2-inner">
-          <h1 className="gr-hero-v2-h1">
-            <span style={{ whiteSpace: "nowrap" }}>Vad <span style={{ color: C.accent }}>engagerar</span></span>
-            <br />på TikTok?
-          </h1>
-          <div className="gr-hero-v2-manifest">
-            <p>
-              Många företag finns på sociala medier. Få skapar innehåll som faktiskt berör. Siffrorna avslöjar vem.
-            </p>
-          </div>
-          <div className="gr-hero-v2-ctas">
-            <a href="#topplistan" className="gr-hero-v2-btn-primary">
-              Veckans topplista
-            </a>
-            <a href="#kalkylator" className="gr-hero-v2-link">
-              Testa din video
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SCROLL HINT ───────────────────────────────────────────────── */}
-      <div className="gr-scroll-hint" aria-hidden="true">
-        <a href="#topplistan" className="gr-scroll-hint-arrow">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </a>
       </div>
 
       {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
