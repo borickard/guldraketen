@@ -33,9 +33,12 @@ export default function NavBar() {
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  // Track scroll for compact mode
+  // Track scroll for compact mode — hysteresis prevents jitter near threshold
   useEffect(() => {
-    function handleScroll() { setScrolled(window.scrollY > 60); }
+    function handleScroll() {
+      const y = window.scrollY;
+      setScrolled(prev => prev ? y > 30 : y > 80);
+    }
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
