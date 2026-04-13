@@ -403,7 +403,16 @@ function HomeInner() {
       });
       let data: Record<string, unknown> = {};
       try { data = await res.json(); } catch { /* non-json */ }
-      if (!res.ok) { setCalcMode("video-error"); setCalcError((data.error as string) ?? `Serverfel (${res.status})`); return; }
+      if (!res.ok) {
+        if (res.status === 429) {
+          setCalcMode("video-error");
+          setCalcError("Kalkylatorn har nått dagens gräns på 50 analyser. Kom tillbaka imorgon och prova igen!");
+        } else {
+          setCalcMode("video-error");
+          setCalcError((data.error as string) ?? `Serverfel (${res.status})`);
+        }
+        return;
+      }
       if (data.source === "db") {
         setCalcStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
         setCalcLastUpdated((data.lastUpdated as string) ?? null);

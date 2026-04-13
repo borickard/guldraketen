@@ -84,7 +84,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. Not in cache — start async Apify run
+  // 3. Not in cache — check daily Apify call limit before starting a run
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+  const { count: todayCount } = await supabaseAdmin
+    .from("calculator_tests")
+    .select("id", { count: "exact", head: true })
+    .eq("source", "apify")
+    .gte("tested_at", todayUTC.toISOString());
+
+  if ((todayCount ?? 0) >= 50) {
+    return NextResponse.json({ error: "daily_limit" }, { status: 429 });
+  }
+
+  // 4. Start async Apify run
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
     return NextResponse.json({ error: "APIFY_TOKEN saknas" }, { status: 500 });
