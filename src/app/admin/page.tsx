@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;
@@ -88,7 +89,11 @@ interface Account {
   created_at: string;
 }
 
+const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users"] as const;
+type TabKey = typeof VALID_TABS[number];
+
 export default function AdminPage() {
+  const router = useRouter();
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
@@ -139,6 +144,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     setAuthed(localStorage.getItem("adminAuth") === "ok");
+    // Read initial tab from URL
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && (VALID_TABS as readonly string[]).includes(t)) {
+      setActiveSection(t as TabKey);
+    }
   }, []);
 
   useEffect(() => {
@@ -292,7 +302,7 @@ export default function AdminPage() {
     if (res.ok) await fetchAccounts();
   }
 
-  const [activeSection, setActiveSection] = useState<"konton" | "tavlingar" | "kalkylator" | "scrape-log" | "users">("konton");
+  const [activeSection, setActiveSection] = useState<TabKey>("konton");
   const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
   const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
 
@@ -466,7 +476,7 @@ export default function AdminPage() {
         <div className="admin-tabs">
           {([
             { key: "konton", label: "Konton", meta: `${active.length} aktiva` },
-            { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.length} flaggade` },
+            { key: "tavlingar", label: "Tävlingar", meta: `${contestVideos.filter(v => !v.contest_approved).length} att granska` },
             { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
             { key: "scrape-log", label: "Scrape-log", meta: "" },
             { key: "users", label: "Användare", meta: `${users.length}` },
@@ -476,6 +486,7 @@ export default function AdminPage() {
               className={`admin-tab${activeSection === tab.key ? " admin-tab--active" : ""}`}
               onClick={() => {
                 setActiveSection(tab.key);
+                router.replace(`?tab=${tab.key}`, { scroll: false });
                 if (tab.key === "scrape-log") fetchScrapeRuns();
                 if (tab.key === "users") fetchUsers();
               }}
@@ -589,61 +600,91 @@ export default function AdminPage() {
         }
 
         {/* ── Section 2: Tävlingsvideor ── */}
-        {activeSection === "tavlingar" && <div className="admin-section">
-          <div className="admin-section-hdr">
-            <h2 className="admin-section-title">Tävlingsvideor</h2>
-            <span className="admin-section-meta">Flaggade via caption-nyckelord</span>
-          </div>
-          <p className="admin-section-desc">
-            Godkänn en video om den felaktigt flaggats — den tas då med i rankingen.
-          </p>
-          {loadingContests ? (
-            <p className="loading">Laddar…</p>
-          ) : contestVideos.length === 0 ? (
-            <p className="loading">Inga flaggade videor.</p>
-          ) : (
-            <ul className="account-list">
-              {contestVideos.map((v) => {
-                const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
-                const name = acct?.display_name ?? `@${v.handle}`;
-                const weekLabel = v.published_at ? toWeekLabel(v.published_at) : null;
-                return (
-                  <li key={v.id} className={`account-row ${v.contest_approved ? "" : "account-row--inactive"}`}>
-                    <div className="account-info">
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
-                          {name}
-                        </a>
-                        {weekLabel && <span className="week-badge">{weekLabel}</span>}
-                      </div>
-                      {v.caption && (
-                        <span className="account-meta" style={{ fontStyle: "italic" }}>
-                          {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
-                        </span>
-                      )}
-                      <span className="account-meta">
-                        {v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : ""}
-                        {v.views ? ` · ${v.views.toLocaleString("sv-SE")} visningar` : ""}
-                      </span>
-                    </div>
-                    <span className={`status-badge ${v.contest_approved ? "status-badge--active" : ""}`}>
-                      {v.contest_approved ? "Godkänd" : "Filtrerad"}
-                    </span>
-                    <button
-                      className="scrape-btn"
-                      style={{ fontSize: 10, padding: "0.3rem 0.75rem", boxShadow: "none", flexShrink: 0 }}
-                      onClick={() => handleContestToggle(v)}
-                    >
-                      {v.contest_approved ? "Återflagga" : "Godkänn"}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        {activeSection === "tavlingar" && (() => {
+          const pending  = contestVideos.filter(v => !v.contest_approved);
+          const approved = contestVideos.filter(v =>  v.contest_approved);
 
-        }
+          function ContestRow({ v }: { v: ContestVideo }) {
+            const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
+            const name = acct?.display_name ?? `@${v.handle}`;
+            const weekLabel = v.published_at ? toWeekLabel(v.published_at) : null;
+            return (
+              <li key={v.id} className="account-row">
+                <div className="account-info">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                      {name}
+                    </a>
+                    {weekLabel && <span className="week-badge">{weekLabel}</span>}
+                  </div>
+                  {v.caption && (
+                    <span className="account-meta" style={{ fontStyle: "italic" }}>
+                      {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
+                    </span>
+                  )}
+                  <span className="account-meta">
+                    {v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : ""}
+                    {v.views ? ` · ${v.views.toLocaleString("sv-SE")} visningar` : ""}
+                  </span>
+                </div>
+                <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
+                  {v.contest_approved ? "Inkluderad" : "Utesluten"}
+                </span>
+                <button
+                  className="scrape-btn"
+                  style={{ fontSize: 10, padding: "0.3rem 0.75rem", boxShadow: "none", flexShrink: 0 }}
+                  onClick={() => handleContestToggle(v)}
+                >
+                  {v.contest_approved ? "Återflagga" : "Godkänn för rankning"}
+                </button>
+              </li>
+            );
+          }
+
+          return (
+            <div className="admin-section">
+              <div className="admin-section-hdr">
+                <h2 className="admin-section-title">Tävlingsvideor</h2>
+                <span className="admin-section-meta">Flaggade via caption-nyckelord</span>
+              </div>
+              <p className="admin-section-desc">
+                Videor auto-flaggade som tävlingsinlägg utesluts ur rankingen. Godkänn en video om den är felaktigt flaggad.
+              </p>
+
+              {loadingContests ? (
+                <p className="loading">Laddar…</p>
+              ) : (
+                <>
+                  {/* Group 1: Needs review */}
+                  <p className="contest-group-label">
+                    Att granska
+                    <span className="contest-group-count">{pending.length}</span>
+                  </p>
+                  {pending.length === 0 ? (
+                    <p className="loading" style={{ paddingTop: "0.75rem" }}>Inga videor att granska.</p>
+                  ) : (
+                    <ul className="account-list" style={{ marginBottom: "2rem" }}>
+                      {pending.map(v => <ContestRow key={v.id} v={v} />)}
+                    </ul>
+                  )}
+
+                  {/* Group 2: Approved for ranking */}
+                  {approved.length > 0 && (
+                    <>
+                      <p className="contest-group-label" style={{ marginTop: "1.5rem" }}>
+                        Godkända för rankning
+                        <span className="contest-group-count">{approved.length}</span>
+                      </p>
+                      <ul className="account-list">
+                        {approved.map(v => <ContestRow key={v.id} v={v} />)}
+                      </ul>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Section 3: Kalkylator-tester ── */}
         {activeSection === "kalkylator" && <div className="admin-section">
@@ -1056,7 +1097,7 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
 }
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
   :root {
     --bg1:    #ffffff;
@@ -1078,9 +1119,9 @@ const styles = `
     color: var(--ink);
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
-    max-width: 640px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 0 1.5rem 6rem;
+    padding: 0 2rem 6rem;
   }
 
   .login-root {
@@ -1143,8 +1184,8 @@ const styles = `
   }
 
   .admin-title {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 3rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2.2rem;
     font-weight: 700;
     line-height: 1;
     margin-bottom: 0.5rem;
@@ -1236,13 +1277,13 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 0.85rem;
+    padding: 0.6rem 0.85rem;
     border-bottom: 1px solid var(--border-light);
     transition: background 0.12s, opacity 0.15s;
   }
 
   .account-row:last-child { border-bottom: none; }
-  .account-row--inactive { opacity: 0.5; }
+  .account-row--inactive { opacity: 0.65; }
   .account-row:hover { background: #faf7f1; opacity: 1; }
 
   /* Toggle */
@@ -1390,11 +1431,51 @@ const styles = `
     font-size: 9px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--muted);
     flex-shrink: 0;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-weight: 600;
   }
 
+  /* Active toggle badge (used in accounts tab) */
   .status-badge--active { color: var(--blue); font-weight: 700; }
+
+  /* Contest video states */
+  .status-badge--excluded {
+    background: #fff3cd;
+    color: #7a5800;
+    border: 1px solid #f5c842;
+  }
+
+  .status-badge--included {
+    background: #d4edda;
+    color: #1a5c2a;
+    border: 1px solid #82c896;
+  }
+
+  /* Contest group labels */
+  .contest-group-label {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .contest-group-count {
+    background: var(--bg2);
+    border: 1px solid var(--border-light);
+    color: var(--muted);
+    font-size: 9px;
+    padding: 1px 6px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
 
   .delete-btn {
     background: none;
@@ -1419,6 +1500,10 @@ const styles = `
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    background: var(--bg1);
+    margin-left: -2rem;
+    margin-right: -2rem;
+    padding: 0 2rem;
   }
 
   .admin-tabs::-webkit-scrollbar { display: none; }
@@ -1473,9 +1558,10 @@ const styles = `
   }
 
   .admin-section-title {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 1.5rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
     font-weight: 700;
+    letter-spacing: 0.02em;
     color: var(--ink);
   }
 
@@ -1490,6 +1576,7 @@ const styles = `
     color: var(--muted);
     margin-bottom: 1rem;
     letter-spacing: 0.02em;
+    max-width: 560px;
   }
 
   /* Tools area inside konton section */
