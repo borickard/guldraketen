@@ -1065,6 +1065,33 @@ body {
   border-radius: 16.5px 16.5px 0 0;
 }
 
+/* ER badge on HoF thumbnails (replaces views badge) */
+.gr-thumb-er {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: var(--gr-dark);
+  color: #C8962A;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  letter-spacing: .03em;
+  line-height: 1.3;
+}
+
+/* Larger stats + caption in HoF grid cards */
+.gr-hof-flat-grid .gr-thumb-stats span {
+  font-size: 12px;
+  padding: 2px 5px;
+}
+
+.gr-hof-flat-grid .gr-vid-title {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .gr-hof-filler {
   /* Invisible placeholder to fill incomplete grid rows */
   visibility: hidden;

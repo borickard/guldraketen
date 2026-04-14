@@ -98,25 +98,33 @@ const SORT_OPTS: { key: SortOrder; label: string }[] = [
   { key: "shares", label: "Delningar" },
 ];
 
-function HeartIcon() {
+function HeartIcon({ size = 9 }: { size?: number }) {
   return (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/>
     </svg>
   );
 }
-function CommentIcon() {
+function CommentIcon({ size = 9 }: { size?: number }) {
   return (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z"/>
     </svg>
   );
 }
-function ShareIcon() {
+function ShareIcon({ size = 9 }: { size?: number }) {
   return (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="15 17 20 12 15 7"/>
       <path d="M4 18v-2a4 4 0 014-4h12"/>
+    </svg>
+  );
+}
+function EyeIcon({ size = 9 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
     </svg>
   );
 }
@@ -210,11 +218,12 @@ function HallOfFameInner() {
                   >
                     <div className="gr-thumb">
                       <Thumb src={entry.bestVideo.thumbnail_url} name={entry.displayName} />
-                      <span className="gr-thumb-views">{fmt(entry.bestVideo.views)}</span>
+                      <span className="gr-thumb-er">{Number(entry.bestVideo.engagement_rate).toFixed(2)}%</span>
                       <div className="gr-thumb-stats">
-                        <span><HeartIcon />{fmt(entry.bestVideo.likes)}</span>
-                        <span><CommentIcon />{fmt(entry.bestVideo.comments)}</span>
-                        <span><ShareIcon />{fmt(entry.bestVideo.shares)}</span>
+                        <span><HeartIcon size={11} />{fmt(entry.bestVideo.likes)}</span>
+                        <span><CommentIcon size={11} />{fmt(entry.bestVideo.comments)}</span>
+                        <span><ShareIcon size={11} />{fmt(entry.bestVideo.shares)}</span>
+                        <span><EyeIcon size={11} />{fmt(entry.bestVideo.views)}</span>
                       </div>
                       <span className="gr-thumb-best" style={{ background: RANK_COLORS[entry.rank - 1] }}>
                         #{entry.rank}
@@ -222,9 +231,6 @@ function HallOfFameInner() {
                     </div>
                     <div className="gr-vid-info">
                       <p className="gr-vid-title">{entry.bestVideo.caption ?? entry.displayName}</p>
-                      <p className="gr-vid-eng" style={{ color: entry.rank === 1 ? "#C8962A" : "rgba(28,27,25,.45)" }}>
-                        {Number(entry.bestVideo.engagement_rate).toFixed(2)}% eng.
-                      </p>
                       <p className="gr-hof-card-week">{fmtWeek(entry.week)}</p>
                     </div>
                   </a>
