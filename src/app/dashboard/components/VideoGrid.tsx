@@ -349,9 +349,15 @@ const css = `
   /* Grid */
   .vg-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
     gap: 0.75rem 0.75rem;
     align-items: start;
+  }
+
+  @media (max-width: 520px) {
+    .vg-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   /* Week label spans full row */
