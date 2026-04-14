@@ -157,7 +157,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); }
+    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); }
   }, [authed]); // eslint-disable-line
 
   useEffect(() => {
