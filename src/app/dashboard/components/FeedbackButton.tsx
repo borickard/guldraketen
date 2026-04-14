@@ -16,7 +16,7 @@ export default function FeedbackButton() {
     await fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, message }),
+      body: JSON.stringify({ email, message, page: window.location.pathname }),
     });
     setSubmitting(false);
     setDone(true);

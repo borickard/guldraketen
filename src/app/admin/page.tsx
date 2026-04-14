@@ -329,7 +329,7 @@ export default function AdminPage() {
   const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
   const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
 
-  interface FeedbackItem { id: string; email: string | null; message: string; created_at: string; }
+  interface FeedbackItem { id: string; email: string | null; message: string; page: string | null; created_at: string; }
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
 
@@ -1123,6 +1123,11 @@ export default function AdminPage() {
                       <span className="account-handle" style={{ fontWeight: 600, fontSize: 12 }}>
                         {item.email ?? "Anonym"}
                       </span>
+                      {item.page && (
+                        <span className="account-meta" style={{ fontSize: 11, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}>
+                          {item.page}
+                        </span>
+                      )}
                       <span className="account-meta" style={{ marginLeft: "auto" }}>
                         {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>

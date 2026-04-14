@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const { email, message } = body ?? {};
+  const { email, message, page } = body ?? {};
 
   if (!message?.trim())
     return NextResponse.json({ error: "message krävs" }, { status: 400 });
@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
   const { error } = await supabaseAdmin.from("feedback").insert({
     email: email?.trim() || null,
     message: String(message).trim(),
+    page: page ? String(page).slice(0, 500) : null,
   });
 
   if (error)
