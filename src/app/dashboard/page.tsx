@@ -4,6 +4,7 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "./components/LogoutButton";
 import VideoGrid from "./components/VideoGrid";
+import FeedbackButton from "./components/FeedbackButton";
 
 interface ProfileData {
   handle: string;
@@ -91,7 +92,7 @@ export default async function DashboardPage() {
       <div className="db-root">
 
         <header className="db-header">
-          <span className="db-wordmark">Sociala Raketer</span>
+          <a href="/" className="db-wordmark">Sociala Raketer</a>
           <LogoutButton />
         </header>
 
@@ -148,6 +149,7 @@ export default async function DashboardPage() {
           <VideoGrid />
 
         </main>
+        <FeedbackButton />
 
       </div>
     </>
@@ -182,6 +184,7 @@ const styles = `
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #EDF8FB;
+    text-decoration: none;
   }
 
   .db-logout-btn {

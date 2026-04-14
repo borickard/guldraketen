@@ -89,7 +89,7 @@ interface Account {
   created_at: string;
 }
 
-const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users"] as const;
+const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback"] as const;
 type TabKey = typeof VALID_TABS[number];
 
 export default function AdminPage() {
@@ -329,6 +329,18 @@ export default function AdminPage() {
   const [scrapeRuns, setScrapeRuns] = useState<ScrapeRun[]>([]);
   const [loadingScrapeRuns, setLoadingScrapeRuns] = useState(false);
 
+  interface FeedbackItem { id: string; email: string | null; message: string; created_at: string; }
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
+
+  async function fetchFeedback() {
+    setLoadingFeedback(true);
+    const res = await fetch("/api/admin/feedback");
+    const data = await res.json();
+    setFeedbackItems(Array.isArray(data) ? data : []);
+    setLoadingFeedback(false);
+  }
+
   async function fetchScrapeRuns() {
     setLoadingScrapeRuns(true);
     const res = await fetch("/api/admin/scrape-runs");
@@ -503,6 +515,7 @@ export default function AdminPage() {
             { key: "kalkylator", label: "Kalkylator", meta: `${calcTests.length} tester` },
             { key: "scrape-log", label: "Scrape-log", meta: "" },
             { key: "users", label: "Användare", meta: `${users.length}` },
+            { key: "feedback", label: "Feedback", meta: feedbackItems.length > 0 ? `${feedbackItems.length}` : "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -512,6 +525,7 @@ export default function AdminPage() {
                 router.replace(`?tab=${tab.key}`, { scroll: false });
                 if (tab.key === "scrape-log") fetchScrapeRuns();
                 if (tab.key === "users") fetchUsers();
+                if (tab.key === "feedback") fetchFeedback();
               }}
             >
               {tab.label}
@@ -1085,6 +1099,37 @@ export default function AdminPage() {
                     </li>
                   );
                 })}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Section 6: Feedback ── */}
+        {activeSection === "feedback" && (
+          <div className="admin-section">
+            <div className="admin-section-hdr">
+              <h2 className="admin-section-title">Feedback</h2>
+              <span className="admin-section-meta">{feedbackItems.length} svar</span>
+            </div>
+            {loadingFeedback ? (
+              <p className="loading">Laddar…</p>
+            ) : feedbackItems.length === 0 ? (
+              <p className="empty">Inga feedbacksvar ännu.</p>
+            ) : (
+              <ul className="account-list">
+                {feedbackItems.map((item) => (
+                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", width: "100%" }}>
+                      <span className="account-handle" style={{ fontWeight: 600, fontSize: 12 }}>
+                        {item.email ?? "Anonym"}
+                      </span>
+                      <span className="account-meta" style={{ marginLeft: "auto" }}>
+                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap" }}>{item.message}</p>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
