@@ -37,7 +37,7 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
         .from("videos")
-        .select("published_at")
+        .select("published_at, handle")
         .gte("published_at", cutoff.toISOString())
         .gte("views", 5000);
 
@@ -46,18 +46,20 @@ export async function GET() {
     const currentWeek = toISOWeek(new Date());
     const previousWeek = isoWeekMinus(currentWeek, 1);
 
-    const weekSet = new Set<string>();
+    // Count distinct accounts per week — require at least 3 to show the week
+    const weekHandles = new Map<string, Set<string>>();
     for (const row of data ?? []) {
-        if (row.published_at) {
-            const w = toISOWeek(new Date(row.published_at));
-            // Exkludera innevarande och föregående vecka – data har inte landat ännu
-            if (w !== currentWeek && w !== previousWeek) {
-                weekSet.add(w);
-            }
-        }
+        if (!row.published_at || !row.handle) continue;
+        const w = toISOWeek(new Date(row.published_at));
+        if (w === currentWeek || w === previousWeek) continue;
+        if (!weekHandles.has(w)) weekHandles.set(w, new Set());
+        weekHandles.get(w)!.add(row.handle);
     }
 
-    const weeks = Array.from(weekSet).sort((a, b) => (b > a ? 1 : -1));
+    const weeks = Array.from(weekHandles.entries())
+        .filter(([, handles]) => handles.size >= 3)
+        .map(([week]) => week)
+        .sort((a, b) => (b > a ? 1 : -1));
     const res = NextResponse.json(weeks);
     res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
     return res;
