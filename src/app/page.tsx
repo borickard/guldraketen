@@ -1190,7 +1190,7 @@ function HomeInner() {
                 q: "Jag vill vara beta-testare",
                 body: (
                   <>
-                    <p>Vi bygger en personlig dashboard för kommunikatörer och innehållsproducenter — detaljerad statistik per video, trender och jämförelser mot din bransch. Funktionen är i betaversion och tillgänglig för ett begränsat antal. Fyll i nedan om du är intresserad av att testa.</p>
+                    <p>Just nu bygger vi en dashboard för dig som vill ha bättre översikt över ditt TikTok-innehåll. Du får detaljerad statistik per video, genomsnitt och totala resultat — men framför allt möjligheten att jämföra mot konkurrenter och andra konton i din kategori. Begränsat antal platser. Anmäl intresse nedan.</p>
                     {faqBetaForm.status === "ok" ? (
                       <p className="gr-faq-msg gr-faq-msg--ok">{faqBetaForm.msg}</p>
                     ) : (
