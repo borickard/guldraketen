@@ -258,7 +258,6 @@ export default function VideoGrid() {
                     selected={filters.dateRange}
                     onSelect={(range) => {
                       setFilters((p) => ({ ...p, dateRange: range }));
-                      if (range?.from && range?.to) setShowCal(false);
                     }}
                     numberOfMonths={1}
                   />
