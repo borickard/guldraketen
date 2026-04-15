@@ -239,6 +239,47 @@ function HomeInner() {
   const [betaSubmitted, setBetaSubmitted] = useState(false);
   const [betaLoading, setBetaLoading] = useState(false);
   const [betaError, setBetaError] = useState<string | null>(null);
+  // ── FAQ accordion + inline forms ────────────────────────────────────────────
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  type FormState = { handle: string; email: string; status: "idle" | "loading" | "ok" | "err"; msg: string };
+  const FORM_IDLE: FormState = { handle: "", email: "", status: "idle", msg: "" };
+  const [nomForm, setNomForm] = useState<FormState>(FORM_IDLE);
+  const [faqBetaForm, setFaqBetaForm] = useState<FormState>(FORM_IDLE);
+
+  async function submitNomination(e: React.FormEvent) {
+    e.preventDefault();
+    setNomForm((p) => ({ ...p, status: "loading" }));
+    try {
+      const res = await fetch("/api/nominate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: "tiktok", handle: nomForm.handle, email: nomForm.email }),
+      });
+      const data = await res.json();
+      if (data.ok) setNomForm((p) => ({ ...p, status: "ok", msg: data.message || "Tack! Vi lägger till kontot inom kort." }));
+      else setNomForm((p) => ({ ...p, status: "err", msg: data.error || "Något gick fel, försök igen." }));
+    } catch {
+      setNomForm((p) => ({ ...p, status: "err", msg: "Nätverksfel, försök igen." }));
+    }
+  }
+
+  async function submitFaqBeta(e: React.FormEvent) {
+    e.preventDefault();
+    setFaqBetaForm((p) => ({ ...p, status: "loading" }));
+    try {
+      const res = await fetch("/api/beta-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle: faqBetaForm.handle, email: faqBetaForm.email }),
+      });
+      const data = await res.json();
+      if (data.ok) setFaqBetaForm((p) => ({ ...p, status: "ok", msg: data.message || "Tack! Vi hör av oss." }));
+      else setFaqBetaForm((p) => ({ ...p, status: "err", msg: data.error || "Något gick fel, försök igen." }));
+    } catch {
+      setFaqBetaForm((p) => ({ ...p, status: "err", msg: "Nätverksfel, försök igen." }));
+    }
+  }
+
   const calcPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const calcStartedRef = useRef(false);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -1071,38 +1112,141 @@ function HomeInner() {
         </section>
       )}
 
-      {/* ── OM ENGAGEMANG ────────────────────────────────────────────── */}
-      <section className="gr-about-section" id="om-engagemang">
-        <div className="gr-about-inner">
-          <h2 className="gr-about-h2">Om engagemang</h2>
-          <div className="gr-about-blocks">
-            <div>
-              <h3 className="gr-about-block-title">Inte alla reaktioner väger lika</h3>
-              <p className="gr-about-block-body">
-                Den klassiska modellen för engagemangsgrad behandlar en like och en delning som om de vore samma sak — det är de inte. Vår algoritm viktar delningar högst och kommentarer över likes, för att ge en rättvisare bild av vad som faktiskt berör och stoppar någon i scrollandet.
-              </p>
-              <p className="gr-about-block-body" style={{ marginTop: "0.75em" }}>
-                Vi filtrerar också bort tävlingsvideor — de där följare uppmanas att gilla, dela och kommentera i utbyte mot en chans att vinna. Det är engagemang med doping. Siffrorna ser imponerande ut men säger inget om innehållet.
-              </p>
-            </div>
-            <div>
-              <h3 className="gr-about-block-title">Svenska företag och organisationer</h3>
-              <p className="gr-about-block-body">
-                Sociala Raketer följer svenska företag och organisationer som använder sociala medier i sin kommunikation. Inte privata kreatörer. Varje vecka utvärderas hundratals videor automatiskt.
-              </p>
-            </div>
-            <div>
-              <h3 className="gr-about-block-title">Har du engagerande content?</h3>
-              <p className="gr-about-block-body">
-                Klistra in en länk till en TikTok-video i vår kalkylator så räknar vi ut engagemangsgraden.
-              </p>
-              <a href="#kalkylator" className="gr-about-cta-link">
-                Gå till kalkylatorn
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </a>
-            </div>
+      {/* ── FAQ / OM SOCIALA RAKETER ─────────────────────────────────── */}
+      <section className="gr-faq-section" id="om-engagemang">
+        <div className="gr-faq-inner">
+          <h2 className="gr-faq-h2">Om Sociala Raketer</h2>
+          <div className="gr-faq-list">
+            {([
+              {
+                q: "Hur beräknas engagemangsgraden?",
+                body: (
+                  <>
+                    <p>Vi använder formeln <em>(likes + kommentarer × 5 + delningar × 10) / visningar × 100</em>. Delningar väger tyngst — de kräver att tittaren aktivt väljer att förknippa sig med innehållet och exponerar det för sitt eget nätverk. Kommentarer kräver mer av tittaren än en like men mindre än en delning. Det ger en rättvisare bild av vad som faktiskt berör.</p>
+                  </>
+                ),
+              },
+              {
+                q: "Varför filtreras tävlingsvideor bort?",
+                body: (
+                  <>
+                    <p>Tävlingar uppmanar folk att gilla, kommentera och dela i utbyte mot en chans att vinna. Det är engagemang med doping — siffrorna ser imponerande ut men säger ingenting om innehållets faktiska kvalitet. Vi flaggar dessa videor automatiskt och exkluderar dem från rankningen.</p>
+                  </>
+                ),
+              },
+              {
+                q: "Vilka konton mäts?",
+                body: (
+                  <>
+                    <p>Svenska företag och organisationer som använder TikTok i sin kommunikation. Inte privatpersoner eller kreatörer. Varje vecka utvärderas hundratals videor automatiskt, och det bästa innehållet lyfts fram i topplistan.</p>
+                  </>
+                ),
+              },
+              {
+                q: "Hur ofta uppdateras topplistan?",
+                body: (
+                  <>
+                    <p>Varje måndag. Vi hämtar videor publicerade de senaste 14 dagarna och rankar konton på sin bästa enskilda video för veckan — den med högst engagemangsgrad.</p>
+                  </>
+                ),
+              },
+              {
+                q: "Vårt konto är inte med — hur lägger vi till det?",
+                body: (
+                  <>
+                    <p>Fyll i formuläret nedan med länk till ert TikTok-konto. Vi prioriterar svenska företag och organisationer och mäter för tillfället bara ett mindre urval av konton vars innehåll och engagemang sticker ut.</p>
+                    {nomForm.status === "ok" ? (
+                      <p className="gr-faq-msg gr-faq-msg--ok">{nomForm.msg}</p>
+                    ) : (
+                      <form className="gr-faq-form" onSubmit={submitNomination}>
+                        <div className="gr-faq-form-row">
+                          <input
+                            className="gr-faq-input"
+                            type="text"
+                            placeholder="@tiktok-konto"
+                            value={nomForm.handle}
+                            onChange={(e) => setNomForm((p) => ({ ...p, handle: e.target.value }))}
+                            required
+                          />
+                          <input
+                            className="gr-faq-input"
+                            type="email"
+                            placeholder="din@email.se"
+                            value={nomForm.email}
+                            onChange={(e) => setNomForm((p) => ({ ...p, email: e.target.value }))}
+                            required
+                          />
+                          <button className="gr-faq-submit" type="submit" disabled={nomForm.status === "loading"}>
+                            {nomForm.status === "loading" ? "…" : "Nominera"}
+                          </button>
+                        </div>
+                        {nomForm.status === "err" && <p className="gr-faq-msg gr-faq-msg--err">{nomForm.msg}</p>}
+                      </form>
+                    )}
+                  </>
+                ),
+              },
+              {
+                q: "Hur fungerar er analysdashboard?",
+                body: (
+                  <>
+                    <p>Vi bygger en personlig dashboard för kommunikatörer och innehållsproducenter — detaljerad statistik per video, trender och jämförelser mot din bransch. Funktionen är i betaversion och tillgänglig för ett begränsat antal. Fyll i nedan om du är intresserad av att testa.</p>
+                    {faqBetaForm.status === "ok" ? (
+                      <p className="gr-faq-msg gr-faq-msg--ok">{faqBetaForm.msg}</p>
+                    ) : (
+                      <form className="gr-faq-form" onSubmit={submitFaqBeta}>
+                        <div className="gr-faq-form-row">
+                          <input
+                            className="gr-faq-input"
+                            type="text"
+                            placeholder="@tiktok-konto"
+                            value={faqBetaForm.handle}
+                            onChange={(e) => setFaqBetaForm((p) => ({ ...p, handle: e.target.value }))}
+                            required
+                          />
+                          <input
+                            className="gr-faq-input"
+                            type="email"
+                            placeholder="din@email.se"
+                            value={faqBetaForm.email}
+                            onChange={(e) => setFaqBetaForm((p) => ({ ...p, email: e.target.value }))}
+                            required
+                          />
+                          <button className="gr-faq-submit" type="submit" disabled={faqBetaForm.status === "loading"}>
+                            {faqBetaForm.status === "loading" ? "…" : "Anmäl intresse"}
+                          </button>
+                        </div>
+                        {faqBetaForm.status === "err" && <p className="gr-faq-msg gr-faq-msg--err">{faqBetaForm.msg}</p>}
+                      </form>
+                    )}
+                  </>
+                ),
+              },
+              {
+                q: "Vem ligger bakom Sociala Raketer?",
+                body: (
+                  <>
+                    <p>Rickard Berggren, digital strateg som jobbat med sociala medier och content i 12 år. Brinner för internetkultur och innehåll som verkligen berör och engagerar. Projektet startade 2026 som ett sätt att lyfta fram det som faktiskt fungerar — inte det som syns mest.</p>
+                  </>
+                ),
+              },
+            ] as { q: string; body: React.ReactNode }[]).map((item, i) => (
+              <div key={i} className="gr-faq-item">
+                <button
+                  className={`gr-faq-q${faqOpen === i ? " gr-faq-q--open" : ""}`}
+                  onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+                  aria-expanded={faqOpen === i}
+                >
+                  <span>{item.q}</span>
+                  <svg className={`gr-faq-chevron${faqOpen === i ? " gr-faq-chevron--open" : ""}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {faqOpen === i && (
+                  <div className="gr-faq-body">{item.body}</div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1122,7 +1266,7 @@ function HomeInner() {
             <a href="#topplistan" className="gr-footer-v2-link">Topplistan</a>
             <a href="#kalkylator" className="gr-footer-v2-link">Kalkylator</a>
             <a href="#hall-of-fame" className="gr-footer-v2-link">Hall of Fame</a>
-            <a href="#om-engagemang" className="gr-footer-v2-link">Om engagemang</a>
+            <a href="#om-engagemang" className="gr-footer-v2-link">Om Sociala Raketer</a>
           </div>
           <div>
             <p className="gr-footer-v2-disclaimer">

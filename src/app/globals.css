@@ -3833,68 +3833,145 @@ body {
   }
 }
 
-/* ── OM ENGAGEMANG-SEKTION ── */
-.gr-about-section {
+/* ── FAQ / OM SOCIALA RAKETER-SEKTION ── */
+.gr-faq-section {
   background: #EDF8FB;
   padding: var(--space-6) var(--space-3);
 }
 
-.gr-about-inner {
-  max-width: 640px;
+.gr-faq-inner {
+  max-width: 720px;
   margin: 0 auto;
 }
 
-.gr-about-h2 {
+.gr-faq-h2 {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
   font-size: clamp(2.2rem, 6vw, 4rem);
   text-transform: uppercase;
   letter-spacing: -0.01em;
   color: #07253A;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
   line-height: 1;
 }
 
-.gr-about-blocks {
+.gr-faq-list {
+  border-top: 1px solid rgba(7, 37, 58, 0.12);
+}
+
+.gr-faq-item {
+  border-bottom: 1px solid rgba(7, 37, 58, 0.12);
+}
+
+.gr-faq-q {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
-.gr-about-block-title {
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1.2rem 0;
+  text-align: left;
   font-family: 'Barlow', sans-serif;
-  font-weight: 500;
-  font-size: clamp(18px, 2.5vw, 22px);
+  font-size: 16px;
+  font-weight: 600;
   color: #07253A;
-  margin-bottom: var(--space-2);
+  transition: color 0.12s;
 }
 
-.gr-about-block-body {
+.gr-faq-q:hover {
+  color: rgba(7, 37, 58, 0.7);
+}
+
+.gr-faq-chevron {
+  flex-shrink: 0;
+  color: rgba(7, 37, 58, 0.4);
+  transition: transform 0.22s ease, color 0.12s;
+}
+
+.gr-faq-chevron--open {
+  transform: rotate(180deg);
+  color: #07253A;
+}
+
+.gr-faq-body {
+  padding-bottom: 1.25rem;
+}
+
+.gr-faq-body p {
   font-family: 'Barlow', sans-serif;
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: rgba(7, 37, 58, 0.65);
 }
 
-.gr-about-cta-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: var(--space-3);
-  font-family: var(--gr-mono);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #FE2C55;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(254, 44, 85, 0.4);
-  padding-bottom: 1px;
-  transition: border-color 0.15s;
+.gr-faq-body p em {
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(7, 37, 58, 0.85);
 }
 
-.gr-about-cta-link:hover {
-  border-color: #FE2C55;
+/* Inline forms */
+.gr-faq-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
+
+.gr-faq-form-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.gr-faq-input {
+  flex: 1;
+  min-width: 140px;
+  height: 38px;
+  border: 1.5px solid rgba(7, 37, 58, 0.15);
+  border-radius: 6px;
+  padding: 0 0.75rem;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  color: #07253A;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.gr-faq-input:focus {
+  border-color: rgba(7, 37, 58, 0.45);
+}
+
+.gr-faq-submit {
+  height: 38px;
+  padding: 0 1.25rem;
+  background: #07253A;
+  color: #EDF8FB;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.12s;
+}
+
+.gr-faq-submit:hover { opacity: 0.85; }
+.gr-faq-submit:disabled { opacity: 0.5; cursor: default; }
+
+.gr-faq-msg {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  margin-top: 0.25rem;
+}
+
+.gr-faq-msg--ok { color: #2a7a4b; }
+.gr-faq-msg--err { color: #c0392b; }
 
 /* ── NY FOOTER v2 ── */
 .gr-footer-v2 {

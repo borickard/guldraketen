@@ -8,14 +8,14 @@ const homeLinks = [
   { href: "#topplistan",    label: "Topplistan" },
   { href: "#kalkylator",    label: "Kalkylator" },
   { href: "#hall-of-fame",  label: "Hall of Fame" },
-  { href: "#om-engagemang", label: "Om engagemang" },
+  { href: "#om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 const otherLinks = [
   { href: "/#topplistan",   label: "Topplistan" },
   { href: "/#kalkylator",   label: "Kalkylator" },
   { href: "/hall-of-fame",  label: "Hall of Fame" },
-  { href: "/om-engagemang", label: "Om engagemang" },
+  { href: "/om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 export default function NavBar() {
