@@ -253,17 +253,23 @@ export default function VideoGrid() {
               </button>
               {showCal && (
                 <div className="vg-cal-popup">
+                  <div className="vg-cal-header">
+                    <span className="vg-cal-title">Välj period</span>
+                    <button className="vg-cal-close" onClick={() => setShowCal(false)} aria-label="Stäng">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                      </svg>
+                    </button>
+                  </div>
                   <DayPicker
                     mode="range"
                     locale={sv}
                     selected={filters.dateRange}
                     onSelect={(_range, selectedDay) => {
                       if (calPhase === 0) {
-                        // First click: set A, wait for B
                         setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
                         setCalPhase(1);
                       } else {
-                        // Second click: complete the range (always from < to)
                         const from = filters.dateRange?.from ?? selectedDay;
                         const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
                         setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
@@ -272,6 +278,9 @@ export default function VideoGrid() {
                     }}
                     numberOfMonths={1}
                   />
+                  <div className="vg-cal-footer">
+                    <button className="vg-cal-ok" onClick={() => setShowCal(false)}>OK</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -661,18 +670,70 @@ const css = `
   }
   .vg-date-clear:hover { color: #E8116A; }
 
-  /* Calendar popup */
+  /* Calendar popup — z-index below sticky header (100) */
   .vg-cal-popup {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    z-index: 100;
+    z-index: 50;
     background: #fff;
     border: 1.5px solid rgba(28,27,25,0.12);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(28,27,25,0.14);
-    padding: 8px 12px 12px;
+    padding: 0 12px 12px;
   }
+
+  .vg-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 2px 4px;
+  }
+
+  .vg-cal-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #aaa;
+  }
+
+  .vg-cal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.12s;
+  }
+  .vg-cal-close:hover { color: #1C1B19; }
+
+  .vg-cal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid rgba(28,27,25,0.07);
+    margin-top: 4px;
+  }
+
+  .vg-cal-ok {
+    background: #1C1B19;
+    color: #EDF8FB;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 6px 20px;
+    cursor: pointer;
+    transition: opacity 0.12s;
+  }
+  .vg-cal-ok:hover { opacity: 0.85; }
 
   /* react-day-picker v9 overrides */
   .vg-cal-popup .rdp-root {
