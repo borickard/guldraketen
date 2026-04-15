@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
+import "react-day-picker/style.css";
 
 interface Video {
   id: string;
@@ -660,10 +661,10 @@ const css = `
     border: 1.5px solid rgba(28,27,25,0.12);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(28,27,25,0.14);
-    padding: 12px;
+    padding: 8px 12px 12px;
   }
 
-  /* react-day-picker overrides */
+  /* react-day-picker v9 overrides */
   .vg-cal-popup .rdp-root {
     --rdp-accent-color: #1C1B19;
     --rdp-accent-background-color: #1C1B19;
@@ -671,15 +672,116 @@ const css = `
     --rdp-range-end-color: #fff;
     --rdp-range-start-background: #1C1B19;
     --rdp-range-end-background: #1C1B19;
-    --rdp-range-middle-background-color: rgba(28,27,25,0.08);
+    --rdp-range-middle-background-color: rgba(28,27,25,0.1);
     --rdp-range-middle-color: #1C1B19;
     --rdp-selected-border: none;
+    --rdp-day-height: 34px;
+    --rdp-day-width: 34px;
+    --rdp-font-family: 'Barlow', sans-serif;
     font-family: 'Barlow', sans-serif;
     font-size: 13px;
+    color: #1C1B19;
   }
 
+  /* Remove bubble borders from each day */
   .vg-cal-popup .rdp-day_button {
+    border: none !important;
     border-radius: 6px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* Day hover */
+  .vg-cal-popup .rdp-day_button:hover:not([disabled]) {
+    background: rgba(28,27,25,0.08);
+  }
+
+  /* Range middle days — fill full cell width for continuous highlight */
+  .vg-cal-popup .rdp-day.rdp-range_middle {
+    background: rgba(28,27,25,0.08);
+    border-radius: 0;
+  }
+  .vg-cal-popup .rdp-day.rdp-range_middle .rdp-day_button {
+    background: transparent;
+    color: #1C1B19;
+  }
+
+  /* Range start */
+  .vg-cal-popup .rdp-day.rdp-range_start {
+    background: linear-gradient(to right, transparent 50%, rgba(28,27,25,0.08) 50%);
+    border-radius: 0;
+  }
+  .vg-cal-popup .rdp-day.rdp-range_start .rdp-day_button {
+    background: #1C1B19;
+    color: #fff;
+    border-radius: 6px;
+  }
+
+  /* Range end */
+  .vg-cal-popup .rdp-day.rdp-range_end {
+    background: linear-gradient(to left, transparent 50%, rgba(28,27,25,0.08) 50%);
+    border-radius: 0;
+  }
+  .vg-cal-popup .rdp-day.rdp-range_end .rdp-day_button {
+    background: #1C1B19;
+    color: #fff;
+    border-radius: 6px;
+  }
+
+  /* Start = end (single day selected) */
+  .vg-cal-popup .rdp-day.rdp-range_start.rdp-range_end {
+    background: transparent;
+  }
+
+  /* Today marker */
+  .vg-cal-popup .rdp-day_button.rdp-today {
+    font-weight: 700;
+    color: #C8962A;
+  }
+  .vg-cal-popup .rdp-day.rdp-range_start .rdp-day_button.rdp-today,
+  .vg-cal-popup .rdp-day.rdp-range_end .rdp-day_button.rdp-today {
+    color: #fff;
+  }
+
+  /* Month caption */
+  .vg-cal-popup .rdp-month_caption {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #1C1B19;
+    padding-bottom: 4px;
+  }
+
+  /* Weekday headers */
+  .vg-cal-popup .rdp-weekday {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #aaa;
+    text-transform: uppercase;
+  }
+
+  /* Nav buttons */
+  .vg-cal-popup .rdp-button_previous,
+  .vg-cal-popup .rdp-button_next {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #888;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.12s, background 0.12s;
+  }
+  .vg-cal-popup .rdp-button_previous:hover,
+  .vg-cal-popup .rdp-button_next:hover {
+    color: #1C1B19;
+    background: rgba(28,27,25,0.06);
   }
 
   .vg-filter-clear {
