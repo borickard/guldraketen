@@ -201,21 +201,22 @@ export default function VideoGrid() {
         {showFilters && (
           <div className="vg-filter-panel">
             {/* Date range */}
-            <div className="vg-filter-row">
+            <div className="vg-filter-row vg-filter-row--date">
               <span className="vg-filter-label">Datum</span>
-              <div className="vg-filter-inputs">
-                <div className="vg-filter-field vg-filter-field--date">
+              <div className="vg-date-inputs">
+                <div className="vg-date-field">
+                  <label className="vg-date-label">Från</label>
                   <input
-                    className="vg-filter-input vg-filter-date"
+                    className="vg-date-input"
                     type="date"
                     value={filters.date_from}
                     onChange={(e) => setFilter("date_from", e.target.value)}
                   />
                 </div>
-                <span className="vg-filter-sign" style={{ padding: "0 2px" }}>–</span>
-                <div className="vg-filter-field vg-filter-field--date">
+                <div className="vg-date-field">
+                  <label className="vg-date-label">Till</label>
                   <input
-                    className="vg-filter-input vg-filter-date"
+                    className="vg-date-input"
                     type="date"
                     value={filters.date_to}
                     onChange={(e) => setFilter("date_to", e.target.value)}
@@ -576,31 +577,65 @@ const css = `
   .vg-filter-input::-webkit-inner-spin-button { -webkit-appearance: none; }
   .vg-filter-input[type=number] { -moz-appearance: textfield; }
 
-  /* Date picker fields */
-  .vg-filter-field--date {
-    padding: 0 0.5rem;
-    width: auto;
+  /* Date range row */
+  .vg-filter-row--date {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
   }
 
-  .vg-filter-date {
-    width: auto;
-    min-width: 120px;
+  .vg-date-inputs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .vg-date-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f5f4f2;
+    border: 1px solid rgba(28,27,25,0.12);
+    border-radius: 5px;
+    padding: 0 0.6rem;
+    min-height: 40px;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .vg-date-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    color: #aaa;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .vg-date-input {
+    flex: 1;
+    min-width: 0;
     background: none;
     border: none;
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: #1C1B19;
     cursor: pointer;
     padding: 0;
+    /* Ensure full touch area */
+    min-height: 40px;
   }
 
-  .vg-filter-date::-webkit-calendar-picker-indicator {
+  .vg-date-input::-webkit-calendar-picker-indicator {
     opacity: 0.45;
     cursor: pointer;
-    filter: none;
+    padding: 4px;
+    margin: 0;
   }
-  .vg-filter-date::-webkit-calendar-picker-indicator:hover {
+
+  .vg-date-input::-webkit-calendar-picker-indicator:hover {
     opacity: 0.8;
   }
 
