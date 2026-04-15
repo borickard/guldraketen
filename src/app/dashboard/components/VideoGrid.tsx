@@ -155,6 +155,7 @@ export default function VideoGrid() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCal, setShowCal] = useState(false);
   const [calPhase, setCalPhase] = useState<0 | 1>(0);
+  const [hoverDay, setHoverDay] = useState<Date | undefined>();
   const [urlReady, setUrlReady] = useState(false);
   const calRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +222,16 @@ export default function VideoGrid() {
   }
 
   const dateRange = filters.dateRange;
+
+  // While picking end date, show a hover preview range
+  const selectedForDisplay: DateRange | undefined = (() => {
+    const from = dateRange?.from;
+    if (calPhase === 1 && from && hoverDay) {
+      return hoverDay < from ? { from: hoverDay, to: from } : { from, to: hoverDay };
+    }
+    return dateRange;
+  })();
+
   const dateBtnLabel = dateRange?.from
     ? dateRange.to
       ? `${dateRange.from.toLocaleDateString("sv-SE")} – ${dateRange.to.toLocaleDateString("sv-SE")}`
@@ -298,7 +309,8 @@ export default function VideoGrid() {
                   <DayPicker
                     mode="range"
                     locale={sv}
-                    selected={filters.dateRange}
+                    showOutsideDays
+                    selected={selectedForDisplay}
                     onSelect={(_range, selectedDay) => {
                       if (calPhase === 0) {
                         setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
@@ -308,8 +320,11 @@ export default function VideoGrid() {
                         const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
                         setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
                         setCalPhase(0);
+                        setHoverDay(undefined);
                       }
                     }}
+                    onDayMouseEnter={(day) => setHoverDay(day)}
+                    onDayMouseLeave={() => setHoverDay(undefined)}
                     numberOfMonths={1}
                   />
                   <div className="vg-cal-footer">
@@ -836,6 +851,17 @@ const css = `
   /* Start = end (single day selected) */
   .vg-cal-popup .rdp-day.rdp-range_start.rdp-range_end {
     background: transparent;
+  }
+
+  /* Outside days (prev/next month) — visible but dimmed */
+  .vg-cal-popup .rdp-day.rdp-outside {
+    opacity: 0.35;
+  }
+  /* Don't dim outside days that are part of the selected range */
+  .vg-cal-popup .rdp-day.rdp-outside.rdp-range_middle,
+  .vg-cal-popup .rdp-day.rdp-outside.rdp-range_start,
+  .vg-cal-popup .rdp-day.rdp-outside.rdp-range_end {
+    opacity: 1;
   }
 
   /* Today marker */
