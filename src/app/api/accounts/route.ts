@@ -1,11 +1,11 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
-// GET – hämta alla konton (aktiva först, sedan äldst-spårade)
+// GET – hämta alla konton (aktiva först, sedan äldst-spårade) med antal videor
 export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("accounts")
-        .select("*")
+        .select("*, videos(count)")
         .order("is_active", { ascending: false })
         .order("created_at", { ascending: true });
 

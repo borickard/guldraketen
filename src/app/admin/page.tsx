@@ -87,6 +87,7 @@ interface Account {
   followers: number | null;
   followers_updated_at: string | null;
   created_at: string;
+  videos: [{ count: number }] | null;
 }
 
 const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback"] as const;
@@ -468,6 +469,8 @@ export default function AdminPage() {
 
   const active = accounts.filter((a) => a.is_active);
   const inactive = accounts.filter((a) => !a.is_active);
+  const videoCount = (a: Account) => a.videos?.[0]?.count ?? 0;
+  const totalVideos = accounts.reduce((sum, a) => sum + videoCount(a), 0);
 
   if (authed === null) return null;
 
@@ -538,7 +541,7 @@ export default function AdminPage() {
         {activeSection === "konton" && <div className="admin-section">
           <div className="admin-section-hdr">
             <h2 className="admin-section-title">Spårade konton</h2>
-            <span className="admin-section-meta">{active.length} aktiva · {inactive.length} inaktiva</span>
+            <span className="admin-section-meta">{active.length} aktiva · {inactive.length} inaktiva · {totalVideos.toLocaleString("sv-SE")} videor totalt</span>
           </div>
 
           <form className="add-form" onSubmit={handleAdd}>
@@ -1191,14 +1194,15 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
             ))}
           </select>
         </div>
-        {a.followers && (
-          <span className="account-meta">
-            {a.followers.toLocaleString("sv-SE")} följare
-            {a.followers_updated_at && (
-              <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
-            )}
-          </span>
-        )}
+        <span className="account-meta">
+          {(a.videos?.[0]?.count ?? 0).toLocaleString("sv-SE")} videor
+          {a.followers && (
+            <> · {a.followers.toLocaleString("sv-SE")} följare</>
+          )}
+          {a.followers_updated_at && (
+            <> · uppdaterad {new Date(a.followers_updated_at).toLocaleDateString("sv-SE")}</>
+          )}
+        </span>
       </div>
       <span className={`status-badge${a.is_active ? " status-badge--active" : ""}`}>
         {a.is_active ? "Aktiv" : "Pausad"}
