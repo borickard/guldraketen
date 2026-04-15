@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DayPicker, type DateRange } from "react-day-picker";
+import { sv } from "react-day-picker/locale";
 
 interface Video {
   id: string;
@@ -85,7 +87,7 @@ function fmt(n: number | null): string {
 }
 
 type Filters = {
-  date_from: string; date_to: string;
+  dateRange: DateRange | undefined;
   views_min: string; views_max: string;
   likes_min: string; likes_max: string;
   comments_min: string; comments_max: string;
@@ -93,7 +95,7 @@ type Filters = {
 };
 
 const EMPTY_FILTERS: Filters = {
-  date_from: "", date_to: "",
+  dateRange: undefined,
   views_min: "", views_max: "",
   likes_min: "", likes_max: "",
   comments_min: "", comments_max: "",
@@ -103,11 +105,11 @@ const EMPTY_FILTERS: Filters = {
 function applyFilters(videos: Video[], f: Filters): Video[] {
   return videos.filter((v) => {
     // Date range
-    if (f.date_from && v.published_at) {
-      if (new Date(v.published_at) < new Date(f.date_from)) return false;
+    if (f.dateRange?.from && v.published_at) {
+      if (new Date(v.published_at) < f.dateRange.from) return false;
     }
-    if (f.date_to && v.published_at) {
-      const toEnd = new Date(f.date_to);
+    if (f.dateRange?.to && v.published_at) {
+      const toEnd = new Date(f.dateRange.to);
       toEnd.setHours(23, 59, 59, 999);
       if (new Date(v.published_at) > toEnd) return false;
     }
@@ -128,10 +130,16 @@ function applyFilters(videos: Video[], f: Filters): Video[] {
 }
 
 function activeFilterCount(f: Filters): number {
-  return Object.values(f).filter((v) => v !== "").length;
+  const numActive = (Object.keys(f) as (keyof Filters)[])
+    .filter((k) => k !== "dateRange")
+    .filter((k) => f[k] !== "").length;
+  const dateActive = f.dateRange?.from ? 1 : 0;
+  return numActive + dateActive;
 }
 
-const FILTER_ROWS: { label: string; min: keyof Filters; max: keyof Filters }[] = [
+type NumericFilterKey = Exclude<keyof Filters, "dateRange">;
+
+const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey }[] = [
   { label: "Visningar", min: "views_min",    max: "views_max"    },
   { label: "Likes",     min: "likes_min",    max: "likes_max"    },
   { label: "Komment.",  min: "comments_min", max: "comments_max" },
@@ -144,12 +152,26 @@ export default function VideoGrid() {
   const [sort, setSort]       = useState<SortKey>("newest");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [showCal, setShowCal] = useState(false);
+  const calRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/dashboard/videos")
       .then((r) => r.json())
       .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoading(false); });
   }, []);
+
+  // Close calendar on outside click
+  useEffect(() => {
+    if (!showCal) return;
+    function handler(e: MouseEvent) {
+      if (calRef.current && !calRef.current.contains(e.target as Node)) {
+        setShowCal(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showCal]);
 
   if (loading) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Laddar videor…</p>;
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
@@ -158,9 +180,16 @@ export default function VideoGrid() {
   const items = buildItems(filtered, sort);
   const nActive = activeFilterCount(filters);
 
-  function setFilter(key: keyof Filters, val: string) {
+  function setFilter(key: NumericFilterKey, val: string) {
     setFilters((prev) => ({ ...prev, [key]: val }));
   }
+
+  const dateRange = filters.dateRange;
+  const dateBtnLabel = dateRange?.from
+    ? dateRange.to
+      ? `${dateRange.from.toLocaleDateString("sv-SE")} – ${dateRange.to.toLocaleDateString("sv-SE")}`
+      : dateRange.from.toLocaleDateString("sv-SE")
+    : "Välj period";
 
   return (
     <>
@@ -201,28 +230,39 @@ export default function VideoGrid() {
         {showFilters && (
           <div className="vg-filter-panel">
             {/* Date range */}
-            <div className="vg-filter-row vg-filter-row--date">
+            <div className="vg-filter-row" style={{ position: "relative" }} ref={calRef}>
               <span className="vg-filter-label">Datum</span>
-              <div className="vg-date-inputs">
-                <div className="vg-date-field">
-                  <label className="vg-date-label">Från</label>
-                  <input
-                    className="vg-date-input"
-                    type="date"
-                    value={filters.date_from}
-                    onChange={(e) => setFilter("date_from", e.target.value)}
+              <button
+                className={`vg-date-btn${dateRange?.from ? " vg-date-btn--active" : ""}`}
+                onClick={() => setShowCal((v) => !v)}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                {dateBtnLabel}
+                {dateRange?.from && (
+                  <span
+                    className="vg-date-clear"
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setShowCal(false); }}
+                    aria-label="Rensa datum"
+                  >×</span>
+                )}
+              </button>
+              {showCal && (
+                <div className="vg-cal-popup">
+                  <DayPicker
+                    mode="range"
+                    locale={sv}
+                    selected={filters.dateRange}
+                    onSelect={(range) => {
+                      setFilters((p) => ({ ...p, dateRange: range }));
+                      if (range?.from && range?.to) setShowCal(false);
+                    }}
+                    numberOfMonths={1}
                   />
                 </div>
-                <div className="vg-date-field">
-                  <label className="vg-date-label">Till</label>
-                  <input
-                    className="vg-date-input"
-                    type="date"
-                    value={filters.date_to}
-                    onChange={(e) => setFilter("date_to", e.target.value)}
-                  />
-                </div>
-              </div>
+              )}
             </div>
             {FILTER_ROWS.map((row) => (
               <div key={row.label} className="vg-filter-row">
@@ -577,66 +617,69 @@ const css = `
   .vg-filter-input::-webkit-inner-spin-button { -webkit-appearance: none; }
   .vg-filter-input[type=number] { -moz-appearance: textfield; }
 
-  /* Date range row */
-  .vg-filter-row--date {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-  }
-
-  .vg-date-inputs {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
-  }
-
-  .vg-date-field {
+  /* Date button */
+  .vg-date-btn {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     background: #f5f4f2;
-    border: 1px solid rgba(28,27,25,0.12);
+    border: 1px solid rgba(28,27,25,0.15);
     border-radius: 5px;
-    padding: 0 0.6rem;
-    min-height: 40px;
-    flex: 1;
-    min-width: 140px;
-  }
-
-  .vg-date-label {
+    padding: 0 0.75rem;
+    height: 32px;
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
-    color: #aaa;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
     white-space: nowrap;
-    user-select: none;
-    pointer-events: none;
+    transition: border-color 0.12s, color 0.12s;
   }
 
-  .vg-date-input {
-    flex: 1;
-    min-width: 0;
-    background: none;
-    border: none;
-    outline: none;
+  .vg-date-btn--active {
+    border-color: #C8962A;
+    color: #1C1B19;
+  }
+
+  .vg-date-clear {
+    margin-left: 2px;
+    font-size: 15px;
+    line-height: 1;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+  .vg-date-clear:hover { color: #E8116A; }
+
+  /* Calendar popup */
+  .vg-cal-popup {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 100;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.12);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(28,27,25,0.14);
+    padding: 12px;
+  }
+
+  /* react-day-picker overrides */
+  .vg-cal-popup .rdp-root {
+    --rdp-accent-color: #1C1B19;
+    --rdp-accent-background-color: #1C1B19;
+    --rdp-range-start-color: #fff;
+    --rdp-range-end-color: #fff;
+    --rdp-range-start-background: #1C1B19;
+    --rdp-range-end-background: #1C1B19;
+    --rdp-range-middle-background-color: rgba(28,27,25,0.08);
+    --rdp-range-middle-color: #1C1B19;
+    --rdp-selected-border: none;
     font-family: 'Barlow', sans-serif;
     font-size: 13px;
-    color: #1C1B19;
-    cursor: pointer;
-    padding: 0;
-    /* Ensure full touch area */
-    min-height: 40px;
   }
 
-  .vg-date-input::-webkit-calendar-picker-indicator {
-    opacity: 0.45;
-    cursor: pointer;
-    padding: 4px;
-    margin: 0;
-  }
-
-  .vg-date-input::-webkit-calendar-picker-indicator:hover {
-    opacity: 0.8;
+  .vg-cal-popup .rdp-day_button {
+    border-radius: 6px;
   }
 
   .vg-filter-clear {
