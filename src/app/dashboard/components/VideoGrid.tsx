@@ -85,6 +85,7 @@ function fmt(n: number | null): string {
 }
 
 type Filters = {
+  date_from: string; date_to: string;
   views_min: string; views_max: string;
   likes_min: string; likes_max: string;
   comments_min: string; comments_max: string;
@@ -92,6 +93,7 @@ type Filters = {
 };
 
 const EMPTY_FILTERS: Filters = {
+  date_from: "", date_to: "",
   views_min: "", views_max: "",
   likes_min: "", likes_max: "",
   comments_min: "", comments_max: "",
@@ -100,6 +102,16 @@ const EMPTY_FILTERS: Filters = {
 
 function applyFilters(videos: Video[], f: Filters): Video[] {
   return videos.filter((v) => {
+    // Date range
+    if (f.date_from && v.published_at) {
+      if (new Date(v.published_at) < new Date(f.date_from)) return false;
+    }
+    if (f.date_to && v.published_at) {
+      const toEnd = new Date(f.date_to);
+      toEnd.setHours(23, 59, 59, 999);
+      if (new Date(v.published_at) > toEnd) return false;
+    }
+    // Numeric ranges
     const check = (val: number | null, min: string, max: string) => {
       const n = val ?? 0;
       if (min !== "" && n < Number(min)) return false;
@@ -188,6 +200,29 @@ export default function VideoGrid() {
 
         {showFilters && (
           <div className="vg-filter-panel">
+            {/* Date range */}
+            <div className="vg-filter-row">
+              <span className="vg-filter-label">Datum</span>
+              <div className="vg-filter-inputs">
+                <div className="vg-filter-field vg-filter-field--date">
+                  <input
+                    className="vg-filter-input vg-filter-date"
+                    type="date"
+                    value={filters.date_from}
+                    onChange={(e) => setFilter("date_from", e.target.value)}
+                  />
+                </div>
+                <span className="vg-filter-sign" style={{ padding: "0 2px" }}>–</span>
+                <div className="vg-filter-field vg-filter-field--date">
+                  <input
+                    className="vg-filter-input vg-filter-date"
+                    type="date"
+                    value={filters.date_to}
+                    onChange={(e) => setFilter("date_to", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
             {FILTER_ROWS.map((row) => (
               <div key={row.label} className="vg-filter-row">
                 <span className="vg-filter-label">{row.label}</span>
@@ -540,6 +575,34 @@ const css = `
   .vg-filter-input::-webkit-outer-spin-button,
   .vg-filter-input::-webkit-inner-spin-button { -webkit-appearance: none; }
   .vg-filter-input[type=number] { -moz-appearance: textfield; }
+
+  /* Date picker fields */
+  .vg-filter-field--date {
+    padding: 0 0.5rem;
+    width: auto;
+  }
+
+  .vg-filter-date {
+    width: auto;
+    min-width: 120px;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    color: #1C1B19;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .vg-filter-date::-webkit-calendar-picker-indicator {
+    opacity: 0.45;
+    cursor: pointer;
+    filter: none;
+  }
+  .vg-filter-date::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+  }
 
   .vg-filter-clear {
     font-family: 'Barlow', sans-serif;
