@@ -154,6 +154,7 @@ export default function VideoGrid() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const [calPhase, setCalPhase] = useState<0 | 1>(0); // 0 = picking start, 1 = picking end
   const calRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -235,7 +236,7 @@ export default function VideoGrid() {
               <span className="vg-filter-label">Datum</span>
               <button
                 className={`vg-date-btn${dateRange?.from ? " vg-date-btn--active" : ""}`}
-                onClick={() => setShowCal((v) => !v)}
+                onClick={() => { setShowCal((v) => !v); setCalPhase(0); }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -245,7 +246,7 @@ export default function VideoGrid() {
                   <span
                     className="vg-date-clear"
                     role="button"
-                    onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setShowCal(false); }}
+                    onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setCalPhase(0); setShowCal(false); }}
                     aria-label="Rensa datum"
                   >×</span>
                 )}
@@ -256,8 +257,18 @@ export default function VideoGrid() {
                     mode="range"
                     locale={sv}
                     selected={filters.dateRange}
-                    onSelect={(range) => {
-                      setFilters((p) => ({ ...p, dateRange: range }));
+                    onSelect={(_range, selectedDay) => {
+                      if (calPhase === 0) {
+                        // First click: set A, wait for B
+                        setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
+                        setCalPhase(1);
+                      } else {
+                        // Second click: complete the range (always from < to)
+                        const from = filters.dateRange?.from ?? selectedDay;
+                        const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
+                        setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
+                        setCalPhase(0);
+                      }
                     }}
                     numberOfMonths={1}
                   />
