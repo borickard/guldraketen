@@ -3876,7 +3876,7 @@ body {
   text-align: left;
   font-family: 'Barlow', sans-serif;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: #07253A;
   transition: color 0.12s;
 }
@@ -3909,7 +3909,7 @@ body {
 
 .gr-faq-body p em {
   font-style: normal;
-  font-weight: 600;
+  font-weight: 500;
   color: rgba(7, 37, 58, 0.85);
 }
 
@@ -3963,6 +3963,17 @@ body {
 
 .gr-faq-submit:hover { opacity: 0.85; }
 .gr-faq-submit:disabled { opacity: 0.5; cursor: default; }
+
+.gr-faq-link {
+  color: #07253A;
+  text-decoration: underline;
+  text-decoration-color: rgba(7, 37, 58, 0.3);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.12s;
+}
+.gr-faq-link:hover {
+  text-decoration-color: #07253A;
+}
 
 .gr-faq-msg {
   font-family: 'Barlow', sans-serif;

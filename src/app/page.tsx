@@ -1187,7 +1187,7 @@ function HomeInner() {
                 ),
               },
               {
-                q: "Hur fungerar er analysdashboard?",
+                q: "Jag vill vara beta-testare",
                 body: (
                   <>
                     <p>Vi bygger en personlig dashboard för kommunikatörer och innehållsproducenter — detaljerad statistik per video, trender och jämförelser mot din bransch. Funktionen är i betaversion och tillgänglig för ett begränsat antal. Fyll i nedan om du är intresserad av att testa.</p>
@@ -1226,7 +1226,7 @@ function HomeInner() {
                 q: "Vem ligger bakom Sociala Raketer?",
                 body: (
                   <>
-                    <p>Rickard Berggren, digital strateg som jobbat med sociala medier och content i 12 år. Brinner för internetkultur och innehåll som verkligen berör och engagerar. Projektet startade 2026 som ett sätt att lyfta fram det som faktiskt fungerar — inte det som syns mest.</p>
+                    <p><a href="https://www.linkedin.com/in/rickardberggren/" target="_blank" rel="noopener noreferrer" className="gr-faq-link">Rickard Berggren</a>, digital strateg som jobbat med sociala medier och content i 12 år. Brinner för internetkultur och innehåll som verkligen berör och engagerar. Projektet startade 2026 som ett sätt att lyfta fram det som faktiskt fungerar — inte det som syns mest.</p>
                   </>
                 ),
               },
