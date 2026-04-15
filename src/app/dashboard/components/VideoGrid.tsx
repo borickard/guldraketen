@@ -154,7 +154,8 @@ export default function VideoGrid() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [showCal, setShowCal] = useState(false);
-  const [calPhase, setCalPhase] = useState<0 | 1>(0); // 0 = picking start, 1 = picking end
+  const [calPhase, setCalPhase] = useState<0 | 1>(0);
+  const [urlReady, setUrlReady] = useState(false);
   const calRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -163,13 +164,46 @@ export default function VideoGrid() {
       .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoading(false); });
   }, []);
 
+  // Read URL params on mount
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const s = p.get("sort");
+    if (s && SORTS.find((x) => x.key === s)) setSort(s as SortKey);
+    const df = p.get("date_from");
+    const dt = p.get("date_to");
+    if (df || dt) {
+      setFilters((prev) => ({
+        ...prev,
+        dateRange: { from: df ? new Date(df) : undefined, to: dt ? new Date(dt) : undefined },
+      }));
+    }
+    const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
+    const numUpdates: Partial<Filters> = {};
+    for (const k of numKeys) { const v = p.get(k); if (v) numUpdates[k] = v; }
+    if (Object.keys(numUpdates).length) setFilters((prev) => ({ ...prev, ...numUpdates }));
+    if (p.get("filters") === "1") setShowFilters(true);
+    setUrlReady(true);
+  }, []); // eslint-disable-line
+
+  // Write URL params when state changes (after initial read)
+  useEffect(() => {
+    if (!urlReady) return;
+    const p = new URLSearchParams();
+    if (sort !== "newest") p.set("sort", sort);
+    if (filters.dateRange?.from) p.set("date_from", filters.dateRange.from.toISOString().split("T")[0]);
+    if (filters.dateRange?.to)   p.set("date_to",   filters.dateRange.to.toISOString().split("T")[0]);
+    const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
+    for (const k of numKeys) { if (filters[k]) p.set(k, filters[k] as string); }
+    if (showFilters) p.set("filters", "1");
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [sort, filters, showFilters, urlReady]);
+
   // Close calendar on outside click
   useEffect(() => {
     if (!showCal) return;
     function handler(e: MouseEvent) {
-      if (calRef.current && !calRef.current.contains(e.target as Node)) {
-        setShowCal(false);
-      }
+      if (calRef.current && !calRef.current.contains(e.target as Node)) setShowCal(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -200,7 +234,7 @@ export default function VideoGrid() {
 
         <div className="vg-toolbar">
           <div className="vg-toolbar-row">
-            <span className="vg-row-label">Sortering</span>
+            <span className="vg-row-label">Sortering och filter</span>
             <div className="vg-sorts">
               {SORTS.map((s) => (
                 <button
@@ -212,14 +246,14 @@ export default function VideoGrid() {
                 </button>
               ))}
             </div>
-          </div>
-          <div className="vg-toolbar-row">
-            <span className="vg-row-label">Filter</span>
             <button
               className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
               onClick={() => setShowFilters((v) => !v)}
             >
-              {nActive > 0 ? `${nActive} aktiva` : "Visa filter"}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M4 6h16l-7 9.5V21l-2-1v-4.5L4 6z"/>
+              </svg>
+              {nActive > 0 ? `${nActive} aktiva` : "Filter"}
             </button>
             {nActive > 0 && (
               <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
@@ -389,17 +423,13 @@ const css = `
   }
 
   .vg-toolbar {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
     margin-bottom: 1.25rem;
   }
 
   .vg-toolbar-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
   }
 
@@ -408,8 +438,9 @@ const css = `
     font-size: 12px;
     font-weight: 600;
     color: #888;
-    min-width: 64px;
+    margin-right: 0.25rem;
     letter-spacing: 0.03em;
+    white-space: nowrap;
   }
 
   .vg-sorts {
@@ -419,9 +450,12 @@ const css = `
   }
 
   .vg-pill {
-    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #fff;
     border: 1px solid rgba(28,27,25,0.2);
-    color: #888;
+    color: #1C1B19;
     font-family: 'Barlow', sans-serif;
     font-size: 11px;
     letter-spacing: 0.05em;
@@ -438,8 +472,7 @@ const css = `
   }
 
   .vg-pill:not(.vg-pill--on):hover {
-    border-color: #1C1B19;
-    color: #1C1B19;
+    border-color: rgba(28,27,25,0.5);
   }
 
   /* Grid */
