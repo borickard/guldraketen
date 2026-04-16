@@ -18,11 +18,15 @@ export async function generateMetadata({
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://guldraketen.vercel.app";
     const weekNum = parseInt(week.split("-W")[1]);
 
-    const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
-    const accountName = acct?.display_name ?? (video ? `@${video.handle}` : "Okänt konto");
-    const er = video?.engagement_rate != null
-        ? Number(video.engagement_rate).toFixed(2).replace(".", ",")
-        : "–";
+    if (!video) {
+        const title = "Sociala Raketer";
+        const description = "Den här veckan är ännu inte publicerad.";
+        return { title, description };
+    }
+
+    const acct = Array.isArray(video.accounts) ? video.accounts[0] : video.accounts;
+    const accountName = acct?.display_name ?? `@${video.handle}`;
+    const er = Number(video.engagement_rate).toFixed(2).replace(".", ",");
     const rocketLabel = RANK_ROCKET_LABEL[rankParam] ?? `Plats ${rankNum}`;
     const medal = RANK_MEDAL[rankParam] ?? "";
 

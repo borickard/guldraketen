@@ -28,8 +28,30 @@ function weekBounds(weekStr: string): { start: Date; end: Date } {
     return { start, end };
 }
 
+function toISOWeek(date: Date): string {
+    const d = new Date(date);
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+    const week1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function isWeekPublished(weekStr: string): boolean {
+    const currentWeek = toISOWeek(new Date());
+    const [yr, wk] = currentWeek.split("-W").map(Number);
+    const jan4 = new Date(Date.UTC(yr, 0, 4));
+    const currentMon = new Date(jan4);
+    currentMon.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7) + (wk - 1) * 7);
+    const prevMon = new Date(currentMon);
+    prevMon.setUTCDate(currentMon.getUTCDate() - 7);
+    const previousWeek = toISOWeek(prevMon);
+    return weekStr !== currentWeek && weekStr !== previousWeek;
+}
+
 export async function getVideoForRank(week: string, rank: number): Promise<VideoForRank | null> {
     if (!week || !/^\d{4}-W\d{2}$/.test(week) || rank < 1) return null;
+    if (!isWeekPublished(week)) return null;
 
     const { start, end } = weekBounds(week);
 
