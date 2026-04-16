@@ -1,6 +1,23 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
 
+function toISOWeek(date: Date): string {
+    const d = new Date(date);
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+    const week1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function mondayOfISOWeek(weekStr: string): Date {
+    const [yr, wk] = weekStr.split("-W").map(Number);
+    const jan4 = new Date(Date.UTC(yr, 0, 4));
+    const mon = new Date(jan4);
+    mon.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7) + (wk - 1) * 7);
+    return mon;
+}
+
 function weekBounds(weekStr: string): { start: Date; end: Date } {
     const [yearStr, weekStr2] = weekStr.split("-W");
     const year = parseInt(yearStr);
@@ -21,6 +38,15 @@ export async function GET(req: NextRequest) {
 
     if (!week || !/^\d{4}-W\d{2}$/.test(week) || rank < 1) {
         return NextResponse.json({ error: "Ogiltiga parametrar" }, { status: 400 });
+    }
+
+    // Block current and previous week — same rule as /api/weeks
+    const currentWeek = toISOWeek(new Date());
+    const prevMonday = mondayOfISOWeek(currentWeek);
+    prevMonday.setUTCDate(prevMonday.getUTCDate() - 7);
+    const previousWeek = toISOWeek(prevMonday);
+    if (week === currentWeek || week === previousWeek) {
+        return NextResponse.json({ error: "not_published_yet" }, { status: 404 });
     }
 
     const { start, end } = weekBounds(week);

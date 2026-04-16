@@ -40,16 +40,22 @@ export default function VideoSharePage() {
 
     const [video, setVideo] = useState<Video | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [playing, setPlaying] = useState(false);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (!week || !rankNum) return;
         fetch(`/api/video?week=${week}&rank=${rankNum}`)
-            .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(async (r) => {
+                if (!r.ok) {
+                    const body = await r.json().catch(() => ({}));
+                    throw new Error(body.error ?? "not_found");
+                }
+                return r.json();
+            })
             .then((data) => { setVideo(data); setLoading(false); })
-            .catch(() => { setError(true); setLoading(false); });
+            .catch((e: Error) => { setError(e.message); setLoading(false); });
     }, [week, rankNum]);
 
     const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
@@ -73,7 +79,8 @@ export default function VideoSharePage() {
     return (
         <div className="sp2-root">
             {loading && <p className="sp2-state">Laddar…</p>}
-            {error && <p className="sp2-state">Kunde inte ladda videon.</p>}
+            {error === "not_published_yet" && <p className="sp2-state">Den här veckan är ännu inte publicerad.</p>}
+            {error && error !== "not_published_yet" && <p className="sp2-state">Kunde inte ladda videon.</p>}
 
             {video && (
                 <div className="sp2-layout">
@@ -133,10 +140,10 @@ export default function VideoSharePage() {
                         {/* Stats grid */}
                         <div className="sp2-stats">
                             {[
-                                { val: fmt(video.views), lbl: "Visningar" },
                                 { val: fmt(video.likes), lbl: "Likes" },
                                 { val: fmt(video.comments), lbl: "Kommentarer" },
                                 { val: fmt(video.shares), lbl: "Delningar" },
+                                { val: fmt(video.views), lbl: "Visningar" },
                             ].map(({ val, lbl }) => (
                                 <div key={lbl} className="sp2-stat">
                                     <span className="sp2-stat-val">{val}</span>
