@@ -198,6 +198,7 @@ function HomeInner() {
   const [videos, setVideos] = useState<RawVideo[]>([]);
   const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   // Site-wide state
   const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
@@ -733,14 +734,30 @@ function HomeInner() {
                     <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
                       #{i + 1}
                     </span>
-                    <span className="gr-rk-vk-link" aria-hidden="true">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </span>
                   </a>
+                  <button
+                    className={"gr-rk-vk-copy" + (copiedIdx === i ? " copied" : "")}
+                    onClick={() => {
+                      const slugs = ["guld", "silver", "brons"];
+                      const url = `${window.location.origin}/${selectedWeek}/${slugs[i]}`;
+                      navigator.clipboard.writeText(url);
+                      setCopiedIdx(i);
+                      setTimeout(() => setCopiedIdx(null), 2000);
+                    }}
+                    aria-label="Kopiera delningslänk"
+                  >
+                    {copiedIdx === i ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                    )}
+                  </button>
                   <div className="gr-vid-info">
                     <a href={`/konto/${acc.handle}`} className="gr-rk-vk-name">
                       {acc.displayName}
