@@ -4267,6 +4267,16 @@ body {
   padding: 18px 18px 16px;
 }
 
+.gr-rk-card-back-er-eyebrow {
+  font-family: 'Barlow', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(237, 248, 251, 0.4);
+  margin-bottom: 5px;
+}
+
 .gr-rk-card-back-er-row {
   display: flex;
   align-items: baseline;
@@ -4289,50 +4299,31 @@ body {
   line-height: 1;
 }
 
-.gr-rk-card-back-er-lbl {
-  font-family: 'Barlow', sans-serif;
-  font-size: 12px;
-  color: rgba(237, 248, 251, 0.45);
-  font-weight: 400;
-}
-
-.gr-rk-card-back-divider {
-  height: 1px;
-  background: rgba(237, 248, 251, 0.1);
-}
-
 .gr-rk-card-back-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(237, 248, 251, 0.1);
+  padding-top: 10px;
 }
 
 .gr-rk-card-back-metric {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+}
+
+.gr-rk-card-back-metric-icon {
+  color: rgba(237, 248, 251, 0.35);
+  flex-shrink: 0;
 }
 
 .gr-rk-card-back-metric-val {
   font-family: 'Barlow', sans-serif;
-  font-size: clamp(16px, 2vw, 22px);
+  font-size: 15px;
   font-weight: 600;
   color: #EDF8FB;
   line-height: 1.1;
-}
-
-.gr-rk-card-back-metric-lbl {
-  font-family: 'Barlow', sans-serif;
-  font-size: 10px;
-  color: rgba(237, 248, 251, 0.4);
-  letter-spacing: .03em;
-  text-transform: uppercase;
-}
-
-.gr-rk-card-back-followers {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
 }
 
 .gr-rk-card-back-actions {

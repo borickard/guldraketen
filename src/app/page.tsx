@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, ThumbsUp, MessageCircle, Share2, Users } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,13 @@ function fmt(n: number): string {
     return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return Math.round(n / 1_000) + "K";
   return String(n);
+}
+
+// Full number with Swedish locale (spaces as thousands separator),
+// abbreviated only at 1 000 000+
+function fmtLong(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  return n.toLocaleString("sv-SE");
 }
 
 function fmtWeekShort(w: string): string {
@@ -792,35 +800,31 @@ function HomeInner() {
 
                       {/* Back — metrics + button, no thumbnail */}
                       <div className="gr-rk-card-back">
-                        <div className="gr-rk-card-back-er-row">
-                          <span className="gr-rk-card-back-rank" style={{ color: rankColor(i) }}>
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
-                          <div className="gr-rk-card-back-er" style={{ color: rankColor(i) }}>
-                            {acc.bestEngagement.toFixed(2)}%
-                            <span className="gr-rk-card-back-er-lbl"> eng.rate</span>
+                        <div>
+                          <div className="gr-rk-card-back-er-eyebrow">Engagemangsgrad</div>
+                          <div className="gr-rk-card-back-er-row">
+                            <span className="gr-rk-card-back-rank" style={{ color: rankColor(i) }}>
+                              {String(i + 1).padStart(2, "0")}
+                            </span>
+                            <div className="gr-rk-card-back-er" style={{ color: rankColor(i) }}>
+                              {acc.bestEngagement.toFixed(2)}%
+                            </div>
                           </div>
                         </div>
-                        <div className="gr-rk-card-back-divider" />
                         <div className="gr-rk-card-back-metrics">
-                          {[
-                            { val: fmt(acc.bestVideo.views), lbl: "visningar" },
-                            { val: fmt(acc.bestVideo.likes), lbl: "likes" },
-                            { val: fmt(acc.bestVideo.comments), lbl: "kommentarer" },
-                            { val: fmt(acc.bestVideo.shares), lbl: "delningar" },
-                          ].map(({ val, lbl }) => (
-                            <div key={lbl} className="gr-rk-card-back-metric">
-                              <span className="gr-rk-card-back-metric-val">{val}</span>
-                              <span className="gr-rk-card-back-metric-lbl">{lbl}</span>
+                          {([
+                            { Icon: Eye,            val: acc.bestVideo.views },
+                            { Icon: ThumbsUp,       val: acc.bestVideo.likes },
+                            { Icon: MessageCircle,  val: acc.bestVideo.comments },
+                            { Icon: Share2,         val: acc.bestVideo.shares },
+                            ...(acc.followers > 0 ? [{ Icon: Users, val: acc.followers }] : []),
+                          ] as { Icon: React.ElementType; val: number }[]).map(({ Icon, val }, idx) => (
+                            <div key={idx} className="gr-rk-card-back-metric">
+                              <Icon className="gr-rk-card-back-metric-icon" size={13} />
+                              <span className="gr-rk-card-back-metric-val">{fmtLong(val)}</span>
                             </div>
                           ))}
                         </div>
-                        {acc.followers > 0 && (
-                          <div className="gr-rk-card-back-followers">
-                            <span className="gr-rk-card-back-metric-val">{fmt(acc.followers)}</span>
-                            <span className="gr-rk-card-back-metric-lbl"> följare</span>
-                          </div>
-                        )}
                         <div className="gr-rk-card-back-actions">
                           <a
                             href={acc.bestVideo.video_url}
