@@ -7,13 +7,13 @@ import { useState, useEffect } from "react";
 const homeLinks = [
   { href: "#topplistan",    label: "Veckans raketer" },
   { href: "#kalkylator",    label: "Räkna ut engagemang" },
-  { href: "#om-engagemang", label: "Om Sociala Raketer" },
+  { href: "#om-engagemang", label: "Om Sociala\u00A0Raketer" },
 ];
 
 const otherLinks = [
   { href: "/#topplistan",   label: "Veckans raketer" },
   { href: "/#kalkylator",   label: "Räkna ut engagemang" },
-  { href: "/om-engagemang", label: "Om Sociala Raketer" },
+  { href: "/om-engagemang", label: "Om Sociala\u00A0Raketer" },
 ];
 
 export default function NavBar() {

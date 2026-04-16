@@ -4,7 +4,6 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "./components/LogoutButton";
 import VideoGrid from "./components/VideoGrid";
-import HofSection from "./components/HofSection";
 
 interface ProfileData {
   handle: string;
@@ -93,6 +92,10 @@ export default async function DashboardPage() {
 
         <header className="db-header">
           <a href="/" className="db-wordmark">Sociala Raketer</a>
+          <nav className="db-nav">
+            <a href="/dashboard" className="db-nav-link">Dashboard</a>
+            <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
+          </nav>
           <LogoutButton />
         </header>
 
@@ -147,7 +150,6 @@ export default async function DashboardPage() {
             ))
           )}
           <VideoGrid />
-          <HofSection />
 
         </main>
 
@@ -185,6 +187,28 @@ const styles = `
     text-transform: uppercase;
     color: #EDF8FB;
     text-decoration: none;
+  }
+
+  .db-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-left: auto;
+    margin-right: 1.5rem;
+  }
+
+  .db-nav-link {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(237,248,251,0.55);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+
+  .db-nav-link:hover {
+    color: #EDF8FB;
   }
 
   .db-logout-btn {
