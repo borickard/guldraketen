@@ -4111,21 +4111,14 @@ body {
 }
 
 @media (max-width: 640px) {
-  /* Card back — mobile: larger type, compact layout, buttons pinned to bottom */
+  /* Card back — mobile: scale everything by changing the one base font-size */
   .gr-rk-card-back {
     justify-content: flex-start;
     padding: 22px 22px 18px;
+    font-size: 60px; /* base — eyebrow/rank/ER/metrics all scale via em */
   }
   .gr-rk-card-back-er-eyebrow {
-    font-size: 16px;
-    letter-spacing: 0.08em;
-    margin-bottom: 7px;
-  }
-  .gr-rk-card-back-rank {
-    font-size: 40px;
-  }
-  .gr-rk-card-back-er {
-    font-size: 48px;
+    margin-bottom: 8px;
   }
   .gr-rk-card-back-metrics {
     margin-top: 18px;
@@ -4135,9 +4128,6 @@ body {
   .gr-rk-card-back-metric-icon {
     width: 20px;
     height: 20px;
-  }
-  .gr-rk-card-back-metric-val {
-    font-size: 26px;
   }
   .gr-rk-card-back-actions {
     margin-top: auto;
@@ -4305,11 +4295,12 @@ body {
   flex-direction: column;
   justify-content: space-between;
   padding: 18px 18px 16px;
+  font-size: 34px; /* base — all child em values scale from here */
 }
 
 .gr-rk-card-back-er-eyebrow {
   font-family: 'Barlow', sans-serif;
-  font-size: 9px;
+  font-size: 0.3em;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4325,7 +4316,7 @@ body {
 
 .gr-rk-card-back-rank {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(22px, 2.8vw, 30px);
+  font-size: 0.77em;
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
@@ -4334,7 +4325,7 @@ body {
 
 .gr-rk-card-back-er {
   font-family: 'Barlow', sans-serif;
-  font-size: clamp(28px, 3.5vw, 38px);
+  font-size: 1em;
   font-weight: 700;
   line-height: 1;
 }
@@ -4360,7 +4351,7 @@ body {
 
 .gr-rk-card-back-metric-val {
   font-family: 'Barlow', sans-serif;
-  font-size: 20px;
+  font-size: 0.6em;
   font-weight: 400;
   color: #EDF8FB;
   line-height: 1.1;
