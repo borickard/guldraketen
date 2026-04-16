@@ -4158,6 +4158,8 @@ body {
   flex: 1;
   overflow: hidden;
   position: relative;
+  background: rgba(237,248,251,0.06);
+  animation: gr-shimmer 1.6s ease-in-out infinite;
 }
 
 .gr-rk-card-front-img {
