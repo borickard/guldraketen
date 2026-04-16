@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const homeLinks = [
   { href: "#topplistan",    label: "Veckans raketer" },
@@ -24,6 +24,15 @@ export default function NavBar() {
 
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [navHeight, setNavHeight] = useState(80);
+  const navRef = useRef<HTMLElement>(null);
+
+  // Measure nav height whenever drawer opens
+  useEffect(() => {
+    if (open && navRef.current) {
+      setNavHeight(navRef.current.offsetHeight);
+    }
+  }, [open]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -46,7 +55,7 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")}>
+      <nav ref={navRef} className={"gr-nav" + (scrolled ? " gr-nav--compact" : "")}>
         <a href="/" className="gr-nav-logo">
           Sociala raketer
         </a>
@@ -81,7 +90,7 @@ export default function NavBar() {
             className="gr-nav-drawer-backdrop"
             onClick={() => setOpen(false)}
           />
-          <div className="gr-nav-mobile">
+          <div className="gr-nav-mobile" style={{ top: navHeight }}>
             {links.map((l) => (
               <Link
                 key={l.href}
