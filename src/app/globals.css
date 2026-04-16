@@ -563,7 +563,7 @@ body {
 }
 
 .gr-nav-logo {
-  font-family: 'VT323', monospace;
+  font-family: 'Modak', cursive;
   font-weight: 400;
   font-size: 84px;
   letter-spacing: .05em;
@@ -598,6 +598,7 @@ body {
   font-family: 'Barlow', sans-serif;
   font-size: 11px;
   letter-spacing: .08em;
+  text-align: center;
   text-transform: uppercase;
   color: rgba(237, 248, 251, 0.65);
   text-decoration: none;
