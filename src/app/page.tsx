@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, ThumbsUp, MessageCircle, Share2, Users } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,12 +88,6 @@ function fmt(n: number): string {
   return String(n);
 }
 
-// Full number with Swedish locale (spaces as thousands separator),
-// abbreviated only at 1 000 000+
-function fmtLong(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  return n.toLocaleString("sv-SE");
-}
 
 function fmtWeekShort(w: string): string {
   const m = w.match(/(\d{4})-W(\d{2})/);
@@ -219,7 +213,6 @@ function HomeInner() {
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [videos, setVideos] = useState<RawVideo[]>([]);
   const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Site-wide state
@@ -388,22 +381,6 @@ function HomeInner() {
     prevAccounts.forEach((a, i) => m.set(a.handle, i));
     return m;
   }, [prevAccounts]);
-
-  const toggle = useCallback((handle: string) => {
-    setExpanded((e) => (e === handle ? null : handle));
-  }, []);
-
-  const RANK_SLUGS = ["guld", "silver", "brons"];
-  const [copiedRank, setCopiedRank] = useState<number | null>(null);
-
-  function handleShareCard(e: React.MouseEvent, rank: number) {
-    e.stopPropagation();
-    const slug = RANK_SLUGS[rank];
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/${selectedWeek}/${slug}`;
-    navigator.clipboard.writeText(url);
-    setCopiedRank(rank);
-    setTimeout(() => setCopiedRank(null), 2000);
-  }
 
 
   // Fetch benchmark on mount
@@ -742,117 +719,57 @@ function HomeInner() {
                 <div className="gr-rk-grid">
           {loading
             ? [0, 1, 2].map((i) => (
-                <div key={i} className="gr-rk-card gr-rk-card--loading">
-                  <div className="gr-rk-card-inner">
-                    <div className="gr-rk-card-front">
-                      <div className="gr-rk-skel-thumb-area" />
-                      <div className="gr-rk-skel-info-area">
-                        <div className="gr-rk-skel-bar" style={{ width: "55%" }} />
-                        <div className="gr-rk-skel-bar" style={{ width: "35%" }} />
-                      </div>
-                    </div>
+                <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
+                  <div className="gr-thumb" />
+                  <div className="gr-vid-info">
+                    <div className="gr-rk-skel-bar" style={{ width: "60%", background: "rgba(28,27,25,0.1)" }} />
                   </div>
                 </div>
               ))
-            : accounts.slice(0, 3).map((acc, i) => {
-                const isFlipped = expanded === acc.handle;
-                const prevRank = prevRankMap.get(acc.handle);
-                const delta = prevRank != null ? prevRank - i : null;
-                const isNew = delta === null && prevVideos.length > 0;
-                const thumb = acc.bestVideo.thumbnail_url;
-                return (
-                  <div
-                    key={acc.handle}
-                    className={`gr-rk-card${isFlipped ? " flipped" : ""}`}
-                    onClick={() => toggle(acc.handle)}
-                  >
-                    <div className="gr-rk-card-inner">
-                      {/* Front — dimmed thumbnail + rank/name/ER */}
-                      <div className="gr-rk-card-front">
-                        <div className="gr-rk-card-front-thumb">
-                          {thumb && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={thumb}
-                              alt=""
-                              className="gr-rk-card-front-img"
-                              onLoad={(e) => e.currentTarget.parentElement?.classList.add("thumb-loaded")}
-                            />
-                          )}
-                          <button
-                            className="gr-rk-card-share"
-                            onClick={(e) => handleShareCard(e, i)}
-                            aria-label="Kopiera länk"
-                          >
-                            {copiedRank === i ? (
-                              <span className="gr-rk-card-share-copied">Kopierad!</span>
-                            ) : (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                        <div className="gr-rk-card-front-info">
-                          <div className="gr-rk-card-name">{acc.displayName}</div>
-                          <div className="gr-rk-card-er" style={{ color: rankColor(i) }}>
-                            {acc.bestEngagement.toFixed(2)}%
-                          </div>
-                          <div className="gr-rk-card-er-lbl">eng.rate</div>
-                        </div>
-                      </div>
-
-                      {/* Back — metrics + button, no thumbnail */}
-                      <div className="gr-rk-card-back">
-                        <div>
-                          <div className="gr-rk-card-back-er-eyebrow">Engagemangsgrad</div>
-                          <div className="gr-rk-card-back-er-row">
-                            <span className="gr-rk-card-back-rank" style={{ color: rankColor(i) }}>
-                              {String(i + 1).padStart(2, "0")}
-                            </span>
-                            <div className="gr-rk-card-back-er" style={{ color: rankColor(i) }}>
-                              {acc.bestEngagement.toFixed(2)}%
-                            </div>
-                          </div>
-                        </div>
-                        <div className="gr-rk-card-back-metrics">
-                          {([
-                            { Icon: Eye,            val: acc.bestVideo.views,    label: "Visningar" },
-                            { Icon: ThumbsUp,       val: acc.bestVideo.likes,    label: "Gilla-markeringar" },
-                            { Icon: MessageCircle,  val: acc.bestVideo.comments, label: "Kommentarer" },
-                            { Icon: Share2,         val: acc.bestVideo.shares,   label: "Delningar" },
-                            ...(acc.followers > 0 ? [{ Icon: Users, val: acc.followers, label: "Följare" }] : []),
-                          ] as { Icon: React.ElementType; val: number; label: string }[]).map(({ Icon, val, label }, idx) => (
-                            <div key={idx} className="gr-rk-card-back-metric" title={label}>
-                              <span className="gr-rk-card-back-metric-val">{fmtLong(val)}</span>
-                              <Icon className="gr-rk-card-back-metric-icon" size={16} />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="gr-rk-card-back-actions">
-                          <a
-                            href={acc.bestVideo.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gr-rk-card-back-btn"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Visa videon
-                          </a>
-                          <a
-                            href={`/konto/${acc.handle}`}
-                            className="gr-rk-card-back-profile"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Visa profil
-                          </a>
-                        </div>
-                      </div>
+            : accounts.slice(0, 3).map((acc, i) => (
+                <div key={acc.handle} className="gr-vc gr-rk-vk-card">
+                  <div className="gr-thumb">
+                    {acc.bestVideo.thumbnail_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={acc.bestVideo.thumbnail_url}
+                        alt=""
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+                      />
+                    )}
+                    <div className="gr-thumb-stats">
+                      <span><ThumbsUp size={9} />{fmt(acc.bestVideo.likes)}</span>
+                      <span><MessageCircle size={9} />{fmt(acc.bestVideo.comments)}</span>
+                      <span><Share2 size={9} />{fmt(acc.bestVideo.shares)}</span>
+                      <span><Eye size={9} />{fmt(acc.bestVideo.views)}</span>
                     </div>
+                    <span className="gr-thumb-er gr-rk-vk-er" style={{ color: rankColor(i) }}>
+                      {acc.bestEngagement.toFixed(2)}%
+                    </span>
+                    <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
+                      #{i + 1}
+                    </span>
+                    <a
+                      href={acc.bestVideo.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="gr-rk-vk-link"
+                      aria-label="Öppna video på TikTok"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
                   </div>
-                );
-              })
+                  <div className="gr-vid-info">
+                    <a href={`/konto/${acc.handle}`} className="gr-rk-vk-name">
+                      {acc.displayName}
+                    </a>
+                  </div>
+                </div>
+              ))
           }
                 </div>
                 <button

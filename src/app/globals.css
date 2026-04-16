@@ -4102,12 +4102,89 @@ body {
   .gr-rk-grid::-webkit-scrollbar {
     display: none;
   }
-  .gr-rk-grid .gr-rk-card {
-    min-width: 80vw;
+  .gr-rk-grid .gr-vc {
+    width: 70vw;
+    min-width: 70vw;
     flex-shrink: 0;
     scroll-snap-align: center;
-    aspect-ratio: 2 / 3;
   }
+}
+
+/* ── Veckans Raketer — HoF-style card overrides ── */
+.gr-rk-grid .gr-vc {
+  width: 100%;
+  flex-shrink: unset;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  color: #1C1B19;
+}
+
+.gr-rk-grid .gr-thumb {
+  width: 100%;
+  height: unset;
+  aspect-ratio: 9 / 16;
+  border-radius: 0;
+}
+
+.gr-rk-grid .gr-thumb-er {
+  font-size: 22px;
+  padding: 5px 12px;
+  border-radius: 8px;
+}
+
+.gr-rk-grid .gr-thumb-best {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.gr-rk-grid .gr-thumb-stats span {
+  font-size: 11px;
+  padding: 2px 5px;
+}
+
+/* Link button — top right of thumbnail */
+.gr-rk-vk-link {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(7,37,58,0.6);
+  color: #EDF8FB;
+  border-radius: 6px;
+  padding: 6px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.15s;
+  z-index: 1;
+}
+.gr-rk-vk-link:hover {
+  background: rgba(7,37,58,0.9);
+}
+
+/* Account name in card info */
+.gr-rk-vk-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1B19;
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gr-rk-vk-name:hover { color: var(--gr-gold); }
+
+/* Skeleton */
+.gr-rk-vk-card--loading .gr-thumb {
+  background: rgba(28,27,25,0.08);
+  animation: gr-shimmer 1.6s ease-in-out infinite;
+}
+.gr-rk-vk-card--loading .gr-vid-info {
+  background: #fff;
 }
 
 /* Flip card — 9:16 portrait */
