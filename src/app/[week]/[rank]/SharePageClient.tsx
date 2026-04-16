@@ -42,7 +42,6 @@ export default function VideoSharePage() {
     const [video, setVideo] = useState<Video | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [playing, setPlaying] = useState(false);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
@@ -65,7 +64,6 @@ export default function VideoSharePage() {
     const er = video?.engagement_rate != null ? Number(video.engagement_rate).toFixed(2) + "%" : "–";
     const rankLabel = RANK_LABELS[rankParam] ?? `Plats ${rankNum}`;
     const rankColor = RANK_COLORS[rankParam] ?? "#EDF8FB";
-    const videoId = video?.video_url.match(/\/video\/(\d+)/)?.[1];
 
     function handleCopy() {
         navigator.clipboard.writeText(window.location.href).then(() => {
@@ -85,29 +83,14 @@ export default function VideoSharePage() {
 
             {video && (
                 <div className="sp2-layout">
-                    {/* Thumbnail / embed column */}
+                    {/* Thumbnail column */}
                     <div className="sp2-thumb-col">
-                        {playing && videoId ? (
-                            <iframe
-                                className="sp2-embed"
-                                src={`https://www.tiktok.com/embed/v2/${videoId}`}
-                                allowFullScreen
-                                allow="autoplay"
-                                scrolling="no"
-                            />
-                        ) : (
-                            <>
-                                {video.thumbnail_url
-                                    ? <img className="sp2-thumb" src={video.thumbnail_url} alt={accountName} />
-                                    : <div className="sp2-thumb-placeholder" />
-                                }
-                                <button className="sp2-play-btn" onClick={() => setPlaying(true)} aria-label="Spela video">
-                                    <svg width="20" height="24" viewBox="0 0 20 24">
-                                        <polygon points="2,2 18,12 2,22" fill="#fff" />
-                                    </svg>
-                                </button>
-                            </>
-                        )}
+                        <a href={video.video_url} target="_blank" rel="noopener noreferrer" className="sp2-thumb-link">
+                            {video.thumbnail_url
+                                ? <img className="sp2-thumb" src={video.thumbnail_url} alt={accountName} />
+                                : <div className="sp2-thumb-placeholder" />
+                            }
+                        </a>
                     </div>
 
                     {/* Info column */}

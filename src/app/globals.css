@@ -4988,18 +4988,19 @@ body {
   background: rgba(237, 248, 251, 0.06);
 }
 
-.sp2-embed {
-  width: 100%;
-  aspect-ratio: 9 / 16;
-  border: none;
+.sp2-thumb-link {
   display: block;
+  line-height: 0;
 }
 
+.sp2-thumb-link:hover .sp2-thumb {
+  opacity: 0.88;
+  transition: opacity 0.15s;
+}
+
+/* removed: sp2-embed, sp2-play-btn */
 .sp2-play-btn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  display: none;
   width: 64px;
   height: 64px;
   background: rgba(0, 0, 0, 0.55);
