@@ -126,6 +126,12 @@ export default function AdminPage() {
   const [addingHandle, setAddingHandle] = useState<string | null>(null);
   const [addFeedback, setAddFeedback] = useState<Record<string, string>>({});
 
+  const [calcDailyLimit, setCalcDailyLimit] = useState<number>(100);
+  const [calcLimitInput, setCalcLimitInput] = useState<string>("100");
+  const [calcUsage, setCalcUsage] = useState<{ today: number; week: number; month: number } | null>(null);
+  const [savingLimit, setSavingLimit] = useState(false);
+  const [limitSaved, setLimitSaved] = useState(false);
+
   async function fetchAccounts() {
     const res = await fetch("/api/accounts");
     const data = await res.json();
@@ -148,6 +154,35 @@ export default function AdminPage() {
     setLoadingCalcTests(false);
   }
 
+  async function fetchCalcSettings() {
+    const res = await fetch("/api/admin/settings");
+    const data = await res.json();
+    const limit = parseInt(data.calc_daily_limit ?? "100", 10) || 100;
+    setCalcDailyLimit(limit);
+    setCalcLimitInput(String(limit));
+  }
+
+  async function fetchCalcUsage() {
+    const res = await fetch("/api/admin/calc-usage");
+    const data = await res.json();
+    setCalcUsage(data);
+  }
+
+  async function handleSaveLimit() {
+    const val = parseInt(calcLimitInput, 10);
+    if (isNaN(val) || val < 1) return;
+    setSavingLimit(true);
+    await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "calc_daily_limit", value: String(val) }),
+    });
+    setCalcDailyLimit(val);
+    setSavingLimit(false);
+    setLimitSaved(true);
+    setTimeout(() => setLimitSaved(false), 2000);
+  }
+
   useEffect(() => {
     setAuthed(localStorage.getItem("adminAuth") === "ok");
     // Read initial tab from URL
@@ -158,7 +193,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); }
+    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); fetchCalcSettings(); fetchCalcUsage(); }
   }, [authed]); // eslint-disable-line
 
   useEffect(() => {
@@ -529,6 +564,7 @@ export default function AdminPage() {
                 if (tab.key === "scrape-log") fetchScrapeRuns();
                 if (tab.key === "users") fetchUsers();
                 if (tab.key === "feedback") fetchFeedback();
+                if (tab.key === "kalkylator") { fetchCalcSettings(); fetchCalcUsage(); }
               }}
             >
               {tab.label}
@@ -771,6 +807,51 @@ export default function AdminPage() {
             <h2 className="admin-section-title">Kalkylator-tester</h2>
             <span className="admin-section-meta">{calcTests.length} videor</span>
           </div>
+
+          {/* Limit + usage panel */}
+          <div style={{ background: "var(--bg1)", border: "1px solid var(--border)", boxShadow: "2px 2px 0 var(--border)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+            <p className="admin-tool-label" style={{ marginBottom: "0.75rem" }}>Daglig Apify-gräns</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: calcUsage ? "1rem" : 0 }}>
+              <div className="days-input-wrap">
+                <input
+                  className="days-input"
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={calcLimitInput}
+                  onChange={(e) => setCalcLimitInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveLimit()}
+                />
+                <span className="days-label">per dag</span>
+              </div>
+              <button className="scrape-btn" onClick={handleSaveLimit} disabled={savingLimit}>
+                {limitSaved ? "Sparad!" : savingLimit ? "Sparar…" : "Spara"}
+              </button>
+              <span style={{ fontSize: 10, color: "var(--muted)" }}>
+                Cachat innehåll räknas inte mot gränsen.
+              </span>
+            </div>
+            {calcUsage && (
+              <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", borderTop: "1px solid var(--border-light)", paddingTop: "0.75rem" }}>
+                <div>
+                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: calcUsage.today >= calcDailyLimit ? "#b30000" : "var(--ink)" }}>
+                    {calcUsage.today}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.week}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.month}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <p className="admin-section-desc">
             Videor som testats via kalkylatorn. Klicka "Lägg till" för att börja tracka ett konto.
           </p>

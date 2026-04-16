@@ -87,13 +87,29 @@ export async function POST(req: NextRequest) {
   // 3. Not in cache — check daily Apify call limit before starting a run
   const todayUTC = new Date();
   todayUTC.setUTCHours(0, 0, 0, 0);
+
+  // Fetch configurable limit from app_settings (default: 100)
+  let dailyLimit = 100;
+  try {
+    const { data: limitSetting } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "calc_daily_limit")
+      .maybeSingle();
+    if (limitSetting?.value) {
+      dailyLimit = parseInt(limitSetting.value, 10) || 100;
+    }
+  } catch {
+    // Fall back to default if table doesn't exist yet
+  }
+
   const { count: todayCount } = await supabaseAdmin
     .from("calculator_tests")
     .select("id", { count: "exact", head: true })
     .eq("source", "apify")
     .gte("tested_at", todayUTC.toISOString());
 
-  if ((todayCount ?? 0) >= 50) {
+  if ((todayCount ?? 0) >= dailyLimit) {
     return NextResponse.json({ error: "daily_limit" }, { status: 429 });
   }
 
