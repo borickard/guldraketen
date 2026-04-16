@@ -772,7 +772,12 @@ function HomeInner() {
                         <div className="gr-rk-card-front-thumb">
                           {thumb && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={thumb} alt="" className="gr-rk-card-front-img" />
+                            <img
+                              src={thumb}
+                              alt=""
+                              className="gr-rk-card-front-img"
+                              onLoad={(e) => e.currentTarget.parentElement?.classList.add("thumb-loaded")}
+                            />
                           )}
                           <button
                             className="gr-rk-card-share"
