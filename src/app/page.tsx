@@ -315,7 +315,6 @@ function HomeInner() {
   // Fetch current + adjacent weeks, with cache so navigation is instant
   useEffect(() => {
     if (!selectedWeek || weeks.length === 0) return;
-    setExpanded(null);
 
     const cache = videoCacheRef.current;
     const weekIdx = weeks.indexOf(selectedWeek);
