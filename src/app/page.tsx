@@ -747,8 +747,8 @@ function HomeInner() {
                     <div className="gr-rk-card-front">
                       <div className="gr-rk-skel-thumb-area" />
                       <div className="gr-rk-skel-info-area">
-                        <div className="gr-rk-skel-bar" style={{ width: "62%" }} />
-                        <div className="gr-rk-skel-bar" style={{ width: "38%", height: 22, marginTop: 2 }} />
+                        <div className="gr-rk-skel-bar" style={{ width: "55%" }} />
+                        <div className="gr-rk-skel-bar" style={{ width: "35%" }} />
                       </div>
                     </div>
                   </div>
