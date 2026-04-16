@@ -4117,15 +4117,15 @@ body {
     padding: 22px 22px 18px;
   }
   .gr-rk-card-back-er-eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.1em;
+    font-size: 16px;
+    letter-spacing: 0.08em;
     margin-bottom: 7px;
   }
   .gr-rk-card-back-rank {
-    font-size: 28px;
+    font-size: 40px;
   }
   .gr-rk-card-back-er {
-    font-size: 46px;
+    font-size: 48px;
   }
   .gr-rk-card-back-metrics {
     margin-top: 18px;
@@ -4133,11 +4133,11 @@ body {
     gap: 13px;
   }
   .gr-rk-card-back-metric-icon {
-    width: 17px;
-    height: 17px;
+    width: 18px;
+    height: 18px;
   }
   .gr-rk-card-back-metric-val {
-    font-size: 20px;
+    font-size: 22px;
   }
   .gr-rk-card-back-actions {
     margin-top: auto;
@@ -4356,16 +4356,15 @@ body {
 .gr-rk-card-back-metric-icon {
   color: rgba(237, 248, 251, 0.35);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .gr-rk-card-back-metric-val {
   font-family: 'Barlow', sans-serif;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 400;
   color: #EDF8FB;
   line-height: 1.1;
-  margin-left: auto;
-  text-align: right;
 }
 
 .gr-rk-card-back-actions {

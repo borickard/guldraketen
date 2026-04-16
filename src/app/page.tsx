@@ -813,15 +813,15 @@ function HomeInner() {
                         </div>
                         <div className="gr-rk-card-back-metrics">
                           {([
-                            { Icon: Eye,            val: acc.bestVideo.views },
-                            { Icon: ThumbsUp,       val: acc.bestVideo.likes },
-                            { Icon: MessageCircle,  val: acc.bestVideo.comments },
-                            { Icon: Share2,         val: acc.bestVideo.shares },
-                            ...(acc.followers > 0 ? [{ Icon: Users, val: acc.followers }] : []),
-                          ] as { Icon: React.ElementType; val: number }[]).map(({ Icon, val }, idx) => (
-                            <div key={idx} className="gr-rk-card-back-metric">
-                              <Icon className="gr-rk-card-back-metric-icon" size={13} />
+                            { Icon: Eye,            val: acc.bestVideo.views,    label: "Visningar" },
+                            { Icon: ThumbsUp,       val: acc.bestVideo.likes,    label: "Gilla-markeringar" },
+                            { Icon: MessageCircle,  val: acc.bestVideo.comments, label: "Kommentarer" },
+                            { Icon: Share2,         val: acc.bestVideo.shares,   label: "Delningar" },
+                            ...(acc.followers > 0 ? [{ Icon: Users, val: acc.followers, label: "Följare" }] : []),
+                          ] as { Icon: React.ElementType; val: number; label: string }[]).map(({ Icon, val, label }, idx) => (
+                            <div key={idx} className="gr-rk-card-back-metric" title={label}>
                               <span className="gr-rk-card-back-metric-val">{fmtLong(val)}</span>
+                              <Icon className="gr-rk-card-back-metric-icon" size={16} />
                             </div>
                           ))}
                         </div>
