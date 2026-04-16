@@ -550,7 +550,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 18px max(24px, calc(50vw - 320px));
   border-bottom: 1px solid rgba(237, 248, 251, 0.08);
   background: #07253A;
   gap: 24px;
@@ -558,7 +558,7 @@ body {
 }
 
 .gr-nav--compact {
-  padding: 9px 24px;
+  padding: 9px max(24px, calc(50vw - 320px));
   box-shadow: 0 1px 20px rgba(0,0,0,0.3);
 }
 
@@ -577,7 +577,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .gr-nav-logo { font-size: 31px; }
+  .gr-nav-logo { font-size: 40px; }
 }
 
 .gr-nav--compact .gr-nav-logo {
