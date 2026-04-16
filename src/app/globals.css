@@ -4110,36 +4110,6 @@ body {
   }
 }
 
-@media (max-width: 640px) {
-  /* Card back — mobile: scale everything by changing the one base font-size */
-  .gr-rk-card-back {
-    justify-content: flex-start;
-    padding: 22px 22px 18px;
-    font-size: 60px; /* base — eyebrow/rank/ER/metrics all scale via em */
-  }
-  .gr-rk-card-back-er-eyebrow {
-    margin-bottom: 8px;
-  }
-  .gr-rk-card-back-metrics {
-    margin-top: 18px;
-    padding-top: 16px;
-    gap: 13px;
-  }
-  .gr-rk-card-back-metric-icon {
-    width: 20px;
-    height: 20px;
-  }
-  .gr-rk-card-back-actions {
-    margin-top: auto;
-    padding-top: 20px;
-  }
-  .gr-rk-card-back-btn,
-  .gr-rk-card-back-profile {
-    font-size: 16px;
-    padding: 13px 12px;
-  }
-}
-
 /* Flip card — 9:16 portrait */
 .gr-rk-card {
   aspect-ratio: 9 / 16;
@@ -4409,6 +4379,36 @@ body {
 .gr-rk-card-back-profile:hover {
   border-color: rgba(237, 248, 251, 0.75);
   background: rgba(237, 248, 251, 0.05);
+}
+
+@media (max-width: 640px) {
+  /* Card back — must come AFTER base styles so mobile font-size wins the cascade */
+  .gr-rk-card-back {
+    justify-content: flex-start;
+    padding: 22px 22px 18px;
+    font-size: 60px; /* base — all em values scale from here */
+  }
+  .gr-rk-card-back-er-eyebrow {
+    margin-bottom: 8px;
+  }
+  .gr-rk-card-back-metrics {
+    margin-top: 18px;
+    padding-top: 16px;
+    gap: 13px;
+  }
+  .gr-rk-card-back-metric-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .gr-rk-card-back-actions {
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .gr-rk-card-back-btn,
+  .gr-rk-card-back-profile {
+    font-size: 16px;
+    padding: 13px 12px;
+  }
 }
 
 /* ── Skeleton shared ── */
