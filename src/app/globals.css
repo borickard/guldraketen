@@ -4396,6 +4396,9 @@ body {
     padding-top: 16px;
     gap: 13px;
   }
+  .gr-rk-card-back-metric-val {
+    font-size: 0.5em;
+  }
   .gr-rk-card-back-metric-icon {
     width: 20px;
     height: 20px;
