@@ -3835,7 +3835,7 @@ body {
 
 /* ── FAQ / OM SOCIALA RAKETER-SEKTION ── */
 .gr-faq-section {
-  background: #EDF8FB;
+  background: #EBE7E2;
   padding: var(--space-6) var(--space-3);
 }
 
@@ -3875,14 +3875,16 @@ body {
   padding: 1.2rem 0;
   text-align: left;
   font-family: 'Barlow', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 19px;
+  font-weight: 600;
   color: #07253A;
   transition: color 0.12s;
 }
 
-.gr-faq-q:hover {
-  color: rgba(7, 37, 58, 0.7);
+@media (hover: hover) {
+  .gr-faq-q:hover {
+    color: rgba(7, 37, 58, 0.7);
+  }
 }
 
 .gr-faq-chevron {
@@ -4121,10 +4123,12 @@ body {
 }
 
 .gr-rk-grid .gr-thumb {
+  display: block;
   width: 100%;
   height: unset;
   aspect-ratio: 9 / 16;
   border-radius: 0;
+  text-decoration: none;
 }
 
 .gr-rk-grid .gr-thumb-er {

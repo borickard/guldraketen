@@ -154,19 +154,21 @@ export default function HeaderTestPage() {
         {fonts.map((font) => (
           <div key={font.name} className="ht-section">
             <p className="ht-label">{font.name}</p>
-            <div className="ht-nav">
-              <span
-                className="ht-wordmark"
-                style={{ fontFamily: `'${font.family}', sans-serif`, fontWeight: font.weight }}
-              >
-                Sociala raketer
-              </span>
-              <div className="ht-nav-links">
-                {navLinks.map((l) => (
-                  <span key={l} className="ht-nav-link">{l}</span>
-                ))}
+            {["Sociala raketer", "Raketkoll"].map((name) => (
+              <div key={name} className="ht-nav" style={name !== "Sociala raketer" ? { borderTop: "none" } : {}}>
+                <span
+                  className="ht-wordmark"
+                  style={{ fontFamily: `'${font.family}', sans-serif`, fontWeight: font.weight }}
+                >
+                  {name}
+                </span>
+                <div className="ht-nav-links">
+                  {navLinks.map((l) => (
+                    <span key={l} className="ht-nav-link">{l}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         ))}
       </div>

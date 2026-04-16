@@ -36,15 +36,6 @@ interface AccountRow {
   videos: RawVideo[];
 }
 
-interface HofScore {
-  handle: string;
-  displayName: string;
-  totalPoints: number;
-  gold: number;
-  silver: number;
-  bronze: number;
-}
-
 interface Benchmark {
   count: number;
   average: number;
@@ -150,13 +141,6 @@ function TrendDown() {
   );
 }
 
-function MedalDot({ color }: { color: string }) {
-  return (
-    <svg width="8" height="8" viewBox="0 0 8 8" fill={color} style={{ flexShrink: 0 }}>
-      <circle cx="4" cy="4" r="4" />
-    </svg>
-  );
-}
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -217,7 +201,6 @@ function HomeInner() {
 
   // Site-wide state
   const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
-  const [hofScores, setHofScores] = useState<HofScore[]>([]);
 
   // ── Inline calculator state ──────────────────────────────────────────────────
   type CalcMode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "video-error";
@@ -290,10 +273,9 @@ function HomeInner() {
   // Karusell-tooltip
 
 
-  // Fetch stats + HoF scores on mount
+  // Fetch stats on mount
   useEffect(() => {
     fetch("/api/stats").then((r) => r.json()).then(setSiteStats).catch(() => {});
-    fetch("/api/topplistan").then((r) => r.json()).then(setHofScores).catch(() => {});
   }, []);
 
 
@@ -727,7 +709,12 @@ function HomeInner() {
               ))
             : accounts.slice(0, 3).map((acc, i) => (
                 <div key={acc.handle} className="gr-vc gr-rk-vk-card">
-                  <div className="gr-thumb">
+                  <a
+                    href={acc.bestVideo.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gr-thumb"
+                  >
                     {acc.bestVideo.thumbnail_url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -748,20 +735,14 @@ function HomeInner() {
                     <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
                       #{i + 1}
                     </span>
-                    <a
-                      href={acc.bestVideo.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="gr-rk-vk-link"
-                      aria-label="Öppna video på TikTok"
-                    >
+                    <span className="gr-rk-vk-link" aria-hidden="true">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
                         <polyline points="15 3 21 3 21 9" />
                         <line x1="10" y1="14" x2="21" y2="3" />
                       </svg>
-                    </a>
-                  </div>
+                    </span>
+                  </a>
                   <div className="gr-vid-info">
                     <a href={`/konto/${acc.handle}`} className="gr-rk-vk-name">
                       {acc.displayName}
@@ -998,45 +979,6 @@ function HomeInner() {
       )}
 
 
-      {/* ── HALL OF FAME ─────────────────────────────────────────────── */}
-      {hofScores.length > 0 && (
-        <section className="gr-hof-inline" id="hall-of-fame">
-          <div className="gr-hof-inline-inner">
-            <div className="gr-hof-inline-hdr">
-              <div>
-                <h2 className="gr-hof-inline-h2">Hall of fame</h2>
-                <p className="gr-hof-inline-sub">
-                  Flest poäng genom tiderna · Guld 15p · Silver 10p · Brons 5p
-                </p>
-              </div>
-              <a href="/hall-of-fame" className="gr-hof-inline-cta">
-                Se alla
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </a>
-            </div>
-            <ol className="gr-hof-inline-list">
-              {hofScores.slice(0, 10).map((s, i) => (
-                <li key={s.handle} className="gr-hof-inline-item">
-                  <span className="gr-hof-inline-rank">{i + 1}</span>
-                  <MedalDot color={[C.gold, C.silver, C.bronze][i] ?? "rgba(7,37,58,0.25)"} />
-                  <span className="gr-hof-inline-name">
-                    {s.displayName || `@${s.handle}`}
-                    <a href={`/konto/${s.handle}`} className="gr-score-profile-btn" aria-label={`Visa profil för ${s.displayName || s.handle}`}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                      </svg>
-                    </a>
-                  </span>
-                  <span className="gr-hof-inline-pts">{s.totalPoints}p</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-      )}
-
       {/* ── FAQ / OM SOCIALA RAKETER ─────────────────────────────────── */}
       <section className="gr-faq-section" id="om-engagemang">
         <div className="gr-faq-inner">
@@ -1188,9 +1130,8 @@ function HomeInner() {
           </div>
           <div>
             <span className="gr-footer-v2-col-title">Navigering</span>
-            <a href="#topplistan" className="gr-footer-v2-link">Topplistan</a>
-            <a href="#kalkylator" className="gr-footer-v2-link">Kalkylator</a>
-            <a href="#hall-of-fame" className="gr-footer-v2-link">Hall of Fame</a>
+            <a href="#topplistan" className="gr-footer-v2-link">Veckans raketer</a>
+            <a href="#kalkylator" className="gr-footer-v2-link">Räkna ut engagemang</a>
             <a href="#om-engagemang" className="gr-footer-v2-link">Om Sociala Raketer</a>
           </div>
           <div>

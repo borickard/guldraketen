@@ -5,16 +5,14 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const homeLinks = [
-  { href: "#topplistan",    label: "Topplistan" },
-  { href: "#kalkylator",    label: "Kalkylator" },
-  { href: "#hall-of-fame",  label: "Hall of Fame" },
+  { href: "#topplistan",    label: "Veckans raketer" },
+  { href: "#kalkylator",    label: "Räkna ut engagemang" },
   { href: "#om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 const otherLinks = [
-  { href: "/#topplistan",   label: "Topplistan" },
-  { href: "/#kalkylator",   label: "Kalkylator" },
-  { href: "/hall-of-fame",  label: "Hall of Fame" },
+  { href: "/#topplistan",   label: "Veckans raketer" },
+  { href: "/#kalkylator",   label: "Räkna ut engagemang" },
   { href: "/om-engagemang", label: "Om Sociala Raketer" },
 ];
 

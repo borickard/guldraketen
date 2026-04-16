@@ -4,6 +4,7 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "./components/LogoutButton";
 import VideoGrid from "./components/VideoGrid";
+import HofSection from "./components/HofSection";
 
 interface ProfileData {
   handle: string;
@@ -146,6 +147,7 @@ export default async function DashboardPage() {
             ))
           )}
           <VideoGrid />
+          <HofSection />
 
         </main>
 
