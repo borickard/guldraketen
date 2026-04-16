@@ -4133,11 +4133,11 @@ body {
     gap: 13px;
   }
   .gr-rk-card-back-metric-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
   .gr-rk-card-back-metric-val {
-    font-size: 22px;
+    font-size: 26px;
   }
   .gr-rk-card-back-actions {
     margin-top: auto;
@@ -4356,7 +4356,6 @@ body {
 .gr-rk-card-back-metric-icon {
   color: rgba(237, 248, 251, 0.35);
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .gr-rk-card-back-metric-val {
@@ -4365,6 +4364,8 @@ body {
   font-weight: 400;
   color: #EDF8FB;
   line-height: 1.1;
+  flex: 1;
+  text-align: right;
 }
 
 .gr-rk-card-back-actions {
