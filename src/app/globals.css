@@ -565,7 +565,7 @@ body {
 .gr-nav-logo {
   font-family: 'Modak', cursive;
   font-weight: 400;
-  font-size: 84px;
+  font-size: min(84px, 7.6vw);
   letter-spacing: .05em;
   text-transform: uppercase;
   color: #EDF8FB;
@@ -577,7 +577,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .gr-nav-logo { font-size: 40px; }
+  .gr-nav-logo { font-size: 31px; }
 }
 
 .gr-nav--compact .gr-nav-logo {
