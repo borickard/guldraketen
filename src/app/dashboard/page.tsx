@@ -181,9 +181,9 @@ const styles = `
   }
 
   .db-wordmark {
-    font-family: 'VT323', monospace;
+    font-family: 'Cherry Bomb One', cursive;
     font-size: 22px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     color: #EDF8FB;
     text-decoration: none;
