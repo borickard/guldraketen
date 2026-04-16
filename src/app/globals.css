@@ -4110,6 +4110,46 @@ body {
   }
 }
 
+@media (max-width: 640px) {
+  /* Card back — mobile: larger type, compact layout, buttons pinned to bottom */
+  .gr-rk-card-back {
+    justify-content: flex-start;
+    padding: 22px 22px 18px;
+  }
+  .gr-rk-card-back-er-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    margin-bottom: 7px;
+  }
+  .gr-rk-card-back-rank {
+    font-size: 28px;
+  }
+  .gr-rk-card-back-er {
+    font-size: 46px;
+  }
+  .gr-rk-card-back-metrics {
+    margin-top: 18px;
+    padding-top: 16px;
+    gap: 13px;
+  }
+  .gr-rk-card-back-metric-icon {
+    width: 17px;
+    height: 17px;
+  }
+  .gr-rk-card-back-metric-val {
+    font-size: 20px;
+  }
+  .gr-rk-card-back-actions {
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .gr-rk-card-back-btn,
+  .gr-rk-card-back-profile {
+    font-size: 16px;
+    padding: 13px 12px;
+  }
+}
+
 /* Flip card — 9:16 portrait */
 .gr-rk-card {
   aspect-ratio: 9 / 16;
@@ -4321,9 +4361,11 @@ body {
 .gr-rk-card-back-metric-val {
   font-family: 'Barlow', sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 400;
   color: #EDF8FB;
   line-height: 1.1;
+  margin-left: auto;
+  text-align: right;
 }
 
 .gr-rk-card-back-actions {
