@@ -3176,7 +3176,7 @@ body {
 .gr-hero-v2-h1 {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
-  font-size: clamp(2.8rem, 10vw, 5.5rem);
+  font-size: clamp(2.8rem, 10vw, 6.5rem);
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: -0.02em;
