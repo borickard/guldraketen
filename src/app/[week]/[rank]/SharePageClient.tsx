@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { ThumbsUp, MessageCircle, Share2, Eye } from "lucide-react";
 
 interface Video {
     handle: string;
@@ -19,7 +20,7 @@ interface Video {
 
 function fmt(n: number): string {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-    if (n >= 1_000) return Math.round(n / 1_000) + "K";
+    if (n >= 1_000) return Math.round(n / 1_000) + " k";
     return String(n);
 }
 
@@ -137,15 +138,16 @@ export default function VideoSharePage() {
                             <span className="sp2-er-lbl">Engagement rate</span>
                         </div>
 
-                        {/* Stats grid */}
+                        {/* Stats list */}
                         <div className="sp2-stats">
                             {[
-                                { val: fmt(video.likes), lbl: "Likes" },
-                                { val: fmt(video.comments), lbl: "Kommentarer" },
-                                { val: fmt(video.shares), lbl: "Delningar" },
-                                { val: fmt(video.views), lbl: "Visningar" },
-                            ].map(({ val, lbl }) => (
+                                { icon: <ThumbsUp size={14} />, val: fmt(video.likes), lbl: "Likes" },
+                                { icon: <MessageCircle size={14} />, val: fmt(video.comments), lbl: "Kommentarer" },
+                                { icon: <Share2 size={14} />, val: fmt(video.shares), lbl: "Delningar" },
+                                { icon: <Eye size={14} />, val: fmt(video.views), lbl: "Visningar" },
+                            ].map(({ icon, val, lbl }) => (
                                 <div key={lbl} className="sp2-stat">
+                                    <span className="sp2-stat-icon">{icon}</span>
                                     <span className="sp2-stat-val">{val}</span>
                                     <span className="sp2-stat-lbl">{lbl}</span>
                                 </div>
