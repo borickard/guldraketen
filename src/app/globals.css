@@ -589,10 +589,7 @@ body {
 }
 
 .gr-nav-links {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  margin-left: auto;
+  display: none;
 }
 
 .gr-nav-link {
@@ -665,13 +662,7 @@ body {
   color: #EDF8FB;
 }
 
-@media (max-width: 640px) {
-  .gr-nav-links { display: none; }
-}
-
-@media (min-width: 641px) {
-  .gr-nav .gr-hamburger { display: none; }
-}
+.gr-nav-links { display: none; }
 
 /* ── Nav & wordmark ── */
 .gr-root {
