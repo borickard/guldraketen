@@ -93,6 +93,7 @@ export default async function DashboardPage() {
         <header className="db-header">
           <a href="/" className="db-wordmark">Sociala Raketer</a>
           <nav className="db-nav">
+            <a href="/dashboard" className="db-nav-link">Dashboard</a>
             <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
           </nav>
           <LogoutButton />
@@ -192,8 +193,8 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    margin-right: auto;
-    margin-left: 2rem;
+    margin-left: auto;
+    margin-right: 1.5rem;
   }
 
   .db-nav-link {
