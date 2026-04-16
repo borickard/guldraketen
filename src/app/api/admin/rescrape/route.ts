@@ -1,12 +1,12 @@
 import { startScrapeForHandles, processScrapeResults } from "@/lib/scrape";
 import { NextRequest, NextResponse } from "next/server";
 
-// Allow up to 60 seconds — Apify typically finishes in 10–20s for 50 posts
-export const maxDuration = 60;
+// Allow up to 300 seconds — Apify + thumbnail uploads for a fresh account can take a while
+export const maxDuration = 300;
 
 const APIFY_API_BASE = "https://api.apify.com/v2";
 const POLL_INTERVAL_MS = 3_000;
-const MAX_WAIT_MS = 55_000; // stay within maxDuration
+const MAX_WAIT_MS = 120_000; // wait up to 2 min for Apify, leaving ~3 min for processing
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);

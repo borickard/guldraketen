@@ -2,6 +2,9 @@ import { processScrapeResults } from "@/lib/scrape";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
+// Give the webhook enough time to upload thumbnails for a full multi-account scrape
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
     let apifyRunId: string | undefined;
 
