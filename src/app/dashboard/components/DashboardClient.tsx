@@ -131,8 +131,6 @@ const css = `
   }
 
   .dc-tab--on:hover {
-    border-color: #E8116A;
-    color: #E8116A;
-    background: #1C1B19;
+    opacity: 0.8;
   }
 `;
