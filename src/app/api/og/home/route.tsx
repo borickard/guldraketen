@@ -128,7 +128,7 @@ export async function GET(req: Request) {
                 position: "absolute",
                 bottom: 20,
                 right: 16,
-                background: "rgba(7,37,58,0.88)",
+                background: "#07253A",
                 borderRadius: 8,
                 padding: "6px 16px",
                 display: "flex",
