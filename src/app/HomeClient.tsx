@@ -199,6 +199,7 @@ function HomeInner() {
   const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [carouselVideos, setCarouselVideos] = useState<RawVideo[]>([]);
 
   // Site-wide state
   const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
@@ -279,6 +280,12 @@ function HomeInner() {
     fetch("/api/stats").then((r) => r.json()).then(setSiteStats).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/carousel").then((r) => r.json()).then((data) => {
+      if (Array.isArray(data)) setCarouselVideos(data);
+    }).catch(() => {});
+  }, []);
+
 
   // Fetch available weeks
   useEffect(() => {
@@ -342,18 +349,6 @@ function HomeInner() {
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
 
-  const carouselVideos = useMemo(() => {
-    return videos
-      .filter((v) => v.thumbnail_url && (v.views ?? 0) >= 10000)
-      .sort((a, b) => Number(b.engagement_rate ?? 0) - Number(a.engagement_rate ?? 0))
-      .slice(0, 20);
-  }, [videos]);
-
-  const [carouselRow1, carouselRow2] = useMemo(() => {
-    if (carouselVideos.length < 2) return [carouselVideos, carouselVideos];
-    const mid = Math.ceil(carouselVideos.length / 2);
-    return [carouselVideos.slice(0, mid), carouselVideos.slice(mid)];
-  }, [carouselVideos]);
 
   // Map handle -> rank index for previous week
   const prevRankMap = useMemo(() => {
