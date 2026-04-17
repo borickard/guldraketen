@@ -25,8 +25,19 @@ function getMostRecentPublishedWeek(): string {
   return prevWeek(prevWeek(toISOWeek(new Date())));
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const week = getMostRecentPublishedWeek();
+function isPublishedWeek(weekStr: string): boolean {
+  const current = toISOWeek(new Date());
+  const previous = prevWeek(current);
+  return /^\d{4}-W\d{2}$/.test(weekStr) && weekStr !== current && weekStr !== previous;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>;
+}): Promise<Metadata> {
+  const { week: weekParam } = await searchParams;
+  const week = (weekParam && isPublishedWeek(weekParam)) ? weekParam : getMostRecentPublishedWeek();
   const weekNum = parseInt(week.split("-W")[1]);
   const year = week.split("-W")[0];
 
