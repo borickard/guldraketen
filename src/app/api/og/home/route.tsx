@@ -24,6 +24,24 @@ function getMostRecentPublishedWeek(): string {
   return prevWeek(prevWeek(toISOWeek(new Date())));
 }
 
+// Pre-fetch thumbnail and convert to data URL so Satori never requests it
+// directly — avoids crashes on expired TikTok CDN URLs
+async function safeThumb(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = "";
+    for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+    const ct = r.headers.get("content-type") ?? "image/jpeg";
+    return `data:${ct};base64,${btoa(bin)}`;
+  } catch {
+    return null;
+  }
+}
+
 const RANKS = [
   { num: "1", color: "#C8962A" },
   { num: "2", color: "#8A9299" },
@@ -33,6 +51,8 @@ const RANKS = [
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const week = searchParams.get("week") ?? getMostRecentPublishedWeek();
+  const weekNum = parseInt(week.split("-W")[1]);
+  const year = week.split("-W")[0];
 
   let fonts: { name: string; data: ArrayBuffer; weight: 700; style: "normal" }[] = [];
   let fontFamily = "sans-serif";
@@ -41,7 +61,7 @@ export async function GET(req: Request) {
     fonts = [{ name: "BC", data: f700, weight: 700, style: "normal" }];
     fontFamily = "BC";
   } catch {
-    // fallback
+    // fallback to sans-serif
   }
 
   const videos = await Promise.all([
@@ -50,33 +70,40 @@ export async function GET(req: Request) {
     getVideoForRank(week, 3),
   ]);
 
+  // Pre-fetch thumbnails as data URLs before passing to Satori
+  const thumbs = await Promise.all(videos.map((v) => safeThumb(v?.thumbnail_url ?? null)));
+
+  const navy = "#07253A";
+  const white = "#EDF8FB";
+
   return new ImageResponse(
-    <div style={{ display: "flex", width: "100%", height: "100%" }}>
-      {videos.map((video, i) => {
-        const { num, color } = RANKS[i];
-        const thumbnailUrl = video?.thumbnail_url ?? null;
+    <div style={{ display: "flex", width: "100%", height: "100%", background: navy }}>
+      {RANKS.map(({ num, color }, i) => {
+        const video = videos[i];
+        const thumb = thumbs[i];
         const er = video?.engagement_rate != null
           ? Number(video.engagement_rate).toFixed(2).replace(".", ",") + "%"
           : "–";
 
         return (
           <div
-            key={i}
+            key={num}
             style={{
               position: "relative",
+              display: "flex",
               width: "400px",
               height: "630px",
               flexShrink: 0,
               overflow: "hidden",
-              background: "#07253A",
+              background: navy,
             }}
           >
-            {thumbnailUrl && (
+            {thumb && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={thumbnailUrl}
+                src={thumb}
                 alt=""
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
               />
             )}
 
@@ -109,6 +136,14 @@ export async function GET(req: Request) {
             >
               <span style={{ fontFamily, fontSize: 36, fontWeight: 700, color }}>{er}</span>
             </div>
+
+            {/* No-thumbnail fallback: show week label on first panel */}
+            {!thumb && i === 0 && (
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", height: "100%", gap: "8px" }}>
+                <span style={{ fontFamily, fontSize: 14, fontWeight: 700, color: "#C8962A", letterSpacing: "0.14em" }}>SOCIALA RAKETER</span>
+                <span style={{ fontFamily, fontSize: 52, fontWeight: 700, color: white }}>V{weekNum} {year}</span>
+              </div>
+            )}
           </div>
         );
       })}
