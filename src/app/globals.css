@@ -3277,7 +3277,7 @@ body {
 .gr-scroll-hint {
   display: flex;
   justify-content: center;
-  padding: 8px 0 56px;
+  padding: 0 0 30px;
 }
 
 .gr-scroll-hint-arrow {
