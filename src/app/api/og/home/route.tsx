@@ -25,31 +25,23 @@ function getMostRecentPublishedWeek(): string {
 }
 
 const RANKS = [
-  { label: "Guld",   color: "#C8962A" },
-  { label: "Silver", color: "#8A9299" },
-  { label: "Brons",  color: "#96614A" },
+  { num: "1", color: "#C8962A" },
+  { num: "2", color: "#8A9299" },
+  { num: "3", color: "#96614A" },
 ];
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const week = searchParams.get("week") ?? getMostRecentPublishedWeek();
-  const weekNum = parseInt(week.split("-W")[1]);
-  const year = week.split("-W")[0];
 
-  let fonts: { name: string; data: ArrayBuffer; weight: 500 | 700; style: "normal" }[] = [];
+  let fonts: { name: string; data: ArrayBuffer; weight: 700; style: "normal" }[] = [];
   let fontFamily = "sans-serif";
   try {
-    const [f500, f700] = await Promise.all([
-      fetch(new URL("./barlow-condensed-500.woff", import.meta.url)).then((r) => r.arrayBuffer()),
-      fetch(new URL("./barlow-condensed-700.woff", import.meta.url)).then((r) => r.arrayBuffer()),
-    ]);
-    fonts = [
-      { name: "BC", data: f500, weight: 500, style: "normal" },
-      { name: "BC", data: f700, weight: 700, style: "normal" },
-    ];
+    const f700 = await fetch(new URL("./barlow-condensed-700.woff", import.meta.url)).then((r) => r.arrayBuffer());
+    fonts = [{ name: "BC", data: f700, weight: 700, style: "normal" }];
     fontFamily = "BC";
   } catch {
-    // fallback to sans-serif
+    // fallback
   }
 
   const videos = await Promise.all([
@@ -58,65 +50,68 @@ export async function GET(req: Request) {
     getVideoForRank(week, 3),
   ]);
 
-  const navy = "#07253A";
-  const white = "#EDF8FB";
-  const dim = "rgba(237,248,251,0.45)";
-
   return new ImageResponse(
-    <div style={{ display: "flex", width: "100%", height: "100%", background: navy, padding: "60px" }}>
+    <div style={{ display: "flex", width: "100%", height: "100%" }}>
+      {videos.map((video, i) => {
+        const { num, color } = RANKS[i];
+        const thumbnailUrl = video?.thumbnail_url ?? null;
+        const er = video?.engagement_rate != null
+          ? Number(video.engagement_rate).toFixed(2).replace(".", ",") + "%"
+          : "–";
 
-      {/* Left: brand */}
-      <div style={{ display: "flex", flexDirection: "column", width: "340px", flexShrink: 0 }}>
-        <span style={{ fontFamily, fontSize: 13, fontWeight: 700, color: "#C8962A", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-          Sociala Raketer
-        </span>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily, fontSize: 80, fontWeight: 700, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>Veckans</span>
-          <span style={{ fontFamily, fontSize: 80, fontWeight: 700, color: white, lineHeight: 1, letterSpacing: "-0.01em" }}>Raketer</span>
-        </div>
-        <span style={{ fontFamily, fontSize: 20, fontWeight: 500, color: dim, marginTop: "20px" }}>
-          Vecka {weekNum} · {year}
-        </span>
-      </div>
+        return (
+          <div
+            key={i}
+            style={{
+              position: "relative",
+              width: "400px",
+              height: "630px",
+              flexShrink: 0,
+              overflow: "hidden",
+              background: "#07253A",
+            }}
+          >
+            {thumbnailUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbnailUrl}
+                alt=""
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
+              />
+            )}
 
-      {/* Divider */}
-      <div style={{ width: "1px", background: "rgba(237,248,251,0.12)", margin: "0 56px", flexShrink: 0 }} />
-
-      {/* Right: rank rows */}
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
-        {videos.map((video, i) => {
-          const acct = Array.isArray(video?.accounts) ? video?.accounts[0] : video?.accounts;
-          const name = acct?.display_name ?? (video ? `@${video.handle}` : "–");
-          const er = video?.engagement_rate != null
-            ? Number(video.engagement_rate).toFixed(2).replace(".", ",") + "%"
-            : "–";
-          const { label, color } = RANKS[i];
-
-          return (
+            {/* Rank badge — top left */}
             <div
-              key={i}
               style={{
+                position: "absolute",
+                top: 16,
+                left: 16,
+                background: color,
+                borderRadius: 6,
+                padding: "4px 10px",
                 display: "flex",
-                flexDirection: "column",
-                paddingBottom: i < 2 ? "28px" : "0",
-                borderBottom: i < 2 ? "1px solid rgba(237,248,251,0.1)" : "none",
-                flex: 1,
-                justifyContent: "center",
               }}
             >
-              <span style={{ fontFamily, fontSize: 13, fontWeight: 700, color, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "8px" }}>
-                {label}
-              </span>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontFamily, fontSize: 36, fontWeight: 700, color: white, flex: 1 }}>{name}</span>
-                <span style={{ fontFamily, fontSize: 48, fontWeight: 700, color, marginLeft: "24px", letterSpacing: "-0.01em" }}>{er}</span>
-              </div>
+              <span style={{ fontFamily, fontSize: 22, fontWeight: 700, color: "#fff" }}>#{num}</span>
             </div>
-          );
-        })}
-      </div>
 
+            {/* ER badge — bottom right */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 20,
+                right: 16,
+                background: "rgba(7,37,58,0.88)",
+                borderRadius: 8,
+                padding: "6px 16px",
+                display: "flex",
+              }}
+            >
+              <span style={{ fontFamily, fontSize: 36, fontWeight: 700, color }}>{er}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>,
     { width: 1200, height: 630, fonts }
   );
