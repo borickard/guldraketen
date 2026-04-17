@@ -129,4 +129,10 @@ const css = `
     border-color: #1C1B19;
     color: #EDF8FB;
   }
+
+  .dc-tab--on:hover {
+    border-color: #E8116A;
+    color: #E8116A;
+    background: #1C1B19;
+  }
 `;
