@@ -24,19 +24,14 @@ function getMostRecentPublishedWeek(): string {
   return prevWeek(prevWeek(toISOWeek(new Date())));
 }
 
-// Pre-fetch thumbnail and convert to data URL so Satori never requests it
-// directly — avoids crashes on expired TikTok CDN URLs
+// Validate the thumbnail URL is reachable without downloading the full image.
+// Passes the original URL directly to Satori (no base64 conversion = no memory spike).
+// Returns null if unreachable so we fall back to a dark background instead of crashing.
 async function safeThumb(url: string | null): Promise<string | null> {
   if (!url) return null;
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!r.ok) return null;
-    const buf = await r.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let bin = "";
-    for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-    const ct = r.headers.get("content-type") ?? "image/jpeg";
-    return `data:${ct};base64,${btoa(bin)}`;
+    const r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
+    return r.ok ? url : null;
   } catch {
     return null;
   }
@@ -74,7 +69,6 @@ export async function GET(req: Request) {
   const thumbs = await Promise.all(videos.map((v) => safeThumb(v?.thumbnail_url ?? null)));
 
   const navy = "#07253A";
-  const white = "#EDF8FB";
 
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", background: navy }}>
@@ -141,7 +135,7 @@ export async function GET(req: Request) {
             {!thumb && i === 0 && (
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", height: "100%", gap: "8px" }}>
                 <span style={{ fontFamily, fontSize: 14, fontWeight: 700, color: "#C8962A", letterSpacing: "0.14em" }}>SOCIALA RAKETER</span>
-                <span style={{ fontFamily, fontSize: 52, fontWeight: 700, color: white }}>V{weekNum} {year}</span>
+                <span style={{ fontFamily, fontSize: 52, fontWeight: 700, color: "#EDF8FB" }}>V{weekNum} {year}</span>
               </div>
             )}
           </div>
