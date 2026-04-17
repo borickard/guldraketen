@@ -12,6 +12,14 @@ interface User {
   handles: string[];
 }
 
+const USD_TO_SEK = 10.5; // approximate, update as needed
+const COST_USD_PER_RESULT = 4 / 1000;
+
+function costSEK(results: number): string {
+  const sek = results * COST_USD_PER_RESULT * USD_TO_SEK;
+  return sek.toLocaleString("sv-SE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " kr";
+}
+
 function toWeekLabel(dateStr: string): string {
   const date = new Date(dateStr);
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -854,6 +862,14 @@ export default function AdminPage() {
 
           <p className="admin-section-desc">
             Videor som testats via kalkylatorn. Klicka "Lägg till" för att börja tracka ett konto.
+            {calcTests.length > 0 && (() => {
+              const apifyCount = calcTests.filter(t => t.source === "apify").length;
+              return apifyCount > 0 ? (
+                <span style={{ marginLeft: 8, color: "var(--mid)" }}>
+                  Total kostnad (Apify): <strong>{costSEK(apifyCount)}</strong>
+                </span>
+              ) : null;
+            })()}
           </p>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
             {[
@@ -891,6 +907,7 @@ export default function AdminPage() {
                     <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
                     <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
                     <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Källa</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Kostnad</th>
                     <th style={{ padding: "6px 8px" }}></th>
                     <th style={{ padding: "6px 8px" }}></th>
                   </tr>
@@ -919,6 +936,9 @@ export default function AdminPage() {
                           ) : (
                             <span style={{ fontSize: 9, color: "var(--muted)" }}>—</span>
                           )}
+                        </td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                          {t.source === "apify" ? costSEK(1) : <span style={{ color: "var(--muted)" }}>—</span>}
                         </td>
                         <td style={{ padding: "6px 8px" }}>
                           {t.video_url && (
@@ -981,6 +1001,7 @@ export default function AdminPage() {
                     <th className="right">Upsertade</th>
                     <th className="right">Hoppade</th>
                     <th className="right">Varaktighet</th>
+                    <th className="right">Kostnad</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1004,6 +1025,11 @@ export default function AdminPage() {
                         <td className="right">{r.upserted ?? "—"}</td>
                         <td className="right">{r.skipped ?? "—"}</td>
                         <td className="right">{duration !== null ? `${duration}s` : "—"}</td>
+                        <td className="right" style={{ color: "var(--mid)" }}>
+                          {(r.upserted != null || r.skipped != null)
+                            ? costSEK((r.upserted ?? 0) + (r.skipped ?? 0))
+                            : "—"}
+                        </td>
                       </tr>
                     );
                   })}
