@@ -147,7 +147,7 @@ const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey
   { label: "Delningar", min: "shares_min",   max: "shares_max"   },
 ];
 
-export default function VideoGrid() {
+export default function VideoGrid({ handle }: { handle?: string }) {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
@@ -160,10 +160,12 @@ export default function VideoGrid() {
   const calRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard/videos")
+    setLoading(true);
+    const url = handle ? `/api/dashboard/videos?handle=${encodeURIComponent(handle)}` : "/api/dashboard/videos";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoading(false); });
-  }, []);
+  }, [handle]);
 
   // Read URL params on mount
   useEffect(() => {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "./components/LogoutButton";
-import VideoGrid from "./components/VideoGrid";
+import DashboardClient from "./components/DashboardClient";
 
 interface ProfileData {
   handle: string;
@@ -67,14 +67,6 @@ async function fetchProfile(handle: string): Promise<ProfileData | null> {
   };
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("sv-SE", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -103,54 +95,8 @@ export default async function DashboardPage() {
           {profiles.length === 0 ? (
             <p className="db-empty">Inga konton är tilldelade din profil ännu. Kontakta administratören.</p>
           ) : (
-            profiles.map((p) => (
-              <div key={p.handle} className="db-profile-block">
-
-                {/* ── Identity ── */}
-                <div className="db-identity">
-                  {p.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.avatar_url} alt={p.handle} className="db-avatar" />
-                  ) : (
-                    <div className="db-avatar db-avatar--placeholder" />
-                  )}
-                  <div className="db-identity-info">
-                    <h1 className="db-displayname">{p.display_name ?? `@${p.handle}`}</h1>
-                    <p className="db-handle">@{p.handle}</p>
-                    <p className="db-meta">
-                      {p.followers != null ? `${p.followers.toLocaleString("sv-SE")} följare · ` : ""}
-                      Videor inhämtade sedan {formatDate(p.tracked_since)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* ── Stats ── */}
-                <div className="db-stats">
-                  <div className="db-stat">
-                    <span className="db-stat-value">
-                      {p.avg_er != null ? `${p.avg_er.toFixed(2)}%` : "—"}
-                    </span>
-                    <span className="db-stat-label">Genomsnittlig engagemangsrate</span>
-                  </div>
-                  <div className="db-stat">
-                    <span className="db-stat-value">{p.post_count}</span>
-                    <span className="db-stat-label">Videor inhämtade</span>
-                  </div>
-                  <div className="db-stat">
-                    <span className="db-stat-value">
-                      {p.posts_per_week >= 1
-                        ? `${p.posts_per_week.toFixed(1)}/vecka`
-                        : `${(p.posts_per_week * 4.33).toFixed(1)}/mån`}
-                    </span>
-                    <span className="db-stat-label">Publiceringsfrekvens</span>
-                  </div>
-                </div>
-
-              </div>
-            ))
+            <DashboardClient profiles={profiles} />
           )}
-          <VideoGrid />
-
         </main>
 
       </div>
