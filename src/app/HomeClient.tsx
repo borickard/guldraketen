@@ -57,9 +57,21 @@ function displayName(v: RawVideo): string {
   return acct.display_name || `@${v.handle}`;
 }
 
+interface ProfileVideo {
+  videoId: string | null;
+  videoUrl: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  engagementRate: number;
+  caption: string;
+}
+
 type CalcDetected =
   | { type: "video"; videoId: string; handle: string | null }
-  | { type: "short"; url: string };
+  | { type: "short"; url: string }
+  | { type: "profile"; handle: string };
 
 function detectCalcInput(raw: string): CalcDetected | null {
   const s = raw.trim();
@@ -69,6 +81,11 @@ function detectCalcInput(raw: string): CalcDetected | null {
   // Standard video URL
   const vid = s.match(/\/video\/(\d+)/)?.[1];
   if (vid) return { type: "video", videoId: vid, handle: s.match(/\/@([^/?#\s]+)/)?.[1] ?? null };
+  // Profile URL or @handle
+  const urlHandle = s.match(/\/@([^/?#\s]+)/)?.[1];
+  if (urlHandle) return { type: "profile", handle: urlHandle };
+  const bare = s.match(/^@?([a-zA-Z0-9._]{2,24})$/)?.[1];
+  if (bare) return { type: "profile", handle: bare };
   return null;
 }
 
@@ -205,7 +222,7 @@ function HomeInner() {
   const [siteStats, setSiteStats] = useState<{ video_count: number; account_count: number } | null>(null);
 
   // ── Inline calculator state ──────────────────────────────────────────────────
-  type CalcMode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "video-error";
+  type CalcMode = "idle" | "video-loading" | "video-ready" | "video-not-found" | "video-error" | "profile-loading" | "profile-ready" | "profile-error";
   const [calcUrl, setCalcUrl] = useState("");
   const [calcUrlError, setCalcUrlError] = useState(false);
   const [calcMode, setCalcMode] = useState<CalcMode>("idle");
@@ -217,6 +234,9 @@ function HomeInner() {
   const [calcThumb, setCalcThumb] = useState<string | null>(null);
   const [calcLightbox, setCalcLightbox] = useState(false);
   const [calcCopied, setCalcCopied] = useState(false);
+  const [calcProfileHandle, setCalcProfileHandle] = useState<string | null>(null);
+  const [calcProfileVideos, setCalcProfileVideos] = useState<ProfileVideo[] | null>(null);
+  const [calcProfileError, setCalcProfileError] = useState<string | null>(null);
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
@@ -448,6 +468,55 @@ function HomeInner() {
     } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
   }, [startCalcFetch]);
 
+  const startProfileFetch = useCallback(async (handle: string) => {
+    if (calcPollRef.current) clearInterval(calcPollRef.current);
+    setCalcMode("profile-loading");
+    setCalcProfileHandle(handle);
+    setCalcProfileVideos(null);
+    setCalcProfileError(null);
+    try {
+      const res = await fetch("/api/fetch-profile/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle }),
+      });
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-json */ }
+      if (!res.ok) {
+        setCalcMode("profile-error");
+        setCalcProfileError((data.error as string) ?? `Serverfel (${res.status})`);
+        return;
+      }
+      const runId = data.runId as string;
+      let ms = 0;
+      calcPollRef.current = setInterval(async () => {
+        ms += 5000;
+        if (ms >= 120_000) {
+          clearInterval(calcPollRef.current!);
+          setCalcMode("profile-error");
+          setCalcProfileError("Tidsgränsen överskreds. Prova igen lite senare.");
+          return;
+        }
+        try {
+          const r = await fetch(`/api/fetch-profile/result?runId=${runId}`);
+          const d = await r.json();
+          if (d.status === "ready") {
+            clearInterval(calcPollRef.current!);
+            setCalcProfileVideos(d.videos ?? []);
+            setCalcMode("profile-ready");
+          } else if (d.status === "error") {
+            clearInterval(calcPollRef.current!);
+            setCalcMode("profile-error");
+            setCalcProfileError("Hämtningen misslyckades. Kontrollera att kontot är publikt.");
+          }
+        } catch { /* keep polling */ }
+      }, 5000);
+    } catch {
+      setCalcMode("profile-error");
+      setCalcProfileError("Kunde inte kontakta servern.");
+    }
+  }, []);
+
   // Auto-fetch from ?v= URL param on mount
   useEffect(() => {
     if (calcStartedRef.current) return;
@@ -476,11 +545,21 @@ function HomeInner() {
 
   const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
 
+  const profileAvgEr = useMemo(() => {
+    if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
+    return calcProfileVideos.reduce((s, v) => s + v.engagementRate, 0) / calcProfileVideos.length;
+  }, [calcProfileVideos]);
+
+  const profileBenchPct = calcBench && calcBench.count > 0 && profileAvgEr !== null
+    ? Math.round(computePercentile(profileAvgEr, calcBench))
+    : null;
+
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
     if (!detected) { setCalcUrlError(true); return; }
     setCalcUrlError(false);
     if (detected.type === "short") resolveAndCalcFetch(detected.url);
+    else if (detected.type === "profile") startProfileFetch(detected.handle);
     else startCalcFetch(detected.videoId, detected.handle);
   }
 
@@ -784,14 +863,14 @@ function HomeInner() {
           <h2 className="gr-calc-h2">Hur engagerande är ditt innehåll?</h2>
           <div className="gr-calc-desc">
             <p>
-              För att ta reda på hur engagerande ditt innehåll är, klistra in länken här, så räknar vi ut ett resultat och jämför det mot andra framgångsrika svenska TikTok-konton.
+              För att ta reda på hur engagerande ditt innehåll är, klistra in länken till en TikTok-video eller till din profil här, så räknar vi ut ett resultat och jämför det mot andra.
             </p>
           </div>
           <div className="gr-calc-input-wrap">
             <input
               className={"gr-calc-section-input" + (calcUrlError ? " error" : "")}
               type="url"
-              placeholder="tiktok.com/@konto/video/..."
+              placeholder="tiktok.com/@konto eller tiktok.com/@konto/video/..."
               value={calcUrl}
               onChange={(e) => { setCalcUrl(e.target.value); setCalcUrlError(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleCalcSubmit(); }}
@@ -802,7 +881,7 @@ function HomeInner() {
           </div>
           {calcUrlError && (
             <p className="gr-calc-section-err">
-              Klistra in en TikTok-videolänk, t.ex. tiktok.com/@konto/video/12345.
+              Klistra in en TikTok-videolänk eller profilsida, t.ex. tiktok.com/@konto.
             </p>
           )}
 
@@ -830,6 +909,58 @@ function HomeInner() {
           {calcMode === "video-error" && calcError && (
             <div className="gr-kalky-v2-notice gr-kalky-v2-notice--error" style={{ marginTop: 32 }}>
               {calcError}
+            </div>
+          )}
+
+          {calcMode === "profile-loading" && (
+            <div className="gr-kalky-v2-notice" style={{ marginTop: 32, color: "var(--gr-mid, #888)" }}>
+              Hämtar senaste 10 videos för @{calcProfileHandle}…
+            </div>
+          )}
+
+          {calcMode === "profile-error" && calcProfileError && (
+            <div className="gr-kalky-v2-notice gr-kalky-v2-notice--error" style={{ marginTop: 32 }}>
+              {calcProfileError}
+            </div>
+          )}
+
+          {calcMode === "profile-ready" && calcProfileVideos && (
+            <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
+              <p className="gr-kalky-v2-er-lbl">@{calcProfileHandle} · genomsnittlig engagement rate</p>
+              {profileAvgEr !== null ? (
+                <>
+                  <p className="gr-kalky-v2-er">{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+                  {profileBenchPct !== null && (
+                    <>
+                      <p className="gr-kalky-v2-bench-line">
+                        Bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av svenska företagsvideor
+                      </p>
+                      <div className="gr-kalky-v2-bench-track">
+                        <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(profileBenchPct, 99)}%` }} />
+                        <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(profileBenchPct, 99)}%` }} />
+                      </div>
+                      <div className="gr-kalky-v2-bench-labels"><span>Låg</span><span>Medel</span><span>Hög</span></div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
+              )}
+
+              <div className="gr-kalky-v2-stats-col" style={{ marginTop: 24 }}>
+                <div className="gr-kalky-v2-stat-row" style={{ borderBottom: "1px solid rgba(28,27,25,0.1)", paddingBottom: 6, marginBottom: 4 }}>
+                  <span className="gr-kalky-v2-stat-lbl" style={{ fontWeight: 700 }}>Video</span>
+                  <span className="gr-kalky-v2-stat-val" style={{ fontWeight: 700 }}>Eng.rate</span>
+                </div>
+                {calcProfileVideos.map((v, i) => (
+                  <div key={i} className="gr-kalky-v2-stat-row">
+                    <a href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="gr-kalky-v2-stat-lbl" style={{ color: "inherit", textDecoration: "none", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {v.caption || `Video ${i + 1}`}
+                    </a>
+                    <span className="gr-kalky-v2-stat-val" style={{ marginLeft: 12, flexShrink: 0 }}>{v.engagementRate.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
