@@ -423,7 +423,7 @@ function KalkylatornPage() {
                     {benchPct !== null && (
                       <>
                         <p className="gr-kalky-v2-bench-line">
-                          Bättre än <strong>{benchPct >= 99 ? "99+" : benchPct}%</strong> av svenska företagsvideor
+                          Bättre än <strong>{benchPct >= 99 ? "99+" : benchPct}%</strong> av videor undersökta av Sociala Raketer
                         </p>
                         <div className="gr-kalky-v2-bench-track">
                           <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(benchPct, 99)}%` }} />

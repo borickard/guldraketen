@@ -1047,7 +1047,7 @@ function HomeInner() {
               {profileBenchPct !== null && profileAvgEr !== null && (
                 <div style={{ marginBottom: 8 }}>
                   <p className="gr-kalky-v2-bench-line">
-                    Snittet är bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av svenska företagsvideor
+                    Snittet är bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av videor undersökta av Sociala Raketer
                   </p>
                   <div className="gr-kalky-v2-bench-track">
                     <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(profileBenchPct, 99)}%` }} />
@@ -1178,7 +1178,7 @@ function HomeInner() {
                       {calcBenchPct !== null && (
                         <>
                           <p className="gr-kalky-v2-bench-line">
-                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av svenska företagsvideor
+                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av videor undersökta av Sociala Raketer
                           </p>
                           <div className="gr-kalky-v2-bench-track">
                             <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
