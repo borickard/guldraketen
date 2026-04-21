@@ -98,7 +98,7 @@ interface Account {
   videos: [{ count: number }] | null;
 }
 
-const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback"] as const;
+const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback", "betatest"] as const;
 type TabKey = typeof VALID_TABS[number];
 
 export default function AdminPage() {
@@ -201,7 +201,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); fetchCalcSettings(); fetchCalcUsage(); }
+    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); fetchBetaSignups(); fetchCalcSettings(); fetchCalcUsage(); }
   }, [authed]); // eslint-disable-line
 
   useEffect(() => {
@@ -385,6 +385,18 @@ export default function AdminPage() {
     setLoadingFeedback(false);
   }
 
+  interface BetaSignup { id: string; email: string; handle: string | null; video_url: string | null; created_at: string; }
+  const [betaSignups, setBetaSignups] = useState<BetaSignup[]>([]);
+  const [loadingBetaSignups, setLoadingBetaSignups] = useState(false);
+
+  async function fetchBetaSignups() {
+    setLoadingBetaSignups(true);
+    const res = await fetch("/api/admin/beta-signups");
+    const data = await res.json();
+    setBetaSignups(Array.isArray(data) ? data : []);
+    setLoadingBetaSignups(false);
+  }
+
   async function fetchScrapeRuns() {
     setLoadingScrapeRuns(true);
     const res = await fetch("/api/admin/scrape-runs");
@@ -562,6 +574,7 @@ export default function AdminPage() {
             { key: "scrape-log", label: "Scrape-log", meta: "" },
             { key: "users", label: "Användare", meta: `${users.length}` },
             { key: "feedback", label: "Feedback", meta: feedbackItems.length > 0 ? `${feedbackItems.length}` : "" },
+            { key: "betatest", label: "Betatest", meta: betaSignups.length > 0 ? `${betaSignups.length}` : "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -572,6 +585,7 @@ export default function AdminPage() {
                 if (tab.key === "scrape-log") fetchScrapeRuns();
                 if (tab.key === "users") fetchUsers();
                 if (tab.key === "feedback") fetchFeedback();
+                if (tab.key === "betatest") fetchBetaSignups();
                 if (tab.key === "kalkylator") { fetchCalcSettings(); fetchCalcUsage(); }
               }}
             >
@@ -1243,6 +1257,58 @@ export default function AdminPage() {
                       </span>
                     </div>
                     <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap" }}>{item.message}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Section 7: Beta-anmälningar ── */}
+        {activeSection === "betatest" && (
+          <div className="admin-section">
+            <div className="admin-section-hdr">
+              <h2 className="admin-section-title">Beta-anmälningar</h2>
+              <span className="admin-section-meta">{betaSignups.length} anmälningar</span>
+            </div>
+            {loadingBetaSignups ? (
+              <p className="loading">Laddar…</p>
+            ) : betaSignups.length === 0 ? (
+              <p className="empty">Inga beta-anmälningar ännu.</p>
+            ) : (
+              <ul className="account-list">
+                {betaSignups.map((item) => (
+                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", width: "100%" }}>
+                      <a className="account-handle" href={`mailto:${item.email}`} style={{ fontWeight: 600, fontSize: 13 }}>
+                        {item.email}
+                      </a>
+                      {item.handle && (
+                        <a
+                          className="account-meta"
+                          href={`https://www.tiktok.com/@${item.handle}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 12, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}
+                        >
+                          @{item.handle}
+                        </a>
+                      )}
+                      {item.video_url && (
+                        <a
+                          className="account-meta"
+                          href={item.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 11, color: "#666" }}
+                        >
+                          Video
+                        </a>
+                      )}
+                      <span className="account-meta" style={{ marginLeft: "auto" }}>
+                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
