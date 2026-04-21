@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import HomeClient from "./HomeClient";
 
+export const dynamic = "force-dynamic";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://guldraketen.vercel.app";
 
 function toISOWeek(date: Date): string {
@@ -43,7 +45,7 @@ export async function generateMetadata({
 
   const title = "Sociala Raketer – Veckans mest engagerande TikTok-konton";
   const description = `Rankar Sveriges mest engagerande företag och organisationer på TikTok vecka för vecka. Se veckans topplista – V${weekNum} ${year}.`;
-  const ogImage = `${SITE_URL}/api/og/home?week=${week}`;
+  const ogImage = `${SITE_URL}/api/og/home?week=${week}&v=4`;
 
   return {
     title,
