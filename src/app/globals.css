@@ -1846,6 +1846,195 @@ body {
 .gr-kalky-v2-profile-result {
   animation: kalky-expand 0.3s ease;
 }
+
+/* ── Profile calc skeleton ── */
+.gr-calc-prof-skel {
+  animation: kalky-expand 0.3s ease;
+}
+.gr-calc-prof-skel-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.gr-calc-prof-skel-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(237,248,251,0.08);
+  animation: gr-shimmer 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.gr-calc-prof-skel-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  color: #EDF8FB;
+  margin: 0 0 4px;
+}
+.gr-calc-prof-skel-status {
+  font-family: var(--gr-mono);
+  font-size: 11px;
+  color: rgba(237,248,251,0.35);
+  margin: 0;
+}
+.gr-calc-prof-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .gr-calc-prof-skel-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.gr-calc-prof-skel-card {
+  aspect-ratio: 9/16;
+  background: rgba(237,248,251,0.06);
+  border-radius: 6px;
+  animation: gr-shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Profile video grid ── */
+.gr-calc-prof-hero {
+  margin-bottom: 16px;
+}
+.gr-calc-prof-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 24px;
+}
+@media (max-width: 600px) {
+  .gr-calc-prof-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.gr-calc-prof-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-decoration: none;
+  color: inherit;
+}
+.gr-calc-prof-card:hover .gr-calc-prof-thumb-wrap { opacity: 0.82; }
+.gr-calc-prof-thumb-wrap {
+  position: relative;
+  aspect-ratio: 9/16;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(237,248,251,0.06);
+  transition: opacity 0.15s;
+}
+.gr-calc-prof-thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gr-calc-prof-er-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: rgba(7,37,58,0.88);
+  color: #EDF8FB;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: .02em;
+}
+.gr-calc-prof-caption {
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  color: rgba(237,248,251,0.45);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+.gr-calc-prof-metrics {
+  display: flex;
+  gap: 5px;
+  font-family: var(--gr-mono);
+  font-size: 9px;
+  color: rgba(237,248,251,0.28);
+  flex-wrap: wrap;
+}
+.gr-calc-prof-metrics span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ── Weekly comparison ── */
+.gr-calc-weekly-cmp {
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(237,248,251,0.04);
+  border: 1px solid rgba(237,248,251,0.08);
+  border-radius: 8px;
+}
+.gr-calc-weekly-cmp-title {
+  font-family: var(--gr-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(237,248,251,0.35);
+  margin: 0 0 12px;
+}
+.gr-calc-weekly-cmp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gr-calc-weekly-cmp-row--you {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(237,248,251,0.07);
+  margin-bottom: 0;
+}
+.gr-calc-weekly-cmp-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 38%;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.gr-calc-weekly-cmp-bar-track {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  background: rgba(237,248,251,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.gr-calc-weekly-cmp-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.gr-calc-weekly-cmp-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+  width: 44px;
+  flex-shrink: 0;
+}
+.gr-calc-weekly-cmp-insight {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #C8962A;
+  margin: 12px 0 0;
+  text-align: center;
+}
+
 .gr-kalky-v2-profile-result-h {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;

@@ -66,6 +66,7 @@ interface ProfileVideo {
   shares: number;
   engagementRate: number;
   caption: string;
+  thumbnailUrl: string | null;
 }
 
 type CalcDetected =
@@ -200,6 +201,70 @@ function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; f
       unoptimized
       onError={() => setFailed(true)}
     />
+  );
+}
+
+// ─── Weekly comparison component ──────────────────────────────────────────────
+
+function WeeklyComparison({ accounts, userEr, userLabel, weekLabel }: {
+  accounts: AccountRow[];
+  userEr: number;
+  userLabel: string;
+  weekLabel: string;
+}) {
+  const top3 = accounts.slice(0, 3);
+  if (top3.length === 0) return null;
+
+  const maxEr = Math.max(...top3.map(a => a.bestEngagement), userEr);
+
+  const rows = [
+    ...top3.map((acc, i) => ({
+      id: acc.handle,
+      label: acc.displayName,
+      er: acc.bestEngagement,
+      color: rankColor(i),
+      isUser: false,
+    })),
+    { id: "you", label: userLabel, er: userEr, color: C.accent, isUser: true },
+  ].sort((a, b) => b.er - a.er);
+
+  const goldEr = top3[0]?.bestEngagement ?? 0;
+  const silverEr = top3[1]?.bestEngagement ?? 0;
+  const bronzeEr = top3[2]?.bestEngagement ?? 0;
+
+  let insight: string | null = null;
+  if (userEr >= goldEr) {
+    insight = "Du slår den här veckans guldvinnare!";
+  } else if (silverEr && userEr >= silverEr) {
+    insight = "Du når den här veckans silvernivå.";
+  } else if (bronzeEr && userEr >= bronzeEr) {
+    insight = "Du når den här veckans bronsnivå.";
+  } else if (bronzeEr > 0 && userEr >= bronzeEr * 0.7) {
+    const pct = Math.round(((bronzeEr - userEr) / bronzeEr) * 100);
+    insight = `${pct}% ifrån bronsnivå i Veckans Raketer.`;
+  }
+
+  return (
+    <div className="gr-calc-weekly-cmp">
+      <p className="gr-calc-weekly-cmp-title">{weekLabel}</p>
+      {rows.map((row) => (
+        <div key={row.id} className={`gr-calc-weekly-cmp-row${row.isUser ? " gr-calc-weekly-cmp-row--you" : ""}`}>
+          <span className="gr-calc-weekly-cmp-name" style={{ color: row.isUser ? C.accent : C.lightMuted }}>
+            {row.label}
+          </span>
+          <div className="gr-calc-weekly-cmp-bar-track">
+            <div
+              className="gr-calc-weekly-cmp-bar"
+              style={{ width: `${maxEr > 0 ? (row.er / maxEr) * 100 : 0}%`, background: row.color }}
+            />
+          </div>
+          <span className="gr-calc-weekly-cmp-val" style={{ color: row.color }}>
+            {row.er.toFixed(2)}%
+          </span>
+        </div>
+      ))}
+      {insight && <p className="gr-calc-weekly-cmp-insight">{insight}</p>}
+    </div>
   );
 }
 
@@ -553,6 +618,11 @@ function HomeInner() {
   const profileBenchPct = calcBench && calcBench.count > 0 && profileAvgEr !== null
     ? Math.round(computePercentile(profileAvgEr, calcBench))
     : null;
+
+  const profileBestEr = useMemo(() => {
+    if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
+    return Math.max(...calcProfileVideos.map(v => v.engagementRate));
+  }, [calcProfileVideos]);
 
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
@@ -913,8 +983,19 @@ function HomeInner() {
           )}
 
           {calcMode === "profile-loading" && (
-            <div className="gr-kalky-v2-notice" style={{ marginTop: 32, color: "var(--gr-mid, #888)" }}>
-              Hämtar senaste 10 videos för @{calcProfileHandle}…
+            <div className="gr-calc-prof-skel" style={{ marginTop: 32 }}>
+              <div className="gr-calc-prof-skel-header">
+                <div className="gr-calc-prof-skel-avatar" />
+                <div>
+                  <p className="gr-calc-prof-skel-name">@{calcProfileHandle}</p>
+                  <p className="gr-calc-prof-skel-status">Hämtar senaste 10 videos…</p>
+                </div>
+              </div>
+              <div className="gr-calc-prof-skel-grid">
+                {Array.from({ length: 10 }, (_, i) => (
+                  <div key={i} className="gr-calc-prof-skel-card" style={{ animationDelay: `${i * 0.08}s` }} />
+                ))}
+              </div>
             </div>
           )}
 
@@ -926,39 +1007,60 @@ function HomeInner() {
 
           {calcMode === "profile-ready" && calcProfileVideos && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-              <p className="gr-kalky-v2-er-lbl">@{calcProfileHandle} · genomsnittlig engagement rate</p>
-              {profileAvgEr !== null ? (
-                <>
+              {/* Hero: avg ER */}
+              <div className="gr-calc-prof-hero">
+                <p className="gr-kalky-v2-er-lbl">@{calcProfileHandle} · {calcProfileVideos.length} senaste videos · snitt</p>
+                {profileAvgEr !== null ? (
                   <p className="gr-kalky-v2-er">{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                  {profileBenchPct !== null && (
-                    <>
-                      <p className="gr-kalky-v2-bench-line">
-                        Bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av svenska företagsvideor
-                      </p>
-                      <div className="gr-kalky-v2-bench-track">
-                        <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(profileBenchPct, 99)}%` }} />
-                        <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(profileBenchPct, 99)}%` }} />
-                      </div>
-                      <div className="gr-kalky-v2-bench-labels"><span>Låg</span><span>Medel</span><span>Hög</span></div>
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
+                ) : (
+                  <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
+                )}
+              </div>
+
+              {/* Percentile benchmark */}
+              {profileBenchPct !== null && profileAvgEr !== null && (
+                <div style={{ marginBottom: 8 }}>
+                  <p className="gr-kalky-v2-bench-line">
+                    Snittet är bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av svenska företagsvideor
+                  </p>
+                  <div className="gr-kalky-v2-bench-track">
+                    <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(profileBenchPct, 99)}%` }} />
+                    <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(profileBenchPct, 99)}%` }} />
+                  </div>
+                  <div className="gr-kalky-v2-bench-labels"><span>Låg</span><span>Medel</span><span>Hög</span></div>
+                </div>
               )}
 
-              <div className="gr-kalky-v2-stats-col" style={{ marginTop: 24 }}>
-                <div className="gr-kalky-v2-stat-row" style={{ borderBottom: "1px solid rgba(28,27,25,0.1)", paddingBottom: 6, marginBottom: 4 }}>
-                  <span className="gr-kalky-v2-stat-lbl" style={{ fontWeight: 700 }}>Video</span>
-                  <span className="gr-kalky-v2-stat-val" style={{ fontWeight: 700 }}>Eng.rate</span>
-                </div>
+              {/* Weekly comparison — uses best video ER for fair comparison against weekly top */}
+              {accounts.length > 0 && profileBestEr !== null && (
+                <WeeklyComparison
+                  accounts={accounts}
+                  userEr={profileBestEr}
+                  userLabel="Din bästa video"
+                  weekLabel={`Jämfört med ${fmtWeekShort(selectedWeek)}s raketer`}
+                />
+              )}
+
+              {/* Video thumbnail grid */}
+              <div className="gr-calc-prof-grid">
                 {calcProfileVideos.map((v, i) => (
-                  <div key={i} className="gr-kalky-v2-stat-row">
-                    <a href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="gr-kalky-v2-stat-lbl" style={{ color: "inherit", textDecoration: "none", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {v.caption || `Video ${i + 1}`}
-                    </a>
-                    <span className="gr-kalky-v2-stat-val" style={{ marginLeft: 12, flexShrink: 0 }}>{v.engagementRate.toFixed(2)}%</span>
-                  </div>
+                  <a key={i} href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="gr-calc-prof-card">
+                    <div className="gr-calc-prof-thumb-wrap">
+                      {v.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={v.thumbnailUrl} alt="" className="gr-calc-prof-thumb-img" />
+                      ) : (
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(237,248,251,0.04)" }} />
+                      )}
+                      <span className="gr-calc-prof-er-badge">{v.engagementRate.toFixed(2)}%</span>
+                    </div>
+                    {v.caption && <p className="gr-calc-prof-caption">{v.caption}</p>}
+                    <div className="gr-calc-prof-metrics">
+                      <span><Eye size={9} />{fmt(v.views)}</span>
+                      <span><ThumbsUp size={9} />{fmt(v.likes)}</span>
+                      <span><Share2 size={9} />{fmt(v.shares)}</span>
+                    </div>
+                  </a>
                 ))}
               </div>
             </div>
@@ -1027,6 +1129,14 @@ function HomeInner() {
                             <span>Låg</span><span>Medel</span><span>Hög</span>
                           </div>
                         </>
+                      )}
+                      {accounts.length > 0 && calcEr !== null && (
+                        <WeeklyComparison
+                          accounts={accounts}
+                          userEr={calcEr}
+                          userLabel="Din video"
+                          weekLabel={`Jämfört med ${fmtWeekShort(selectedWeek)}s raketer`}
+                        />
                       )}
                       <div className="gr-kalky-v2-stats-col">
                         {[
