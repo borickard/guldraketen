@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   const { start, end } = weekBounds(week);
 
-  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, engagement_rate, thumbnail_url, caption, last_updated, accounts ( followers, display_name )";
+  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, engagement_rate, thumbnail_url, caption, last_updated, accounts ( followers, display_name, category )";
 
   const { data, error } = await supabaseAdmin
     .from("videos")

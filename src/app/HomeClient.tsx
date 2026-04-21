@@ -21,8 +21,8 @@ interface RawVideo {
   caption: string | null;
   last_updated: string;
   accounts:
-  | { followers: number; display_name?: string | null }
-  | { followers: number; display_name?: string | null }[]
+  | { followers: number; display_name?: string | null; category?: string | null }
+  | { followers: number; display_name?: string | null; category?: string | null }[]
   | null;
 }
 
@@ -30,6 +30,7 @@ interface AccountRow {
   handle: string;
   displayName: string;
   followers: number;
+  category: string | null;
   bestVideo: RawVideo;
   bestEngagement: number;
   videoCount: number;
@@ -49,7 +50,7 @@ interface Benchmark {
 
 function getAccount(v: RawVideo) {
   const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
-  return acct ?? { followers: 0, display_name: null };
+  return acct ?? { followers: 0, display_name: null, category: null };
 }
 
 function displayName(v: RawVideo): string {
@@ -131,6 +132,7 @@ function groupByAccount(videos: RawVideo[]): AccountRow[] {
       handle,
       displayName: acct.display_name || `@${handle}`,
       followers: acct.followers ?? 0,
+      category: acct.category ?? null,
       bestVideo,
       bestEngagement: bestVideo.engagement_rate ?? 0,
       videoCount: vids.length,
@@ -169,6 +171,7 @@ const C = {
   silver: "#8A9299",
   bronze: "#96614A",
   accent: "#FE2C55",
+  userHighlight: "#5AC8E8",
   cardBg: "rgba(237,248,251,0.06)",
   cardBorder: "rgba(237,248,251,0.10)",
   line: "rgba(237,248,251,0.07)",
@@ -225,7 +228,7 @@ function WeeklyComparison({ accounts, userEr, userLabel, weekLabel }: {
       color: rankColor(i),
       isUser: false,
     })),
-    { id: "you", label: userLabel, er: userEr, color: C.accent, isUser: true },
+    { id: "you", label: userLabel, er: userEr, color: C.userHighlight, isUser: true },
   ].sort((a, b) => b.er - a.er);
 
   const goldEr = top3[0]?.bestEngagement ?? 0;
@@ -249,7 +252,7 @@ function WeeklyComparison({ accounts, userEr, userLabel, weekLabel }: {
       <p className="gr-calc-weekly-cmp-title">{weekLabel}</p>
       {rows.map((row) => (
         <div key={row.id} className={`gr-calc-weekly-cmp-row${row.isUser ? " gr-calc-weekly-cmp-row--you" : ""}`}>
-          <span className="gr-calc-weekly-cmp-name" style={{ color: row.isUser ? C.accent : C.lightMuted }}>
+          <span className="gr-calc-weekly-cmp-name" style={{ color: row.isUser ? C.userHighlight : C.lightMuted }}>
             {row.label}
           </span>
           <div className="gr-calc-weekly-cmp-bar-track">
@@ -302,6 +305,7 @@ function HomeInner() {
   const [calcProfileHandle, setCalcProfileHandle] = useState<string | null>(null);
   const [calcProfileVideos, setCalcProfileVideos] = useState<ProfileVideo[] | null>(null);
   const [calcProfileError, setCalcProfileError] = useState<string | null>(null);
+  const [profileCategory, setProfileCategory] = useState<string>("all");
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
@@ -459,14 +463,17 @@ function HomeInner() {
       .then((r) => r.json()).then((d) => setCalcThumb(d.thumbnail_url ?? null)).catch(() => null);
   }, [calcMode, calcVideoId, calcHandle]);
 
-  // Update URL with ?v= for shareability
+  // Update URL with ?v= or ?p= for shareability
   useEffect(() => {
     if (calcMode === "video-ready" && calcVideoId) {
       const p = new URLSearchParams({ v: calcVideoId });
       if (calcHandle) p.set("h", calcHandle);
       window.history.replaceState(null, "", `/?${p}`);
+    } else if ((calcMode === "profile-ready" || calcMode === "profile-loading") && calcProfileHandle) {
+      const p = new URLSearchParams({ p: calcProfileHandle });
+      window.history.replaceState(null, "", `/?${p}`);
     }
-  }, [calcMode, calcVideoId, calcHandle]);
+  }, [calcMode, calcVideoId, calcHandle, calcProfileHandle]);
 
   const startCalcFetch = useCallback(async (id: string, handle: string | null) => {
     if (calcPollRef.current) clearInterval(calcPollRef.current);
@@ -582,16 +589,22 @@ function HomeInner() {
     }
   }, []);
 
-  // Auto-fetch from ?v= URL param on mount
+  // Auto-fetch from ?v= or ?p= URL param on mount
   useEffect(() => {
     if (calcStartedRef.current) return;
     const v = searchParams.get("v");
     const h = searchParams.get("h");
-    if (!v) return;
+    const p = searchParams.get("p");
+    if (!v && !p) return;
     calcStartedRef.current = true;
-    const url = h ? `https://www.tiktok.com/@${h}/video/${v}` : `https://www.tiktok.com/video/${v}`;
-    setCalcUrl(url);
-    startCalcFetch(v, h);
+    if (v) {
+      const url = h ? `https://www.tiktok.com/@${h}/video/${v}` : `https://www.tiktok.com/video/${v}`;
+      setCalcUrl(url);
+      startCalcFetch(v, h);
+    } else if (p) {
+      setCalcUrl(`https://www.tiktok.com/@${p}`);
+      startProfileFetch(p);
+    }
     // Scroll to calculator section
     setTimeout(() => {
       document.getElementById("kalkylator")?.scrollIntoView({ behavior: "smooth" });
@@ -623,6 +636,19 @@ function HomeInner() {
     if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
     return Math.max(...calcProfileVideos.map(v => v.engagementRate));
   }, [calcProfileVideos]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of accounts) {
+      if (a.category) set.add(a.category);
+    }
+    return Array.from(set).sort();
+  }, [accounts]);
+
+  const filteredAccounts = useMemo(() => {
+    if (profileCategory === "all") return accounts;
+    return accounts.filter((a) => a.category === profileCategory);
+  }, [accounts, profileCategory]);
 
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
@@ -992,7 +1018,7 @@ function HomeInner() {
                 </div>
               </div>
               <div className="gr-calc-prof-skel-grid">
-                {Array.from({ length: 10 }, (_, i) => (
+                {Array.from({ length: 9 }, (_, i) => (
                   <div key={i} className="gr-calc-prof-skel-card" style={{ animationDelay: `${i * 0.08}s` }} />
                 ))}
               </div>
@@ -1031,14 +1057,47 @@ function HomeInner() {
                 </div>
               )}
 
+              {/* Category selector — benchmark against all or a specific category */}
+              {availableCategories.length > 0 && profileBestEr !== null && (
+                <div className="gr-calc-cat-picker">
+                  <span className="gr-calc-cat-picker-lbl">Jämför mot</span>
+                  <div className="gr-calc-cat-picker-pills">
+                    <button
+                      type="button"
+                      className={`gr-calc-cat-pill${profileCategory === "all" ? " gr-calc-cat-pill--on" : ""}`}
+                      onClick={() => setProfileCategory("all")}
+                    >
+                      Alla
+                    </button>
+                    {availableCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`gr-calc-cat-pill${profileCategory === cat ? " gr-calc-cat-pill--on" : ""}`}
+                        onClick={() => setProfileCategory(cat)}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Weekly comparison — uses best video ER for fair comparison against weekly top */}
-              {accounts.length > 0 && profileBestEr !== null && (
+              {filteredAccounts.length > 0 && profileBestEr !== null && (
                 <WeeklyComparison
-                  accounts={accounts}
+                  accounts={filteredAccounts}
                   userEr={profileBestEr}
                   userLabel="Din bästa video"
-                  weekLabel={`Jämfört med ${fmtWeekShort(selectedWeek)}s raketer`}
+                  weekLabel={
+                    profileCategory === "all"
+                      ? `Jämfört med ${fmtWeekShort(selectedWeek)}s raketer`
+                      : `Jämfört med ${fmtWeekShort(selectedWeek)} · ${profileCategory}`
+                  }
                 />
+              )}
+              {filteredAccounts.length === 0 && profileCategory !== "all" && (
+                <p className="gr-calc-cat-empty">Inga scrapade konton i kategorin &ldquo;{profileCategory}&rdquo; den här veckan.</p>
               )}
 
               {/* Video thumbnail grid */}
@@ -1056,9 +1115,9 @@ function HomeInner() {
                     </div>
                     {v.caption && <p className="gr-calc-prof-caption">{v.caption}</p>}
                     <div className="gr-calc-prof-metrics">
-                      <span><Eye size={9} />{fmt(v.views)}</span>
-                      <span><ThumbsUp size={9} />{fmt(v.likes)}</span>
-                      <span><Share2 size={9} />{fmt(v.shares)}</span>
+                      <span><Eye size={13} />{fmt(v.views)}</span>
+                      <span><ThumbsUp size={13} />{fmt(v.likes)}</span>
+                      <span><Share2 size={13} />{fmt(v.shares)}</span>
                     </div>
                   </a>
                 ))}
