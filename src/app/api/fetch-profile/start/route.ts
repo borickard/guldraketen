@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
+const CACHE_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -9,6 +11,26 @@ export async function POST(req: NextRequest) {
 
   if (!handle) {
     return NextResponse.json({ error: "handle krävs" }, { status: 400 });
+  }
+
+  // 1. Cache check: recent scan of this handle
+  const { data: cached } = await supabaseAdmin
+    .from("profile_scans")
+    .select("videos, scanned_at")
+    .eq("handle", handle)
+    .order("scanned_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (cached && cached.videos) {
+    const age = Date.now() - new Date(cached.scanned_at).getTime();
+    if (age <= CACHE_MS) {
+      return NextResponse.json({
+        source: "db",
+        videos: cached.videos,
+        scannedAt: cached.scanned_at,
+      });
+    }
   }
 
   const apifyToken = process.env.APIFY_TOKEN;
@@ -50,5 +72,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Inget runId från Apify" }, { status: 502 });
   }
 
-  return NextResponse.json({ runId });
+  return NextResponse.json({ source: "apify", runId, handle });
 }

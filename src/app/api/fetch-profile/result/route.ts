@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const APIFY_API_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "clockworks~tiktok-profile-scraper";
@@ -14,6 +15,7 @@ function firstNum(...vals: unknown[]): number {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const runId = searchParams.get("runId");
+  const handle = searchParams.get("handle");
 
   if (!runId) {
     return NextResponse.json({ error: "runId krävs" }, { status: 400 });
@@ -80,6 +82,10 @@ export async function GET(req: NextRequest) {
     })
     .filter((v) => v.views >= 1000 && v.videoUrl)
     .sort((a, b) => b.engagementRate - a.engagementRate);
+
+  if (handle && videos.length > 0) {
+    await supabaseAdmin.from("profile_scans").insert({ handle, videos });
+  }
 
   return NextResponse.json({ status: "ready", videos });
 }

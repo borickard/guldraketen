@@ -559,6 +559,12 @@ function HomeInner() {
         setCalcProfileError((data.error as string) ?? `Serverfel (${res.status})`);
         return;
       }
+      // Cache hit — videos returned directly, skip polling
+      if (data.source === "db" && Array.isArray(data.videos)) {
+        setCalcProfileVideos(data.videos as ProfileVideo[]);
+        setCalcMode("profile-ready");
+        return;
+      }
       const runId = data.runId as string;
       let ms = 0;
       calcPollRef.current = setInterval(async () => {
@@ -570,7 +576,7 @@ function HomeInner() {
           return;
         }
         try {
-          const r = await fetch(`/api/fetch-profile/result?runId=${runId}`);
+          const r = await fetch(`/api/fetch-profile/result?runId=${runId}&handle=${encodeURIComponent(handle)}`);
           const d = await r.json();
           if (d.status === "ready") {
             clearInterval(calcPollRef.current!);
