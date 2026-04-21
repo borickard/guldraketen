@@ -53,7 +53,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: SITE_URL,
+      url: `${SITE_URL}/?week=${week}`,
       images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
