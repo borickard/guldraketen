@@ -32,7 +32,7 @@ export async function generateMetadata({
 
     const title = `${accountName} är ${rocketLabel} vecka ${weekNum}! ${medal}`;
     const description = `${accountName}s video hade ${er}% engagement rate. Sociala Raketer rankar Sveriges mest engagerande företag och organisationer på TikTok.`;
-    const ogImage = `${siteUrl}/api/og?week=${week}&rank=${rankNum}`;
+    const ogImage = `${siteUrl}/api/og?week=${week}&rank=${rankNum}&v=3`;
     const pageUrl = `${siteUrl}/${week}/${rankParam}`;
 
     return {
