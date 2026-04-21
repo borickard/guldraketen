@@ -550,7 +550,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 18px max(24px, calc(50vw - 320px));
   border-bottom: 1px solid rgba(237, 248, 251, 0.08);
   background: #07253A;
   gap: 24px;
@@ -558,12 +558,12 @@ body {
 }
 
 .gr-nav--compact {
-  padding: 9px 24px;
+  padding: 9px max(24px, calc(50vw - 320px));
   box-shadow: 0 1px 20px rgba(0,0,0,0.3);
 }
 
 .gr-nav-logo {
-  font-family: 'Modak', cursive;
+  font-family: 'Jersey 10', sans-serif;
   font-weight: 400;
   font-size: min(84px, 5.5vw);
   letter-spacing: .05em;
@@ -577,7 +577,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .gr-nav-logo { font-size: 31px; }
+  .gr-nav-logo { font-size: 40px; }
 }
 
 .gr-nav--compact .gr-nav-logo {
@@ -624,7 +624,7 @@ body {
 
 .gr-nav-mobile {
   position: fixed;
-  top: 0;
+  /* top is set dynamically via inline style to match actual nav height */
   right: 0;
   bottom: 0;
   z-index: 51;
@@ -633,7 +633,7 @@ body {
   border-left: 1px solid rgba(237, 248, 251, 0.1);
   display: flex;
   flex-direction: column;
-  padding: 80px 0 32px;
+  padding: 8px 0 32px;
   animation: gr-slide-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
