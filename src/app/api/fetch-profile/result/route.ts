@@ -81,8 +81,7 @@ export async function GET(req: NextRequest) {
       };
     })
     .filter((v) => v.views >= 1000 && v.videoUrl)
-    .sort((a, b) => b.engagementRate - a.engagementRate)
-    .slice(0, 12);
+    .sort((a, b) => b.engagementRate - a.engagementRate);
 
   if (handle && videos.length > 0) {
     await supabaseAdmin.from("profile_scans").insert({ handle, videos });

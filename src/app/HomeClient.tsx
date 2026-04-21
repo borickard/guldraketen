@@ -1111,11 +1111,11 @@ function HomeInner() {
                 <div className="gr-calc-prof-skel-avatar" />
                 <div>
                   <p className="gr-calc-prof-skel-name">@{calcProfileHandle}</p>
-                  <p className="gr-calc-prof-skel-status">Hämtar senaste 12 videos…</p>
+                  <p className="gr-calc-prof-skel-status">Hämtar senaste 20 videos…</p>
                 </div>
               </div>
               <div className="gr-calc-prof-skel-grid">
-                {Array.from({ length: 12 }, (_, i) => (
+                {Array.from({ length: 20 }, (_, i) => (
                   <div key={i} className="gr-calc-prof-skel-card" style={{ animationDelay: `${i * 0.08}s` }} />
                 ))}
               </div>
@@ -1341,7 +1341,7 @@ function HomeInner() {
 
               <div className="gr-kalky-beta">
                 <p className="gr-kalky-beta-desc">
-                  Vill du testa hela din profil? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
+                  Vill du vara beta-testare när vi lägger till fler funktioner i framtiden? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
                 </p>
                 {betaSubmitted ? (
                   <p className="gr-kalky-beta-success">Tack! Vi hör av oss när beta öppnar.</p>
