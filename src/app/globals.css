@@ -1971,6 +1971,35 @@ body {
   gap: 4px;
 }
 
+/* ── Scope toggle (week / all-time) ── */
+.gr-calc-scope-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(237,248,251,0.05);
+  border: 1px solid rgba(237,248,251,0.1);
+  border-radius: 8px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+.gr-calc-scope-btn {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(237,248,251,0.55);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.gr-calc-scope-btn:hover { color: #EDF8FB; }
+.gr-calc-scope-btn--on {
+  background: rgba(237,248,251,0.1);
+  color: #EDF8FB;
+}
+
 /* ── Category picker (profile scan) ── */
 .gr-calc-cat-picker {
   margin: 16px 0 12px;

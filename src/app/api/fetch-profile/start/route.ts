@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
           profiles: [`@${handle}`],
           profileScrapeSections: ["videos"],
           profileSorting: "latest",
-          resultsPerPage: 12,
+          resultsPerPage: 20,
         }),
       }
     );

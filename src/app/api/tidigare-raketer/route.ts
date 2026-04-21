@@ -31,6 +31,7 @@ type VideoEntry = {
   rank: number;
   handle: string;
   displayName: string;
+  category: string | null;
   bestVideo: {
     video_url: string;
     thumbnail_url: string | null;
@@ -46,7 +47,7 @@ type VideoEntry = {
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("videos")
-    .select("handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, followers)")
+    .select("handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, followers, category)")
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .order("published_at", { ascending: false });
@@ -88,6 +89,7 @@ export async function GET() {
         return {
           handle,
           displayName: acct?.display_name ?? `@${handle}`,
+          category: (acct as { category?: string | null } | null)?.category ?? null,
           bestVideo: best,
         };
       })
@@ -101,6 +103,7 @@ export async function GET() {
         rank: i + 1,
         handle: r.handle,
         displayName: r.displayName,
+        category: r.category,
         bestVideo: {
           video_url: r.bestVideo.video_url,
           thumbnail_url: r.bestVideo.thumbnail_url,

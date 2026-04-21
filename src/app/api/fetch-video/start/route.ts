@@ -49,7 +49,50 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. Check calculator_tests for a recent result (videos tested via calculator
+  // 2. Check profile_scans — if this handle was recently scanned as a profile,
+  //    find the matching video in the stored JSONB array (no Apify round-trip needed)
+  if (handle) {
+    const { data: profileScan } = await supabaseAdmin
+      .from("profile_scans")
+      .select("videos, scanned_at")
+      .eq("handle", handle)
+      .order("scanned_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (profileScan?.videos) {
+      const age = Date.now() - new Date(profileScan.scanned_at).getTime();
+      if (age <= TWO_DAYS_MS) {
+        type CachedVideo = { videoId: string | null; videoUrl: string; views: number; likes: number; comments: number; shares: number; engagementRate: number };
+        const match = (profileScan.videos as CachedVideo[]).find(
+          (v) => v.videoId === videoId || v.videoUrl?.includes(videoId)
+        );
+        if (match) {
+          await supabaseAdmin.from("calculator_tests").insert({
+            video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+            video_id: videoId,
+            handle,
+            views: match.views,
+            likes: match.likes,
+            comments: match.comments,
+            shares: match.shares,
+            engagement_rate: parseFloat(match.engagementRate.toFixed(4)),
+            source: "db",
+          });
+          return NextResponse.json({
+            source: "db",
+            views: match.views,
+            likes: match.likes,
+            comments: match.comments,
+            shares: match.shares,
+            lastUpdated: profileScan.scanned_at,
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Check calculator_tests for a recent result (videos tested via calculator
   //    are not in the videos table, so we need this as a second cache layer)
   const { data: cachedTest } = await supabaseAdmin
     .from("calculator_tests")
@@ -84,7 +127,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. Not in cache — check daily Apify call limit before starting a run
+  // 4. Not in cache — check daily Apify call limit before starting a run
   const todayUTC = new Date();
   todayUTC.setUTCHours(0, 0, 0, 0);
 
@@ -113,7 +156,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "daily_limit" }, { status: 429 });
   }
 
-  // 4. Start async Apify run
+  // 5. Start async Apify run
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
     return NextResponse.json({ error: "APIFY_TOKEN saknas" }, { status: 500 });
