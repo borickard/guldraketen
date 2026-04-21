@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
           profiles: [`@${handle}`],
           profileScrapeSections: ["videos"],
           profileSorting: "latest",
-          resultsPerPage: 10,
+          resultsPerPage: 12,
         }),
       }
     );

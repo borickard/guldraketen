@@ -1014,11 +1014,11 @@ function HomeInner() {
                 <div className="gr-calc-prof-skel-avatar" />
                 <div>
                   <p className="gr-calc-prof-skel-name">@{calcProfileHandle}</p>
-                  <p className="gr-calc-prof-skel-status">Hämtar senaste 10 videos…</p>
+                  <p className="gr-calc-prof-skel-status">Hämtar senaste 12 videos…</p>
                 </div>
               </div>
               <div className="gr-calc-prof-skel-grid">
-                {Array.from({ length: 9 }, (_, i) => (
+                {Array.from({ length: 12 }, (_, i) => (
                   <div key={i} className="gr-calc-prof-skel-card" style={{ animationDelay: `${i * 0.08}s` }} />
                 ))}
               </div>
