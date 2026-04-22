@@ -30,7 +30,7 @@ function getMostRecentPublishedWeek(): string {
 async function safeThumb(url: string | null): Promise<string | null> {
   if (!url) return null;
   try {
-    const r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
+    const r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(1500) });
     return r.ok ? url : null;
   } catch {
     return null;
@@ -142,6 +142,13 @@ export async function GET(req: Request) {
         );
       })}
     </div>,
-    { width: 2400, height: 1260, fonts }
+    {
+      width: 2400,
+      height: 1260,
+      fonts,
+      headers: {
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+      },
+    }
   );
 }
