@@ -85,8 +85,8 @@ export async function GET(req: Request) {
             style={{
               position: "relative",
               display: "flex",
-              width: "800px",
-              height: "1260px",
+              width: "400px",
+              height: "630px",
               flexShrink: 0,
               overflow: "hidden",
               background: navy,
@@ -105,37 +105,37 @@ export async function GET(req: Request) {
             <div
               style={{
                 position: "absolute",
-                top: 32,
-                left: 32,
+                top: 16,
+                left: 16,
                 background: color,
-                borderRadius: 12,
-                padding: "8px 20px",
+                borderRadius: 6,
+                padding: "4px 10px",
                 display: "flex",
               }}
             >
-              <span style={{ fontFamily, fontSize: 44, fontWeight: 700, color: "#fff" }}>#{num}</span>
+              <span style={{ fontFamily, fontSize: 22, fontWeight: 700, color: "#fff" }}>#{num}</span>
             </div>
 
             {/* ER badge — bottom right */}
             <div
               style={{
                 position: "absolute",
-                bottom: 40,
-                right: 32,
+                bottom: 20,
+                right: 16,
                 background: "#07253A",
-                borderRadius: 16,
-                padding: "12px 32px",
+                borderRadius: 8,
+                padding: "6px 16px",
                 display: "flex",
               }}
             >
-              <span style={{ fontFamily, fontSize: 72, fontWeight: 700, color }}>{er}</span>
+              <span style={{ fontFamily, fontSize: 36, fontWeight: 700, color }}>{er}</span>
             </div>
 
             {/* No-thumbnail fallback: show week label on first panel */}
             {!thumb && i === 0 && (
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", height: "100%", gap: "16px" }}>
-                <span style={{ fontFamily, fontSize: 28, fontWeight: 700, color: "#C8962A", letterSpacing: "0.14em" }}>SOCIALA RAKETER</span>
-                <span style={{ fontFamily, fontSize: 104, fontWeight: 700, color: "#EDF8FB" }}>V{weekNum} {year}</span>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", height: "100%", gap: "8px" }}>
+                <span style={{ fontFamily, fontSize: 14, fontWeight: 700, color: "#C8962A", letterSpacing: "0.14em" }}>SOCIALA RAKETER</span>
+                <span style={{ fontFamily, fontSize: 52, fontWeight: 700, color: "#EDF8FB" }}>V{weekNum} {year}</span>
               </div>
             )}
           </div>
@@ -143,12 +143,13 @@ export async function GET(req: Request) {
       })}
     </div>,
     {
-      width: 2400,
-      height: 1260,
+      width: 1200,
+      height: 630,
       fonts,
       headers: {
         "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
       },
     }
   );
+}
 }
