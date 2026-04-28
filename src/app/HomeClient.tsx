@@ -1108,14 +1108,15 @@ function HomeInner() {
 
           {calcMode === "profile-ready" && calcProfileVideos && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-              <div className="gr-calc-prof-hero">
-                <p className="gr-kalky-v2-er-lbl">@{calcProfileHandle} · {calcProfileVideos.length} senaste videos · snitt</p>
-                {profileAvgEr !== null ? (
-                  <p className="gr-kalky-v2-er">{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                ) : (
-                  <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
-                )}
+              <div className="gr-calc-prof-header">
+                <p className="gr-calc-prof-handle-lbl">@{calcProfileHandle}</p>
+                <p className="gr-calc-prof-count-lbl">{calcProfileVideos.length} senaste videos · snitt</p>
               </div>
+              {profileAvgEr !== null ? (
+                <p className="gr-kalky-v2-er" style={{ marginTop: 12 }}>{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+              ) : (
+                <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
+              )}
               {profileAvgEr !== null && profileAllPct !== null && (
                 <CalcComparison
                   allPct={profileAllPct}
@@ -1125,16 +1126,17 @@ function HomeInner() {
                 />
               )}
               {profileAvgStats && (
-                <div className="gr-kalky-v2-stats-col" style={{ marginTop: 20 }}>
+                <div className="gr-calc-prof-stats-grid">
                   {[
-                    { lbl: "Snitt visningar", val: profileAvgStats.views },
-                    { lbl: "Snitt likes", val: profileAvgStats.likes },
-                    { lbl: "Snitt kommentarer", val: profileAvgStats.comments },
-                    { lbl: "Snitt delningar", val: profileAvgStats.shares },
-                  ].map(({ lbl, val }) => (
-                    <div key={lbl} className="gr-kalky-v2-stat-row">
-                      <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
-                      <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                    { icon: <Eye size={15} />, val: fmt(profileAvgStats.views), lbl: "visningar" },
+                    { icon: <ThumbsUp size={15} />, val: fmt(profileAvgStats.likes), lbl: "likes" },
+                    { icon: <MessageCircle size={15} />, val: fmt(profileAvgStats.comments), lbl: "kommentarer" },
+                    { icon: <Share2 size={15} />, val: fmt(profileAvgStats.shares), lbl: "delningar" },
+                  ].map(({ icon, val, lbl }) => (
+                    <div key={lbl} className="gr-calc-prof-stat-card">
+                      <span className="gr-calc-prof-stat-icon">{icon}</span>
+                      <span className="gr-calc-prof-stat-val">{val}</span>
+                      <span className="gr-calc-prof-stat-lbl">snitt {lbl}</span>
                     </div>
                   ))}
                 </div>
