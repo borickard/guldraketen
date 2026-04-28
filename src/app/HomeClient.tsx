@@ -399,8 +399,6 @@ function HomeInner() {
     fetch("/api/stats").then((r) => r.json()).then(setSiteStats).catch(() => {});
   }, []);
 
-  useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
-
   useEffect(() => {
     fetch("/api/carousel").then((r) => r.json()).then((data) => {
       if (Array.isArray(data)) setCarouselVideos(data);
@@ -730,6 +728,8 @@ function HomeInner() {
     } catch { /* silently ignore */ }
     finally { setLoadingAllTime(false); }
   }, [allTimeData, loadingAllTime]);
+
+  useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
 
   function getCompAccounts(cat: string): AccountRow[] {
     const activeCat = allTimeCategories.includes(cat) ? cat : "all";
