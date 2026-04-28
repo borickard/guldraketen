@@ -216,30 +216,20 @@ function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; f
 
 // ─── Comparison scope + category picker ───────────────────────────────────────
 
-function CompPicker({ scope, onScope, category, onCategory, weekCategories, allTimeCategories, loading }: {
-  scope: "week" | "alltime";
-  onScope: (s: "week" | "alltime") => void;
+function CompPicker({ category, onCategory, allTimeCategories }: {
   category: string;
   onCategory: (c: string) => void;
-  weekCategories: string[];
   allTimeCategories: string[];
-  loading: boolean;
 }) {
-  const cats = scope === "alltime" ? allTimeCategories : weekCategories;
+  if (allTimeCategories.length === 0) return null;
   return (
     <div className="gr-calc-cat-picker">
-      <div className="gr-calc-scope-toggle">
-        <button type="button" className={`gr-calc-scope-btn${scope === "week" ? " gr-calc-scope-btn--on" : ""}`} onClick={() => onScope("week")}>Denna vecka</button>
-        <button type="button" className={`gr-calc-scope-btn${scope === "alltime" ? " gr-calc-scope-btn--on" : ""}`} onClick={() => onScope("alltime")}>{loading ? "Laddar…" : "Alla tider"}</button>
+      <div className="gr-calc-cat-picker-pills">
+        <button type="button" className={`gr-calc-cat-pill${category === "all" ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory("all")}>Alla</button>
+        {allTimeCategories.map((cat) => (
+          <button key={cat} type="button" className={`gr-calc-cat-pill${category === cat ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory(cat)}>{cat}</button>
+        ))}
       </div>
-      {cats.length > 0 && (
-        <div className="gr-calc-cat-picker-pills">
-          <button type="button" className={`gr-calc-cat-pill${category === "all" ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory("all")}>Alla</button>
-          {cats.map((cat) => (
-            <button key={cat} type="button" className={`gr-calc-cat-pill${category === cat ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory(cat)}>{cat}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -344,7 +334,6 @@ function HomeInner() {
   const [calcProfileError, setCalcProfileError] = useState<string | null>(null);
   const [profileCategory, setProfileCategory] = useState<string>("all");
   const [videoCategory, setVideoCategory] = useState<string>("all");
-  const [compScope, setCompScope] = useState<"week" | "alltime">("week");
   const [allTimeData, setAllTimeData] = useState<AllTimeEntry[] | null>(null);
   const [loadingAllTime, setLoadingAllTime] = useState(false);
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
@@ -409,6 +398,8 @@ function HomeInner() {
   useEffect(() => {
     fetch("/api/stats").then((r) => r.json()).then(setSiteStats).catch(() => {});
   }, []);
+
+  useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
 
   useEffect(() => {
     fetch("/api/carousel").then((r) => r.json()).then((data) => {
@@ -740,11 +731,9 @@ function HomeInner() {
     finally { setLoadingAllTime(false); }
   }, [allTimeData, loadingAllTime]);
 
-  function getCompAccounts(cat: string, weekPool: AccountRow[]): AccountRow[] {
-    const pool = compScope === "alltime" ? allTimePool : weekPool;
-    const cats = compScope === "alltime" ? allTimeCategories : availableCategories;
-    const activeCat = cats.includes(cat) ? cat : "all";
-    return (activeCat === "all" ? pool : pool.filter((a) => a.category === activeCat)).slice(0, 3);
+  function getCompAccounts(cat: string): AccountRow[] {
+    const activeCat = allTimeCategories.includes(cat) ? cat : "all";
+    return (activeCat === "all" ? allTimePool : allTimePool.filter((a) => a.category === activeCat)).slice(0, 3);
   }
 
   function handleCalcSubmit() {
@@ -1154,29 +1143,21 @@ function HomeInner() {
                 </div>
               )}
 
-              {/* Scope + category pickers */}
+              {/* Category picker */}
               {profileBestEr !== null && (
                 <CompPicker
-                  scope={compScope}
-                  onScope={(s) => { setCompScope(s); if (s === "alltime") fetchAllTime(); }}
                   category={profileCategory}
                   onCategory={setProfileCategory}
-                  weekCategories={availableCategories}
                   allTimeCategories={allTimeCategories}
-                  loading={loadingAllTime}
                 />
               )}
 
               {/* Comparison bars */}
               {(() => {
-                const cmp = getCompAccounts(profileCategory, accounts);
-                const label = compScope === "alltime"
-                  ? (profileCategory !== "all" ? `Alla tider · ${profileCategory}` : "Alla tider · topp 3")
-                  : (profileCategory === "all" ? `${fmtWeekShort(selectedWeek)} · topp 3` : `${fmtWeekShort(selectedWeek)} · ${profileCategory}`);
+                const cmp = getCompAccounts(profileCategory);
+                const label = profileCategory !== "all" ? `Alla tider · ${profileCategory}` : "Alla tider · topp 3";
                 return cmp.length > 0 && profileBestEr !== null ? (
                   <WeeklyComparison accounts={cmp} userEr={profileBestEr} userLabel="Din bästa video" weekLabel={label} />
-                ) : profileBestEr !== null && compScope === "week" ? (
-                  <p className="gr-calc-cat-empty">Inga rankade konton{profileCategory !== "all" ? ` i kategorin &ldquo;${profileCategory}&rdquo;` : ""} den här veckan.</p>
                 ) : null;
               })()}
 
@@ -1272,19 +1253,13 @@ function HomeInner() {
                       {calcEr !== null && (
                         <>
                           <CompPicker
-                            scope={compScope}
-                            onScope={(s) => { setCompScope(s); if (s === "alltime") fetchAllTime(); }}
                             category={videoCategory}
                             onCategory={setVideoCategory}
-                            weekCategories={availableCategories}
                             allTimeCategories={allTimeCategories}
-                            loading={loadingAllTime}
                           />
                           {(() => {
-                            const cmp = getCompAccounts(videoCategory, accounts);
-                            const label = compScope === "alltime"
-                              ? (videoCategory !== "all" ? `Alla tider · ${videoCategory}` : "Alla tider · topp 3")
-                              : (videoCategory === "all" ? `${fmtWeekShort(selectedWeek)} · topp 3` : `${fmtWeekShort(selectedWeek)} · ${videoCategory}`);
+                            const cmp = getCompAccounts(videoCategory);
+                            const label = videoCategory !== "all" ? `Alla tider · ${videoCategory}` : "Alla tider · topp 3";
                             return cmp.length > 0 ? (
                               <WeeklyComparison accounts={cmp} userEr={calcEr} userLabel="Din video" weekLabel={label} />
                             ) : null;
