@@ -3287,8 +3287,8 @@ body {
 .gr-top-profiles-section {
   width: 100%;
   padding: 40px 32px 44px;
-  background: var(--gr-bg);
-  border-top: 1px solid var(--gr-line);
+  background: #EBE7E2;
+  border-top: 1px solid rgba(28,27,25,0.1);
 }
 
 .gr-top-profiles-row {
@@ -3313,7 +3313,7 @@ body {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  background: rgba(237,248,251,0.08);
+  background: rgba(28,27,25,0.08);
 }
 
 .gr-top-profiles-avatar--fallback {
@@ -3323,13 +3323,13 @@ body {
   font-family: var(--gr-syne);
   font-size: 22px;
   font-weight: 700;
-  color: rgba(237,248,251,0.5);
+  color: rgba(28,27,25,0.4);
 }
 
 .gr-top-profiles-name {
   font-family: var(--gr-sans);
   font-size: 11px;
-  color: rgba(237,248,251,0.5);
+  color: rgba(28,27,25,0.55);
   margin-top: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -3342,7 +3342,7 @@ body {
   font-family: var(--gr-syne);
   font-size: 18px;
   font-weight: 700;
-  color: #EDF8FB;
+  color: var(--gr-dark);
   line-height: 1;
   margin-top: 3px;
   text-align: center;
@@ -3352,7 +3352,7 @@ body {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(237,248,251,0.08);
+  background: rgba(28,27,25,0.1);
   animation: gr-pulse 1.5s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -3361,7 +3361,7 @@ body {
   width: 40px;
   height: 9px;
   border-radius: 4px;
-  background: rgba(237,248,251,0.08);
+  background: rgba(28,27,25,0.1);
   margin-top: 10px;
   animation: gr-pulse 1.5s ease-in-out infinite;
 }
@@ -3370,7 +3370,7 @@ body {
   width: 52px;
   height: 16px;
   border-radius: 4px;
-  background: rgba(237,248,251,0.08);
+  background: rgba(28,27,25,0.1);
   margin-top: 5px;
   animation: gr-pulse 1.5s ease-in-out infinite;
 }
