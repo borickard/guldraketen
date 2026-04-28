@@ -841,7 +841,7 @@ function HomeInner() {
               Veckans topplista
             </a>
             <a href="#kalkylator" className="gr-hero-v2-link">
-              Testa din video
+              Testa ditt engagemang
             </a>
           </div>
         </div>
