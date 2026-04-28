@@ -687,6 +687,17 @@ function HomeInner() {
     return Math.round((below / allTimePool.length) * 100);
   }, [allTimePool, profileAvgEr]);
 
+  const profileAvgStats = useMemo(() => {
+    if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
+    const n = calcProfileVideos.length;
+    return {
+      views: Math.round(calcProfileVideos.reduce((s, v) => s + v.views, 0) / n),
+      likes: Math.round(calcProfileVideos.reduce((s, v) => s + v.likes, 0) / n),
+      comments: Math.round(calcProfileVideos.reduce((s, v) => s + v.comments, 0) / n),
+      shares: Math.round(calcProfileVideos.reduce((s, v) => s + v.shares, 0) / n),
+    };
+  }, [calcProfileVideos]);
+
   const profileCatName = useMemo((): string | null => {
     if (!calcProfileHandle || !allTimePool.length) return null;
     return getHandleCategory(calcProfileHandle, allTimePool);
@@ -1112,6 +1123,21 @@ function HomeInner() {
                   catName={profileCatName}
                   type="konton"
                 />
+              )}
+              {profileAvgStats && (
+                <div className="gr-kalky-v2-stats-col" style={{ marginTop: 20 }}>
+                  {[
+                    { lbl: "Snitt visningar", val: profileAvgStats.views },
+                    { lbl: "Snitt likes", val: profileAvgStats.likes },
+                    { lbl: "Snitt kommentarer", val: profileAvgStats.comments },
+                    { lbl: "Snitt delningar", val: profileAvgStats.shares },
+                  ].map(({ lbl, val }) => (
+                    <div key={lbl} className="gr-kalky-v2-stat-row">
+                      <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
+                      <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
