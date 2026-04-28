@@ -768,7 +768,7 @@ function HomeInner() {
     setLoadingAllTime(true);
     try {
       const res = await fetch("/api/tidigare-raketer");
-      const rawWeeks: { entries: { handle: string; displayName: string; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
+      const rawWeeks: { entries: { handle: string; displayName: string; avatarUrl: string | null; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
       const flat: AllTimeEntry[] = rawWeeks.flatMap((w) =>
         w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, avatarUrl: e.avatarUrl ?? null, category: e.category, bestEr: e.bestVideo.engagement_rate }))
       );
