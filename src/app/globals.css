@@ -1896,14 +1896,19 @@ body {
 .gr-calc-prof-hero {
   margin-bottom: 16px;
 }
+.gr-calc-prof-grid-wrap {
+  padding: 24px 32px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
 .gr-calc-prof-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
-  margin-top: 24px;
 }
-@media (max-width: 600px) {
+@media (max-width: 767px) {
   .gr-calc-prof-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .gr-calc-prof-grid-wrap { padding: 16px 16px 0; }
 }
 .gr-calc-prof-card {
   display: flex;
@@ -1969,6 +1974,74 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── CalcComparison ── */
+.gr-calc-comparison {
+  margin-top: 16px;
+  width: 100%;
+}
+.gr-calc-comparison-bar {
+  height: 5px;
+  background: rgba(237,248,251,0.10);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.gr-calc-comparison-fill {
+  height: 100%;
+  background: #C8962A;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.gr-calc-comparison-line {
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  color: rgba(237,248,251,0.7);
+  margin: 0 0 4px;
+}
+.gr-calc-comparison-line strong { color: #EDF8FB; }
+.gr-calc-comparison-line em { font-style: normal; color: rgba(237,248,251,0.85); }
+
+/* ── Video result: stacked centered ── */
+.gr-calc-video-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+  margin: 32px auto 0;
+  width: 100%;
+}
+.gr-calc-video-result .gr-kalky-v2-thumb-btn {
+  width: 160px;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+.gr-calc-video-result .gr-kalky-v2-thumb {
+  width: 160px;
+}
+.gr-calc-video-result .gr-kalky-v2-er-lbl {
+  text-align: center;
+}
+.gr-calc-video-result .gr-kalky-v2-er {
+  text-align: center;
+  margin-bottom: 0;
+}
+.gr-calc-video-result .gr-calc-comparison {
+  align-self: stretch;
+}
+.gr-calc-video-result .gr-kalky-v2-stats-col {
+  align-self: stretch;
+}
+.gr-calc-video-result .gr-kalky-v2-copy-btn {
+  margin-top: 20px;
+  align-self: center;
+}
+.gr-calc-video-result .gr-kalky-v2-cache-note {
+  text-align: center;
+}
+.gr-calc-video-result .gr-kalky-beta {
+  align-self: stretch;
 }
 
 /* ── Scope toggle (week / all-time) ── */
