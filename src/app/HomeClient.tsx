@@ -889,7 +889,7 @@ function HomeInner() {
               Veckans topplista
             </a>
             <a href="#kalkylator" className="gr-hero-v2-link">
-              Testa engagemangskalkylatorn
+              Testa ditt engagemang
             </a>
           </div>
         </div>
