@@ -254,25 +254,65 @@ function TopProfilesStrip({ profiles, loading }: { profiles: AllTimeEntry[] | nu
 
 // ─── Calc comparison ─────────────────────────────────────────────────────────
 
-function getHandleCategory(handle: string, pool: AccountRow[]): string | null {
-  return pool.find((a) => a.handle === handle)?.category ?? null;
-}
-
-function CalcComparison({ allPct, catPct, catName, type }: {
-  allPct: number; catPct: number | null; catName: string | null; type: "konton" | "videor";
+function CalcComparison({ er, allBench, categories, handle, type }: {
+  er: number;
+  allBench: Benchmark;
+  categories: string[];
+  handle?: string | null;
+  type: "konton" | "videor";
 }) {
+  const [selectedCat, setSelectedCat] = useState("");
+  const [catBench, setCatBench] = useState<Benchmark | null>(null);
+  const [catLoading, setCatLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCat) { setCatBench(null); return; }
+    setCatLoading(true);
+    fetch(`/api/benchmark?category=${encodeURIComponent(selectedCat)}`)
+      .then((r) => r.json())
+      .then((d) => setCatBench(d))
+      .catch(() => setCatBench(null))
+      .finally(() => setCatLoading(false));
+  }, [selectedCat]);
+
+  const allTopPct = Math.max(1, 100 - Math.round(computePercentile(er, allBench)));
+
+  const catTopPct: number | null = (() => {
+    if (!catBench || catBench.count < 10) return null;
+    return Math.max(1, 100 - Math.round(computePercentile(er, catBench)));
+  })();
+
   return (
     <div className="gr-calc-comparison">
-      <div className="gr-calc-comparison-bar">
-        <div className="gr-calc-comparison-fill" style={{ width: `${Math.min(allPct, 99)}%` }} />
-      </div>
       <p className="gr-calc-comparison-line">
-        Bättre än <strong>{allPct >= 99 ? "99+" : allPct}%</strong> av alla {type}
+        Bland de <strong>{allTopPct}%</strong> mest engagerande {type}
       </p>
-      {catPct !== null && catName && (
-        <p className="gr-calc-comparison-line">
-          Bättre än <strong>{catPct >= 99 ? "99+" : catPct}%</strong> i <em>{catName}</em>
-        </p>
+      {categories.length > 0 && (
+        <select
+          className="gr-calc-cat-select"
+          value={selectedCat}
+          onChange={(e) => setSelectedCat(e.target.value)}
+        >
+          <option value="">Välj kategori</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      )}
+      {selectedCat && (
+        catLoading ? (
+          <p className="gr-calc-comparison-line gr-calc-comparison-line--muted">Hämtar…</p>
+        ) : catTopPct !== null ? (
+          <p className="gr-calc-comparison-line">
+            {type === "konton" ? (
+              <>I kategori <strong>{selectedCat}</strong> är <strong>@{handle ?? "kontot"}</strong> bland de <strong>{catTopPct}%</strong> mest engagerande kontona</>
+            ) : (
+              <>I kategori <strong>{selectedCat}</strong> är videon bland de <strong>{catTopPct}%</strong> mest engagerande</>
+            )}
+          </p>
+        ) : (
+          <p className="gr-calc-comparison-line gr-calc-comparison-line--muted">
+            För lite data i den kategorin just nu
+          </p>
+        )
       )}
     </div>
   );
@@ -628,10 +668,6 @@ function HomeInner() {
     return ((calcStats.likes * 1 + calcStats.comments * 5 + calcStats.shares * 10) / calcStats.views) * 100;
   }, [calcStats]);
 
-  const calcBenchPct = calcBench && calcBench.count > 0 && calcEr !== null
-    ? Math.round(computePercentile(calcEr, calcBench))
-    : null;
-
   const profileAvgEr = useMemo(() => {
     if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
     return calcProfileVideos.reduce((s, v) => s + v.engagementRate, 0) / calcProfileVideos.length;
@@ -680,12 +716,12 @@ function HomeInner() {
 
   useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
 
-  // Profile comparison: % of all-time accounts beaten by profileAvgEr
-  const profileAllPct = useMemo((): number | null => {
-    if (!allTimePool.length || profileAvgEr === null) return null;
-    const below = allTimePool.filter((a) => a.bestEngagement < profileAvgEr).length;
-    return Math.round((below / allTimePool.length) * 100);
-  }, [allTimePool, profileAvgEr]);
+  const allTimeCategories = useMemo(() => {
+    if (!allTimeData) return [];
+    const set = new Set<string>();
+    for (const e of allTimeData) { if (e.category) set.add(e.category); }
+    return Array.from(set).sort();
+  }, [allTimeData]);
 
   const profileAvgStats = useMemo(() => {
     if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
@@ -697,33 +733,6 @@ function HomeInner() {
       shares: Math.round(calcProfileVideos.reduce((s, v) => s + v.shares, 0) / n),
     };
   }, [calcProfileVideos]);
-
-  const profileCatName = useMemo((): string | null => {
-    if (!calcProfileHandle || !allTimePool.length) return null;
-    return getHandleCategory(calcProfileHandle, allTimePool);
-  }, [calcProfileHandle, allTimePool]);
-
-  const profileCatPct = useMemo((): number | null => {
-    if (!allTimePool.length || profileAvgEr === null || !profileCatName) return null;
-    const catPool = allTimePool.filter((a) => a.category === profileCatName);
-    if (catPool.length < 3) return null;
-    const below = catPool.filter((a) => a.bestEngagement < profileAvgEr).length;
-    return Math.round((below / catPool.length) * 100);
-  }, [allTimePool, profileAvgEr, profileCatName]);
-
-  // Video comparison: category percentile from all-time pool
-  const videoCatName = useMemo((): string | null => {
-    if (!calcHandle || !allTimePool.length) return null;
-    return getHandleCategory(calcHandle, allTimePool);
-  }, [calcHandle, allTimePool]);
-
-  const videoCatPct = useMemo((): number | null => {
-    if (!allTimePool.length || calcEr === null || !videoCatName) return null;
-    const catPool = allTimePool.filter((a) => a.category === videoCatName);
-    if (catPool.length < 3) return null;
-    const below = catPool.filter((a) => a.bestEngagement < calcEr).length;
-    return Math.round((below / catPool.length) * 100);
-  }, [allTimePool, calcEr, videoCatName]);
 
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
@@ -1117,11 +1126,12 @@ function HomeInner() {
               ) : (
                 <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
               )}
-              {profileAvgEr !== null && profileAllPct !== null && (
+              {calcBench && calcBench.count > 0 && profileAvgEr !== null && (
                 <CalcComparison
-                  allPct={profileAllPct}
-                  catPct={profileCatPct}
-                  catName={profileCatName}
+                  er={profileAvgEr}
+                  allBench={calcBench}
+                  categories={allTimeCategories}
+                  handle={calcProfileHandle}
                   type="konton"
                 />
               )}
@@ -1171,11 +1181,11 @@ function HomeInner() {
                 <>
                   <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
                   <p className="gr-kalky-v2-er">{calcEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                  {calcBenchPct !== null && (
+                  {calcBench && calcBench.count > 0 && (
                     <CalcComparison
-                      allPct={calcBenchPct}
-                      catPct={videoCatPct}
-                      catName={videoCatName}
+                      er={calcEr}
+                      allBench={calcBench}
+                      categories={allTimeCategories}
                       type="videor"
                     />
                   )}

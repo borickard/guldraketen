@@ -2045,27 +2045,37 @@ body {
   margin-top: 16px;
   width: 100%;
 }
-.gr-calc-comparison-bar {
-  height: 7px;
-  background: rgba(237,248,251,0.08);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-.gr-calc-comparison-fill {
-  height: 100%;
-  background: #C8962A;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
 .gr-calc-comparison-line {
   font-family: 'Barlow', sans-serif;
-  font-size: 14px;
-  color: rgba(237,248,251,0.7);
-  margin: 0 0 4px;
+  font-size: 15px;
+  color: rgba(237,248,251,0.75);
+  margin: 0 0 10px;
+  line-height: 1.5;
 }
-.gr-calc-comparison-line strong { color: #EDF8FB; }
-.gr-calc-comparison-line em { font-style: normal; color: rgba(237,248,251,0.85); }
+.gr-calc-comparison-line strong { color: #EDF8FB; font-weight: 700; }
+.gr-calc-comparison-line--muted { color: rgba(237,248,251,0.38); font-size: 13px; }
+
+.gr-calc-cat-select {
+  display: block;
+  margin: 10px 0 12px;
+  background: rgba(237,248,251,0.06);
+  border: 1px solid rgba(237,248,251,0.14);
+  border-radius: 6px;
+  color: rgba(237,248,251,0.75);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  padding: 7px 10px;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(237,248,251,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.gr-calc-cat-select:hover { border-color: rgba(237,248,251,0.28); }
+.gr-calc-cat-select option { background: #07253A; color: #EDF8FB; }
 
 /* ── Video result: stacked centered ── */
 .gr-calc-video-result {
