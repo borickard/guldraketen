@@ -3283,6 +3283,118 @@ body {
 }
 
 /* ── Strip carousel (thin, between nav and hero) ── */
+/* ── Top Profiles Strip ── */
+.gr-top-profiles-section {
+  width: 100%;
+  padding: 40px 32px 44px;
+  background: var(--gr-bg);
+  border-top: 1px solid var(--gr-line);
+}
+
+.gr-top-profiles-row {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+}
+
+.gr-top-profiles-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px;
+  cursor: default;
+}
+
+.gr-top-profiles-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(237,248,251,0.08);
+}
+
+.gr-top-profiles-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--gr-syne);
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(237,248,251,0.5);
+}
+
+.gr-top-profiles-name {
+  font-family: var(--gr-sans);
+  font-size: 11px;
+  color: rgba(237,248,251,0.5);
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.gr-top-profiles-er {
+  font-family: var(--gr-syne);
+  font-size: 18px;
+  font-weight: 700;
+  color: #EDF8FB;
+  line-height: 1;
+  margin-top: 3px;
+  text-align: center;
+}
+
+.gr-top-profiles-skel-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(237,248,251,0.08);
+  animation: gr-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.gr-top-profiles-skel-text {
+  width: 40px;
+  height: 9px;
+  border-radius: 4px;
+  background: rgba(237,248,251,0.08);
+  margin-top: 10px;
+  animation: gr-pulse 1.5s ease-in-out infinite;
+}
+
+.gr-top-profiles-skel-er {
+  width: 52px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(237,248,251,0.08);
+  margin-top: 5px;
+  animation: gr-pulse 1.5s ease-in-out infinite;
+}
+
+@media (min-width: 768px) {
+  .gr-top-profiles-avatar,
+  .gr-top-profiles-skel-avatar {
+    width: 80px;
+    height: 80px;
+  }
+  .gr-top-profiles-er {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 767px) {
+  .gr-top-profiles-item:nth-child(n+6) {
+    display: none;
+  }
+  .gr-top-profiles-section {
+    padding: 32px 16px 36px;
+  }
+}
+
 .gr-strip-carousel {
   overflow: hidden;
   height: 185px;

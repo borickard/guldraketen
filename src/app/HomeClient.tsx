@@ -61,6 +61,7 @@ function displayName(v: RawVideo): string {
 interface AllTimeEntry {
   handle: string;
   displayName: string;
+  avatarUrl: string | null;
   category: string | null;
   bestEr: number;
 }
@@ -211,6 +212,43 @@ function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; f
       unoptimized
       onError={() => setFailed(true)}
     />
+  );
+}
+
+// ─── Top profiles strip ───────────────────────────────────────────────────────
+
+function TopProfilesStrip({ profiles, loading }: { profiles: AllTimeEntry[] | null; loading: boolean }) {
+  const items = loading || !profiles ? Array.from({ length: 15 }) : profiles;
+  return (
+    <div className="gr-top-profiles-section">
+      <div className="gr-top-profiles-row">
+        {items.map((p, i) => {
+          if (!p) return (
+            <div key={i} className="gr-top-profiles-item">
+              <div className="gr-top-profiles-skel-avatar" />
+              <div className="gr-top-profiles-skel-text" />
+              <div className="gr-top-profiles-skel-er" />
+            </div>
+          );
+          const entry = p as AllTimeEntry;
+          const er = entry.bestEr.toFixed(2).replace(".", ",") + "%";
+          return (
+            <div key={entry.handle} className="gr-top-profiles-item">
+              {entry.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={entry.avatarUrl} alt={entry.displayName} className="gr-top-profiles-avatar" />
+              ) : (
+                <div className="gr-top-profiles-avatar gr-top-profiles-avatar--fallback">
+                  {entry.handle[0].toUpperCase()}
+                </div>
+              )}
+              <span className="gr-top-profiles-name">{entry.displayName}</span>
+              <span className="gr-top-profiles-er">{er}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -715,6 +753,16 @@ function HomeInner() {
     return Array.from(set).sort();
   }, [allTimeData]);
 
+  const topProfiles = useMemo(() => {
+    if (!allTimeData) return null;
+    const byHandle = new Map<string, AllTimeEntry>();
+    for (const e of allTimeData) {
+      const ex = byHandle.get(e.handle);
+      if (!ex || e.bestEr > ex.bestEr) byHandle.set(e.handle, e);
+    }
+    return [...byHandle.values()].sort((a, b) => b.bestEr - a.bestEr).slice(0, 15);
+  }, [allTimeData]);
+
   const fetchAllTime = useCallback(async () => {
     if (allTimeData || loadingAllTime) return;
     setLoadingAllTime(true);
@@ -722,7 +770,7 @@ function HomeInner() {
       const res = await fetch("/api/tidigare-raketer");
       const rawWeeks: { entries: { handle: string; displayName: string; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
       const flat: AllTimeEntry[] = rawWeeks.flatMap((w) =>
-        w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, category: e.category, bestEr: e.bestVideo.engagement_rate }))
+        w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, avatarUrl: e.avatarUrl ?? null, category: e.category, bestEr: e.bestVideo.engagement_rate }))
       );
       setAllTimeData(flat);
     } catch { /* silently ignore */ }
@@ -1343,6 +1391,8 @@ function HomeInner() {
           )}
         </div>
       </section>
+
+      <TopProfilesStrip profiles={topProfiles} loading={loadingAllTime} />
 
       {calcLightbox && calcVideoId && (
         <div className="gr-kalky-lightbox" onClick={() => setCalcLightbox(false)}>
