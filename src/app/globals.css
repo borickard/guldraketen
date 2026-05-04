@@ -962,9 +962,17 @@ body {
 }
 .gr-hof-hdr .gr-page-title { margin: 0; }
 
+/* Override select colours for light background */
 .gr-hof-cat-select {
   align-self: center;
+  background-color: rgba(28,27,25,0.06);
+  border-color: rgba(28,27,25,0.2);
+  color: var(--gr-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(28,27,25,0.45)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  margin: 0;
 }
+.gr-hof-cat-select:hover { border-color: rgba(28,27,25,0.4); }
+.gr-hof-cat-select option { background: #EBE7E2; color: var(--gr-dark); }
 
 .gr-hof-loading {
   padding: 40px 48px;
@@ -999,6 +1007,7 @@ body {
 /* ── Horizontal scroll row + right-edge indicator ── */
 .gr-hof-week-scroll-wrap {
   position: relative;
+  margin-left: 45px;
 }
 
 /* Right-fade + arrow: always visible, pointer-events: none so scroll still works */
@@ -4616,19 +4625,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  padding: 48px 24px 52px;
-  background: var(--gr-dark);
-  margin-top: 40px;
+  gap: 18px;
+  padding: 32px 24px 40px;
   text-align: center;
 }
 
 .gr-rk-hof-tagline {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(22px, 4vw, 34px);
+  font-size: clamp(20px, 3.5vw, 30px);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: rgba(235,231,226,0.9);
+  color: var(--gr-dark);
   margin: 0;
 }
 
@@ -4640,15 +4647,15 @@ body {
   font-weight: 700;
   letter-spacing: .06em;
   text-decoration: none;
-  color: var(--gr-dark);
-  background: var(--gr-gold);
+  color: #fff;
+  background: var(--gr-dark);
   border-radius: 999px;
-  padding: 14px 32px;
+  padding: 13px 30px;
   transition: opacity 0.15s, transform 0.15s;
 }
 
 .gr-rk-hof-btn:hover {
-  opacity: 0.88;
+  opacity: 0.82;
   transform: translateY(-1px);
 }
 
