@@ -889,17 +889,9 @@ function HomeInner() {
       <section id="topplistan" className="gr-list-section">
 
         {/* Header */}
-        <div className="gr-list-section-hdr">
-          <h1 className="gr-page-title">Veckans raketer</h1>
-          {selectedWeek && (
-            <p className="gr-week-subtitle">{fmtWeekShort(selectedWeek)}</p>
-          )}
-        </div>
-
-        {/* Week nav + card grid */}
-        {selectedWeek && (() => {
-          const weekIdx = weeks.indexOf(selectedWeek);
-          const canBack = weekIdx + 1 < weeks.length;
+        {(() => {
+          const weekIdx = selectedWeek ? weeks.indexOf(selectedWeek) : -1;
+          const canBack = weekIdx >= 0 && weekIdx + 1 < weeks.length;
           const canForward = weekIdx > 0;
           function goToWeek(w: string) {
             setSelectedWeek(w);
@@ -907,44 +899,64 @@ function HomeInner() {
           }
           return (
             <>
-              {/* Mobile: compact arrow row */}
-              <div className="gr-rk-week-row">
-                <button
-                  className="gr-wk-arrow"
-                  disabled={!canBack}
-                  onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                  aria-label="Föregående vecka"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </button>
-                <span className="gr-rk-week-label">{fmtWeekShort(selectedWeek)}</span>
-                <button
-                  className="gr-wk-arrow"
-                  disabled={!canForward}
-                  onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                  aria-label="Nästa vecka"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
+              <div className="gr-list-section-hdr">
+                <h1 className="gr-page-title">Veckans raketer</h1>
+                {selectedWeek && (
+                  <div className="gr-rk-week-hdr-nav">
+                    <button
+                      className="gr-wk-arrow"
+                      disabled={!canBack}
+                      onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
+                      aria-label="Föregående vecka"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <span className="gr-week-subtitle">{fmtWeekShort(selectedWeek)}</span>
+                    <button
+                      className="gr-wk-arrow"
+                      disabled={!canForward}
+                      onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
+                      aria-label="Nästa vecka"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Desktop: card grid with margin arrows */}
-              <div className="gr-rk-nav-wrap">
-                <button
-                  className="gr-rk-nav-arrow gr-rk-nav-arrow--left"
-                  disabled={!canBack}
-                  onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                  aria-label="Föregående vecka"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </button>
-                <div className="gr-rk-grid">
+              {selectedWeek && (
+                <>
+                  {/* Mobile: compact arrow row */}
+                  <div className="gr-rk-week-row">
+                    <button
+                      className="gr-wk-arrow"
+                      disabled={!canBack}
+                      onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
+                      aria-label="Föregående vecka"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <span className="gr-rk-week-label">{fmtWeekShort(selectedWeek)}</span>
+                    <button
+                      className="gr-wk-arrow"
+                      disabled={!canForward}
+                      onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
+                      aria-label="Nästa vecka"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="gr-rk-nav-wrap">
+                    <div className="gr-rk-grid">
           {loading
             ? [0, 1, 2].map((i) => (
                 <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
@@ -1014,18 +1026,10 @@ function HomeInner() {
                 </div>
               ))
           }
-                </div>
-                <button
-                  className="gr-rk-nav-arrow gr-rk-nav-arrow--right"
-                  disabled={!canForward}
-                  onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                  aria-label="Nästa vecka"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-              </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           );
         })()}

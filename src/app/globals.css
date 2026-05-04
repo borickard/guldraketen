@@ -3980,15 +3980,22 @@ body {
   cursor: default;
 }
 
-.gr-rk-nav-arrow--left { left: 0; }
-.gr-rk-nav-arrow--right { right: 0; }
+/* Desktop: arrows inline with week label in the header */
+.gr-rk-week-hdr-nav {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
 
 @media (min-width: 760px) {
-  .gr-rk-nav-arrow { display: flex; }
+  .gr-rk-week-hdr-nav { display: flex; }
+  .gr-week-subtitle { display: block; }
 }
 
 @media (max-width: 759px) {
   .gr-rk-week-row { display: flex; }
+  .gr-rk-week-hdr-nav { display: none; }
   .gr-week-subtitle { display: none; }
   .gr-list-section .gr-page-title { font-size: 1.5rem; }
   .gr-list-section-hdr { padding-top: var(--space-3); }
