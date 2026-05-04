@@ -112,6 +112,13 @@ function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
 
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    el.scrollLeft = 0;
+    setAtEnd(el.scrollWidth <= el.clientWidth + 24);
+  }, [videos]);
+
   function onScroll() {
     const el = rowRef.current;
     if (!el) return;
