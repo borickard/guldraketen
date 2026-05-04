@@ -96,9 +96,10 @@ export async function GET(request: Request) {
   const weekGroups: HofWeek[] = [];
 
   for (const [week, videos] of byWeek) {
-    // Need at least MIN_ACCOUNTS_PER_WEEK unique accounts
     const uniqueAccounts = new Set(videos.map((v) => v.handle));
-    if (uniqueAccounts.size < MIN_ACCOUNTS_PER_WEEK) continue;
+    // When browsing all categories, require at least MIN_ACCOUNTS_PER_WEEK to avoid thin weeks.
+    // When filtered to a specific category, any week with content is valid.
+    if (!categoryFilter && uniqueAccounts.size < MIN_ACCOUNTS_PER_WEEK) continue;
 
     const top = videos.slice(0, TOP_N).map((v, i) => {
       const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
