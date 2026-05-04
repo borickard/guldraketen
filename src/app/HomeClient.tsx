@@ -706,9 +706,9 @@ function HomeInner() {
     setLoadingAllTime(true);
     try {
       const res = await fetch("/api/tidigare-raketer");
-      const rawWeeks: { entries: { handle: string; displayName: string; avatarUrl: string | null; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
+      const rawWeeks: { videos: { handle: string; displayName: string; avatarUrl: string | null; category: string | null; video: { engagement_rate: number } }[] }[] = await res.json();
       const flat: AllTimeEntry[] = rawWeeks.flatMap((w) =>
-        w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, avatarUrl: e.avatarUrl ?? null, category: e.category, bestEr: e.bestVideo.engagement_rate }))
+        w.videos.map((e) => ({ handle: e.handle, displayName: e.displayName, avatarUrl: e.avatarUrl ?? null, category: e.category, bestEr: e.video.engagement_rate }))
       );
       setAllTimeData(flat);
     } catch { /* silently ignore */ }
@@ -1029,6 +1029,13 @@ function HomeInner() {
             </>
           );
         })()}
+
+        {/* ── Hall of Fame CTA ── */}
+        <div className="gr-rk-hof-cta">
+          <a href="/hall-of-fame" className="gr-rk-hof-btn">
+            Se Hall of Fame
+          </a>
+        </div>
       </section>
 
       {/* ── KALKYLATOR ───────────────────────────────────────────────── */}

@@ -32,6 +32,7 @@ export type HofVideo = {
   rank: number;
   handle: string;
   displayName: string;
+  avatarUrl: string | null;
   category: string | null;
   video: {
     video_url: string;
@@ -54,7 +55,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("videos")
     .select(
-      "handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category)"
+      "handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
     )
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
@@ -85,11 +86,12 @@ export async function GET() {
 
     const top = videos.slice(0, TOP_N).map((v, i) => {
       const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
-      const acctEx = acct as { display_name?: string | null; category?: string | null } | null;
+      const acctEx = acct as { display_name?: string | null; category?: string | null; avatar_url?: string | null } | null;
       return {
         rank: i + 1,
         handle: v.handle,
         displayName: acctEx?.display_name ?? `@${v.handle}`,
+        avatarUrl: acctEx?.avatar_url ?? null,
         category: acctEx?.category ?? null,
         video: {
           video_url: v.video_url,
