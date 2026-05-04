@@ -4614,26 +4614,42 @@ body {
 /* Hall of Fame link below Veckans Raketer */
 .gr-rk-hof-cta {
   display: flex;
-  justify-content: center;
-  padding: 28px 24px 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 48px 24px 52px;
+  background: var(--gr-dark);
+  margin-top: 40px;
+  text-align: center;
+}
+
+.gr-rk-hof-tagline {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgba(235,231,226,0.9);
+  margin: 0;
 }
 
 .gr-rk-hof-btn {
+  display: inline-flex;
+  align-items: center;
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-sm);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: .06em;
   text-decoration: none;
   color: var(--gr-dark);
-  border: 1.5px solid rgba(28,27,25,0.3);
+  background: var(--gr-gold);
   border-radius: 999px;
-  padding: 10px 28px;
-  transition: background 0.15s, border-color 0.15s;
+  padding: 14px 32px;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .gr-rk-hof-btn:hover {
-  background: rgba(28,27,25,0.06);
-  border-color: rgba(28,27,25,0.5);
+  opacity: 0.88;
+  transform: translateY(-1px);
 }
 
 /* Skeleton */
