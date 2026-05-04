@@ -4632,11 +4632,15 @@ body {
 
 .gr-rk-hof-tagline {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(20px, 3.5vw, 30px);
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--gr-dark);
   margin: 0;
+}
+
+@media (min-width: 640px) {
+  .gr-rk-hof-tagline { font-size: 35px; }
 }
 
 .gr-rk-hof-btn {
@@ -4652,6 +4656,10 @@ body {
   border-radius: 999px;
   padding: 13px 30px;
   transition: opacity 0.15s, transform 0.15s;
+}
+
+@media (min-width: 640px) {
+  .gr-rk-hof-btn { font-size: 20px; padding: 15px 36px; }
 }
 
 .gr-rk-hof-btn:hover {
