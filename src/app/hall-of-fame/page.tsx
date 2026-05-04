@@ -173,7 +173,7 @@ function HallOfFameInner() {
         <h1 className="gr-page-title">Hall of Fame</h1>
         {categories.length > 0 && (
           <select
-            className="gr-calc-cat-select gr-hof-cat-select"
+            className="gr-calc-cat-select"
             value={selectedCat}
             onChange={(e) => setSelectedCat(e.target.value)}
           >
