@@ -42,7 +42,8 @@ const CATEGORIES = [
   "Resor & upplevelser",
   "Utbildning",
   "Fordon",
-  "Offentlig sektor & ideell",
+  "Offentlig sektor & ideellt",
+  "Politik & intresseorganisationer",
 ];
 
 
