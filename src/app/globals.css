@@ -1892,6 +1892,27 @@ body {
   animation: gr-shimmer 1.6s ease-in-out infinite;
 }
 
+/* ── Profile result intro ── */
+.gr-calc-prof-intro {
+  font-family: 'Barlow', sans-serif;
+  font-size: 16px;
+  color: rgba(237,248,251,0.65);
+  margin: 0;
+  line-height: 1.5;
+}
+.gr-calc-prof-intro strong {
+  color: #EDF8FB;
+  font-weight: 700;
+}
+.gr-calc-prof-stats-heading {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(237,248,251,0.38);
+  margin: 24px 0 0;
+}
+
 /* ── Profile result header ── */
 .gr-calc-prof-header {
   display: flex;

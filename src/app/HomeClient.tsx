@@ -275,17 +275,16 @@ function CalcComparison({ er, allBench, categories, handle, type }: {
       .finally(() => setCatLoading(false));
   }, [selectedCat]);
 
-  const allTopPct = Math.max(1, 100 - Math.round(computePercentile(er, allBench)));
-
-  const catTopPct: number | null = (() => {
-    if (!catBench || catBench.count < 10) return null;
-    return Math.max(1, 100 - Math.round(computePercentile(er, catBench)));
-  })();
+  // beatPct = "you beat X% of all videos/accounts" — used directly in "Bättre än X%"
+  const beatPct = Math.min(99, Math.round(computePercentile(er, allBench)));
+  const catBeatPct: number | null = catBench && catBench.count >= 10
+    ? Math.min(99, Math.round(computePercentile(er, catBench)))
+    : null;
 
   return (
     <div className="gr-calc-comparison">
       <p className="gr-calc-comparison-line">
-        Bland de <strong>{allTopPct}%</strong> mest engagerande {type}
+        Bättre än <strong>{beatPct >= 99 ? "99+" : beatPct}%</strong> av uppmätta {type} på Sociala Raketer
       </p>
       {categories.length > 0 && (
         <select
@@ -300,12 +299,12 @@ function CalcComparison({ er, allBench, categories, handle, type }: {
       {selectedCat && (
         catLoading ? (
           <p className="gr-calc-comparison-line gr-calc-comparison-line--muted">Hämtar…</p>
-        ) : catTopPct !== null ? (
+        ) : catBeatPct !== null ? (
           <p className="gr-calc-comparison-line">
             {type === "konton" ? (
-              <>I kategori <strong>{selectedCat}</strong> är <strong>@{handle ?? "kontot"}</strong> bland de <strong>{catTopPct}%</strong> mest engagerande kontona</>
+              <>I kategori <strong>{selectedCat}</strong> är <strong>@{handle ?? "kontot"}</strong> bättre än <strong>{catBeatPct >= 99 ? "99+" : catBeatPct}%</strong> av uppmätta konton</>
             ) : (
-              <>I kategori <strong>{selectedCat}</strong> är videon bland de <strong>{catTopPct}%</strong> mest engagerande</>
+              <>I kategori <strong>{selectedCat}</strong> är videon bättre än <strong>{catBeatPct >= 99 ? "99+" : catBeatPct}%</strong> av uppmätta videor</>
             )}
           </p>
         ) : (
@@ -1117,12 +1116,11 @@ function HomeInner() {
 
           {calcMode === "profile-ready" && calcProfileVideos && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-              <div className="gr-calc-prof-header">
-                <p className="gr-calc-prof-handle-lbl">@{calcProfileHandle}</p>
-                <p className="gr-calc-prof-count-lbl">{calcProfileVideos.length} senaste videos · snitt</p>
-              </div>
+              <p className="gr-calc-prof-intro">
+                <strong>@{calcProfileHandle}</strong> {calcProfileVideos.length} senaste videos har i genomsnitt en engagemangsgrad på
+              </p>
               {profileAvgEr !== null ? (
-                <p className="gr-kalky-v2-er" style={{ marginTop: 12 }}>{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+                <p className="gr-kalky-v2-er" style={{ marginTop: 8 }}>{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
               ) : (
                 <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
               )}
@@ -1136,20 +1134,23 @@ function HomeInner() {
                 />
               )}
               {profileAvgStats && (
-                <div className="gr-calc-prof-stats-grid">
-                  {[
-                    { icon: <Eye size={15} />, val: fmt(profileAvgStats.views), lbl: "visningar" },
-                    { icon: <ThumbsUp size={15} />, val: fmt(profileAvgStats.likes), lbl: "likes" },
-                    { icon: <MessageCircle size={15} />, val: fmt(profileAvgStats.comments), lbl: "kommentarer" },
-                    { icon: <Share2 size={15} />, val: fmt(profileAvgStats.shares), lbl: "delningar" },
-                  ].map(({ icon, val, lbl }) => (
-                    <div key={lbl} className="gr-calc-prof-stat-card">
-                      <span className="gr-calc-prof-stat-icon">{icon}</span>
-                      <span className="gr-calc-prof-stat-val">{val}</span>
-                      <span className="gr-calc-prof-stat-lbl">snitt {lbl}</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <p className="gr-calc-prof-stats-heading">Genomsnittliga resultat per inlägg</p>
+                  <div className="gr-calc-prof-stats-grid">
+                    {[
+                      { icon: <Eye size={15} />, val: fmt(profileAvgStats.views), lbl: "visningar" },
+                      { icon: <ThumbsUp size={15} />, val: fmt(profileAvgStats.likes), lbl: "likes" },
+                      { icon: <MessageCircle size={15} />, val: fmt(profileAvgStats.comments), lbl: "kommentarer" },
+                      { icon: <Share2 size={15} />, val: fmt(profileAvgStats.shares), lbl: "delningar" },
+                    ].map(({ icon, val, lbl }) => (
+                      <div key={lbl} className="gr-calc-prof-stat-card">
+                        <span className="gr-calc-prof-stat-icon">{icon}</span>
+                        <span className="gr-calc-prof-stat-val">{val}</span>
+                        <span className="gr-calc-prof-stat-lbl">snitt {lbl}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
