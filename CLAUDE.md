@@ -374,6 +374,59 @@ NEXT_PUBLIC_SITE_URL=https://guldraketen.vercel.app
 
 ## TODO
 
+### val.socialaraketer.se — Valet 2026 (EJ PÅBÖRJAD)
+
+Separat sida för riksdagspartiernas TikTok-engagemang under valåret 2026. Politiskt innehåll hålls utanför huvudsidan eftersom det tenderar att dominera rankingarna.
+
+**Beslutade val:**
+- URL: `val.socialaraketer.se` → Vercel domain alias som pekar på samma deployment, route `src/app/val/`
+- Tech: Approach A — subpath `/val` i befintlig Next.js-app, subdomain-alias läggs till i Vercel senare
+- Design: samma palett som huvudsidan (beige `#EBE7E2`, guld `#C8962A`, mörk `#1C1B19`)
+- Partiordning: vänster→höger enligt svensk politisk konvention (ej kontroversiellt)
+
+**Datamodell:**
+- Lägg till kolumn `is_riksdagsparti boolean not null default false` på `accounts`-tabellen
+- Alternativt: dedikerad kategori `"Riksdagspartier"` — enklare men mindre flexibelt
+- Partiernas metadata (kortnamn, färg, vänster-höger-position) hårdkodas i frontend
+
+Hårdkodad particonfig (lägg i `src/app/val/parties.ts`):
+```ts
+export const PARTIES = [
+  { handle: "vansterpartiet",        short: "V",  name: "Vänsterpartiet",     color: "#DA291C", order: 1 },
+  { handle: "miljopartiet",          short: "MP", name: "Miljöpartiet",        color: "#53A045", order: 2 },
+  { handle: "socialdemokraterna",    short: "S",  name: "Socialdemokraterna",  color: "#E8112D", order: 3 },
+  { handle: "centerpartiet",         short: "C",  name: "Centerpartiet",       color: "#009933", order: 4 },
+  { handle: "liberalerna",           short: "L",  name: "Liberalerna",         color: "#006AB3", order: 5 },
+  { handle: "moderaterna",           short: "M",  name: "Moderaterna",         color: "#52BDEC", order: 6 },
+  { handle: "kristdemokraterna",     short: "KD", name: "Kristdemokraterna",   color: "#231F78", order: 7 },
+  { handle: "sverigedemokraterna",   short: "SD", name: "Sverigedemokraterna", color: "#DDDD00", order: 8 },
+];
+```
+(Verifiera TikTok-handles mot faktiska konton innan launch.)
+
+**Sidstruktur (tre sektioner):**
+
+1. **Spektrumöversikt** — 8 partiblock i vänster→höger-ordning. Varje block: partiets kortnamn + färgprick, senaste periodens bästa ER eller genomsnittlig ER. Visuell jämförelse i en rad, färgkodad per parti.
+
+2. **Per-parti-grid** — för varje parti (i spektrumordning): partirubrik med färgaccent + de 10 senaste videorna i samma thumbnail-grid som `/konto/[handle]`. Engagement rate på varje kort.
+
+3. **Cross-parti topplista** — alla videor från alla riksdagspartier, rankade efter ER. Varje rad visar parti-badge (kortnamn + färgprick) så det framgår vems innehåll det är.
+
+**Datahämtning:**
+- Ny API-route `src/app/api/val/route.ts` — hämtar senaste N videor per parti-handle, returnerar grupperat per parti + flat lista sorterad på ER
+- Alternativt: återanvänd `/api/konto/[handle]` per parti (enklare men fler requests)
+- Rekommenderat: en samlad route för att undvika 8 parallella fetches på klienten
+
+**Implementation när redo:**
+1. SQL: `ALTER TABLE accounts ADD COLUMN is_riksdagsparti boolean not null default false;` — kör i Supabase
+2. Admin: lägg till toggle för `is_riksdagsparti` i admin-UI
+3. Lägg till parti-handles i accounts-tabellen + sätt `is_riksdagsparti = true`
+4. Skapa `src/app/val/page.tsx` + `src/app/val/parties.ts`
+5. Ny API-route `src/app/api/val/route.ts`
+6. Lägg till Vercel domain alias `val.socialaraketer.se` i Vercel-dashboarden
+
+---
+
 ### FAQ-sektion på startsidan
 Ersätt den sista sektionen på startsidan ("Om engagemang" — tre förklaringskort) med en FAQ med expanderbara dropdown-rader (accordion). Frågorna:
 - "Vad räknas som engagemang?"
