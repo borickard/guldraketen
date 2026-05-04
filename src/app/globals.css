@@ -957,7 +957,7 @@ body {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 32px 32px 24px;
+  padding: 32px 48px 24px;
   border-bottom: 1px solid rgba(28,27,25,0.1);
 }
 .gr-hof-hdr .gr-page-title { margin: 0; }
@@ -967,7 +967,7 @@ body {
 }
 
 .gr-hof-loading {
-  padding: 40px 32px;
+  padding: 40px 48px;
   font-family: 'Barlow', sans-serif;
   font-size: var(--gr-fs-sm);
   color: rgba(28,27,25,0.4);
@@ -987,29 +987,58 @@ body {
   letter-spacing: .1em;
   text-transform: uppercase;
   color: rgba(28,27,25,0.4);
-  padding: 0 32px 12px;
+  padding: 0 48px 12px;
 }
 
 @media (max-width: 639px) {
-  .gr-hof-hdr { padding: 24px 16px 20px; }
-  .gr-hof-week-label { padding-left: 16px; padding-right: 16px; }
-  .gr-hof-loading { padding-left: 16px; }
+  .gr-hof-hdr { padding: 24px 20px 20px; }
+  .gr-hof-week-label { padding-left: 20px; padding-right: 20px; }
+  .gr-hof-loading { padding-left: 20px; }
 }
 
-/* ── Horizontal scroll row ── */
+/* ── Horizontal scroll row + right-edge indicator ── */
+.gr-hof-week-scroll-wrap {
+  position: relative;
+}
+
+/* Right-fade + arrow: always visible, pointer-events: none so scroll still works */
+.gr-hof-week-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 20px; /* matches scroll padding-bottom */
+  width: 80px;
+  background: linear-gradient(to right, transparent, #EBE7E2 80%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.gr-hof-week-arrow {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(calc(-50% - 10px)); /* -10px for scroll padding */
+  z-index: 3;
+  pointer-events: none;
+  color: rgba(28,27,25,0.35);
+  display: flex;
+  align-items: center;
+}
+
 .gr-hof-week-row {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   gap: 10px;
-  padding: 0 32px 20px;
+  padding: 0 48px 20px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 .gr-hof-week-row::-webkit-scrollbar { display: none; }
 
 @media (max-width: 639px) {
-  .gr-hof-week-row { padding-left: 16px; padding-right: 16px; }
+  .gr-hof-week-row { padding-left: 20px; padding-right: 20px; }
 }
 
 /* ── Cards inside the scroll row ── */
@@ -1021,14 +1050,14 @@ body {
   overflow: hidden;
   color: #1C1B19;
   position: relative;
-  /* mobile: 1.5 cards visible */
-  width: calc((100vw - 32px - 10px * 0.5) / 1.5);
+  /* mobile: 1.5 cards visible (40px padding) */
+  width: calc((100vw - 40px - 10px * 0.5) / 1.5);
 }
 
 @media (min-width: 640px) {
   .gr-hof-row-card {
-    /* desktop: 9.5 cards visible */
-    width: calc((100vw - 64px - 10px * 8.5) / 9.5);
+    /* desktop: 9.5 cards visible (96px total padding) */
+    width: calc((100vw - 96px - 10px * 8.5) / 9.5);
   }
 }
 

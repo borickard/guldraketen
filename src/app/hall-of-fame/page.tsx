@@ -159,10 +159,17 @@ function HallOfFameInner() {
         filtered.map((group) => (
           <div key={group.week} className="gr-hof-week">
             <span className="gr-hof-week-label">{fmtWeek(group.week)}</span>
-            <div className="gr-hof-week-row">
-              {group.videos.map((entry) => (
-                <HofCard key={`${group.week}-${entry.rank}`} entry={entry} />
-              ))}
+            <div className="gr-hof-week-scroll-wrap">
+              <div className="gr-hof-week-row">
+                {group.videos.map((entry) => (
+                  <HofCard key={`${group.week}-${entry.rank}`} entry={entry} />
+                ))}
+              </div>
+              <div className="gr-hof-week-arrow" aria-hidden>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </div>
             </div>
           </div>
         ))
