@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import type { HofVideo, HofWeek } from "@/app/api/tidigare-raketer/route";
 
 function fmtWeek(w: string) {
@@ -108,6 +108,40 @@ function HofCard({ entry }: { entry: HofVideo }) {
   );
 }
 
+function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+
+  function onScroll() {
+    const el = rowRef.current;
+    if (!el) return;
+    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 24);
+  }
+
+  function scrollRight() {
+    const el = rowRef.current;
+    if (!el) return;
+    el.scrollBy({ left: el.clientWidth * 0.7, behavior: "smooth" });
+  }
+
+  return (
+    <div className="gr-hof-week-scroll-wrap">
+      <div className="gr-hof-week-row" ref={rowRef} onScroll={onScroll}>
+        {videos.map((entry) => (
+          <HofCard key={`${week}-${entry.rank}`} entry={entry} />
+        ))}
+      </div>
+      {!atEnd && (
+        <button className="gr-hof-week-arrow" onClick={scrollRight} aria-label="Scrolla höger">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function HallOfFameInner() {
   const [weekGroups, setWeekGroups] = useState<HofWeek[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +169,7 @@ function HallOfFameInner() {
 
   return (
     <main className="gr-hof-page gr-page">
-      <div className="gr-page-hdr gr-hof-hdr">
+      <div className="gr-hof-hdr">
         <h1 className="gr-page-title">Hall of Fame</h1>
         {categories.length > 0 && (
           <select
@@ -159,18 +193,7 @@ function HallOfFameInner() {
         filtered.map((group) => (
           <div key={group.week} className="gr-hof-week">
             <span className="gr-hof-week-label">{fmtWeek(group.week)}</span>
-            <div className="gr-hof-week-scroll-wrap">
-              <div className="gr-hof-week-row">
-                {group.videos.map((entry) => (
-                  <HofCard key={`${group.week}-${entry.rank}`} entry={entry} />
-                ))}
-              </div>
-              <div className="gr-hof-week-arrow" aria-hidden>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </div>
-            </div>
+            <WeekRow videos={group.videos} week={group.week} />
           </div>
         ))
       )}
