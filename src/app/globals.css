@@ -950,118 +950,151 @@ body {
   min-height: 100vh;
 }
 
-.gr-hof-page .gr-page-hdr {
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-}
-
-.gr-hof-page .gr-content-aside {
-  border-left: 1px solid rgba(28,27,25,0.1);
-}
-
-@media (max-width: 839px) {
-  .gr-hof-page .gr-content-aside {
-    border-left: none;
-    border-top: 1px solid rgba(28,27,25,0.1);
-  }
-}
-
-/* ── Hall of Fame ── */
-.gr-hof-section-hdr {
+/* ── Hall of Fame — page header with category filter ── */
+.gr-hof-hdr {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 55px;
-  padding: 14px 24px;
-  border-bottom: 1px solid rgba(28,27,25,0.1);
   flex-wrap: wrap;
+  gap: 12px;
+  padding: 32px 48px 24px;
+  border-bottom: 1px solid rgba(28,27,25,0.1);
 }
+.gr-hof-hdr .gr-page-title { margin: 0; }
 
-.gr-hof-sticky-hdr {
-  position: sticky;
-  top: 34px;
-  z-index: 10;
-  background: #EBE7E2;
-}
-
-@media (min-width: 840px) {
-  .gr-hof-aside-sticky {
-    position: sticky;
-    top: 34px;
-    align-self: start;
-    z-index: 15;
-  }
-}
-
-.gr-hof-section-title {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-xs);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,0.45);
+/* Override select colours for light background */
+.gr-hof-cat-select {
+  align-self: center;
+  background-color: rgba(28,27,25,0.06);
+  border-color: rgba(28,27,25,0.2);
+  color: var(--gr-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(28,27,25,0.45)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   margin: 0;
 }
+.gr-hof-cat-select:hover { border-color: rgba(28,27,25,0.4); }
+.gr-hof-cat-select option { background: #EBE7E2; color: var(--gr-dark); }
 
-/* Sort pills */
-.gr-sort-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.gr-sort-pill {
+.gr-hof-loading {
+  padding: 40px 48px;
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .08em;
+  font-size: var(--gr-fs-sm);
+  color: rgba(28,27,25,0.4);
+}
+
+/* ── Week sections ── */
+.gr-hof-week {
+  padding-top: 28px;
+  padding-bottom: 8px;
+}
+
+.gr-hof-week-label {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(28,27,25,0.2);
-  background: transparent;
-  color: var(--gr-dark);
-  opacity: 0.45;
+  color: rgba(28,27,25,0.4);
+  padding: 0 48px 12px;
+}
+
+@media (max-width: 639px) {
+  .gr-hof-hdr { padding: 24px 20px 20px; }
+  .gr-hof-week-label { padding-left: 20px; padding-right: 20px; }
+  .gr-hof-loading { padding-left: 20px; }
+}
+
+/* ── Horizontal scroll row + right-edge indicator ── */
+.gr-hof-week-scroll-wrap {
+  position: relative;
+  margin-left: 45px;
+}
+
+/* Right-fade + arrow: always visible, pointer-events: none so scroll still works */
+.gr-hof-week-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 20px; /* matches scroll padding-bottom */
+  width: 80px;
+  background: linear-gradient(to right, transparent, #EBE7E2 80%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.gr-hof-week-arrow {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(calc(-50% - 10px));
+  z-index: 3;
+  background: rgba(235,231,226,0.85);
+  border: 1.5px solid rgba(28,27,25,0.15);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(28,27,25,0.6);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
+  backdrop-filter: blur(4px);
+}
+.gr-hof-week-arrow:hover {
+  background: #EBE7E2;
+  color: var(--gr-dark);
 }
 
-.gr-sort-pill.active {
-  background: var(--gr-dark);
-  border-color: var(--gr-dark);
-  color: #EBE7E2;
-  opacity: 1;
+.gr-hof-week-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 10px;
+  padding: 0 48px 20px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.gr-hof-week-row::-webkit-scrollbar { display: none; }
+
+@media (max-width: 639px) {
+  .gr-hof-week-row { padding-left: 20px; padding-right: 20px; }
 }
 
-.gr-hof-flat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 24px;
+/* ── Cards inside the scroll row ── */
+.gr-hof-row-card {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  color: #1C1B19;
+  position: relative;
+  /* mobile: 1.5 cards visible (40px padding) */
+  width: calc((100vw - 40px - 10px * 0.5) / 1.5);
 }
 
-@media (max-width: 600px) {
-  .gr-hof-flat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 16px;
+@media (min-width: 640px) {
+  .gr-hof-row-card {
+    /* desktop: 9.5 cards visible (96px total padding) */
+    width: calc((100vw - 96px - 10px * 8.5) / 9.5);
   }
 }
 
-.gr-hof-flat-grid .gr-vc {
-  width: 100%;
-  flex-shrink: unset;
-  background: #fff;
-  border-color: rgba(28,27,25,0.1);
-  color: #1C1B19;
-}
-
-.gr-hof-flat-grid .gr-thumb {
+.gr-hof-row-thumb {
+  display: block;
   width: 100%;
   height: unset;
   aspect-ratio: 9 / 16;
-  border-radius: 16.5px 16.5px 0 0;
+  border-radius: 0;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  background: rgba(28,27,25,0.06);
 }
 
-/* ER badge on HoF thumbnails (replaces views badge) */
+/* ER badge on HoF row cards */
 .gr-thumb-er {
   position: absolute;
   bottom: 6px;
@@ -1075,57 +1108,6 @@ body {
   border-radius: 8px;
   letter-spacing: .03em;
   line-height: 1.3;
-}
-
-/* Larger stats + caption in HoF grid cards */
-.gr-hof-flat-grid .gr-thumb-stats span {
-  font-size: 12px;
-  padding: 2px 5px;
-}
-
-.gr-hof-flat-grid .gr-vid-title {
-  font-size: 13px;
-  line-height: 1.4;
-  color: #1C1B19;
-}
-
-.gr-hof-filler {
-  /* Invisible placeholder to fill incomplete grid rows */
-  visibility: hidden;
-}
-
-.gr-hof-card-week {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,0.3);
-  margin: 2px 0 0;
-}
-
-.gr-hof-load-more {
-  padding: 8px 24px 32px;
-  display: flex;
-  justify-content: center;
-}
-
-.gr-hof-load-more-btn {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-sm);
-  font-weight: 500;
-  letter-spacing: .04em;
-  padding: 10px 24px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(28,27,25,0.25);
-  background: transparent;
-  color: var(--gr-dark);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.gr-hof-load-more-btn:hover {
-  background: rgba(28,27,25,0.06);
-  border-color: rgba(28,27,25,0.4);
 }
 
 /* Raketer list rows — mirror entry row style */
@@ -1174,104 +1156,6 @@ body {
   .gr-raket-stats { display: none; }
 }
 
-/* Konton score table */
-.gr-score-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gr-score-table th {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,.4);
-  text-align: left;
-  padding: 0 0 12px;
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-}
-
-.gr-score-table th.right { text-align: right; }
-
-.gr-score-row td {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-  vertical-align: middle;
-}
-.gr-score-row:last-child td { border-bottom: none; }
-
-.gr-score-rank {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: var(--gr-fs-sm);
-  color: rgba(28,27,25,.3);
-  width: 28px;
-  padding-right: 8px;
-}
-
-.gr-score-name {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-base);
-  font-weight: 500;
-  color: var(--gr-dark);
-}
-
-.gr-score-name-link {
-  color: #EDF8FB;
-  text-decoration: none;
-}
-
-.gr-score-name-link:hover {
-  opacity: 0.75;
-  text-decoration: underline;
-}
-
-.gr-score-profile-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 6px;
-  padding: 3px 5px;
-  border: 1px solid rgba(28,27,25,0.25);
-  border-radius: 4px;
-  color: rgba(28,27,25,0.5);
-  text-decoration: none;
-  vertical-align: middle;
-  line-height: 1;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.gr-score-profile-btn:hover {
-  background: rgba(28,27,25,0.07);
-  color: var(--gr-dark);
-  border-color: rgba(28,27,25,0.5);
-}
-
-.gr-score-pts {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: var(--gr-fs-lg);
-  color: var(--gr-dark);
-  text-align: right;
-  white-space: nowrap;
-  padding-left: 16px;
-}
-
-.gr-medal-badges {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  padding-left: 8px;
-}
-
-.gr-medal-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  color: var(--gr-dark);
-  opacity: 0.7;
-}
 
 /* ── Kalkylator v2 ── */
 
@@ -4096,15 +3980,22 @@ body {
   cursor: default;
 }
 
-.gr-rk-nav-arrow--left { left: 0; }
-.gr-rk-nav-arrow--right { right: 0; }
+/* Desktop: arrows inline with week label in the header */
+.gr-rk-week-hdr-nav {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
 
 @media (min-width: 760px) {
-  .gr-rk-nav-arrow { display: flex; }
+  .gr-rk-week-hdr-nav { display: flex; }
+  .gr-week-subtitle { display: block; }
 }
 
 @media (max-width: 759px) {
   .gr-rk-week-row { display: flex; }
+  .gr-rk-week-hdr-nav { display: none; }
   .gr-week-subtitle { display: none; }
   .gr-list-section .gr-page-title { font-size: 1.5rem; }
   .gr-list-section-hdr { padding-top: var(--space-3); }
@@ -4735,6 +4626,53 @@ body {
   white-space: nowrap;
 }
 .gr-rk-vk-name:hover { color: var(--gr-gold); }
+
+/* Hall of Fame link below Veckans Raketer */
+.gr-rk-hof-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 24px 40px;
+  text-align: center;
+}
+
+.gr-rk-hof-tagline {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--gr-dark);
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .gr-rk-hof-tagline { font-size: 35px; }
+}
+
+.gr-rk-hof-btn {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-decoration: none;
+  color: #fff;
+  background: var(--gr-dark);
+  border-radius: 999px;
+  padding: 13px 30px;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+@media (min-width: 640px) {
+  .gr-rk-hof-btn { font-size: 20px; padding: 15px 36px; }
+}
+
+.gr-rk-hof-btn:hover {
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
 
 /* Skeleton */
 .gr-rk-vk-card--loading .gr-thumb {

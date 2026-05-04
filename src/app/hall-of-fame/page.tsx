@@ -1,34 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-import { Suspense } from "react";
-
-interface VideoEntry {
-  rank: number;
-  handle: string;
-  displayName: string;
-  week: string;
-  bestVideo: {
-    video_url: string;
-    thumbnail_url: string | null;
-    caption: string | null;
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    engagement_rate: number;
-  };
-}
-
-interface ScoreEntry {
-  handle: string;
-  displayName: string;
-  totalPoints: number;
-  gold: number;
-  silver: number;
-  bronze: number;
-}
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
+import type { HofVideo, HofWeek } from "@/app/api/tidigare-raketer/route";
 
 function fmtWeek(w: string) {
   const m = w.match(/(\d{4})-W(\d{2})/);
@@ -42,267 +15,188 @@ function fmt(n: number): string {
   return String(n);
 }
 
-function Thumb({ src, name }: { src: string | null; name: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return (
-      <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, color: "rgba(28,27,25,.12)" }}>
-          {name[0]}
+function rankBg(rank: number): string {
+  if (rank === 1) return "#C8962A";
+  if (rank === 2) return "#8A9299";
+  if (rank === 3) return "#96614A";
+  return "rgba(28,27,25,0.75)";
+}
+
+function rankColor(rank: number): string {
+  if (rank === 1) return "#C8962A";
+  if (rank === 2) return "#8A9299";
+  if (rank === 3) return "#96614A";
+  return "#EBE7E2";
+}
+
+function HeartIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" />
+    </svg>
+  );
+}
+function CommentIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z" />
+    </svg>
+  );
+}
+function ShareIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 17 20 12 15 7" />
+      <path d="M4 18v-2a4 4 0 014-4h12" />
+    </svg>
+  );
+}
+function EyeIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function HofCard({ entry }: { entry: HofVideo }) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  return (
+    <div className="gr-vc gr-hof-row-card">
+      <a
+        href={entry.video.video_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="gr-thumb gr-hof-row-thumb"
+      >
+        {entry.video.thumbnail_url && !imgFailed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={entry.video.thumbnail_url}
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, color: "rgba(28,27,25,0.12)" }}>
+              {entry.displayName[0]}
+            </span>
+          </div>
+        )}
+        <div className="gr-thumb-stats">
+          <span><HeartIcon />{fmt(entry.video.likes)}</span>
+          <span><CommentIcon />{fmt(entry.video.comments)}</span>
+          <span><ShareIcon />{fmt(entry.video.shares)}</span>
+          <span><EyeIcon />{fmt(entry.video.views)}</span>
+        </div>
+        <span className="gr-thumb-er" style={{ color: rankColor(entry.rank) }}>
+          {entry.video.engagement_rate.toFixed(2)}%
         </span>
+        <span className="gr-thumb-best" style={{ background: rankBg(entry.rank) }}>
+          #{entry.rank}
+        </span>
+      </a>
+      <div className="gr-vid-info">
+        <a href={`/konto/${entry.handle}`} className="gr-rk-vk-name">
+          {entry.displayName}
+        </a>
       </div>
-    );
+    </div>
+  );
+}
+
+function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+
+  function onScroll() {
+    const el = rowRef.current;
+    if (!el) return;
+    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 24);
   }
-  return (
-    <Image
-      src={src}
-      alt={name}
-      fill
-      sizes="(max-width:640px) 50vw, 200px"
-      style={{ objectFit: "cover" }}
-      unoptimized
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
-function MedalDot({ color }: { color: string }) {
-  return (
-    <svg width="8" height="8" viewBox="0 0 8 8" style={{ display: "inline-block", flexShrink: 0 }}>
-      <circle cx="4" cy="4" r="4" fill={color} />
-    </svg>
-  );
-}
+  function scrollRight() {
+    const el = rowRef.current;
+    if (!el) return;
+    el.scrollBy({ left: el.clientWidth * 0.7, behavior: "smooth" });
+  }
 
-function MedalBadges({ gold, silver, bronze }: { gold: number; silver: number; bronze: number }) {
-  if (!gold && !silver && !bronze) return <span style={{ opacity: 0.3 }}>—</span>;
   return (
-    <span className="gr-medal-badges">
-      {gold > 0 && <span className="gr-medal-item">{gold}× <MedalDot color="#C8962A" /></span>}
-      {silver > 0 && <span className="gr-medal-item">{silver}× <MedalDot color="#8A9299" /></span>}
-      {bronze > 0 && <span className="gr-medal-item">{bronze}× <MedalDot color="#96614A" /></span>}
-    </span>
-  );
-}
-
-const RANK_COLORS = ["#C8962A", "#8A9299", "#96614A"];
-
-type SortOrder = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
-const SORT_OPTS: { key: SortOrder; label: string }[] = [
-  { key: "newest", label: "Nyaste" },
-  { key: "oldest", label: "Äldsta" },
-  { key: "er", label: "Eng.rate" },
-  { key: "views", label: "Visningar" },
-  { key: "likes", label: "Likes" },
-  { key: "comments", label: "Kommentarer" },
-  { key: "shares", label: "Delningar" },
-];
-
-function HeartIcon({ size = 9 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/>
-    </svg>
-  );
-}
-function CommentIcon({ size = 9 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 3c-4.97 0-9 3.186-9 7.115 0 2.055.999 3.898 2.604 5.207-.141.994-.671 2.716-2.604 3.678 2.132-.142 4.658-1.113 5.922-2.203C9.883 16.943 10.925 17 12 17c4.97 0 9-3.186 9-7.115C21 6.186 16.97 3 12 3z"/>
-    </svg>
-  );
-}
-function ShareIcon({ size = 9 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 17 20 12 15 7"/>
-      <path d="M4 18v-2a4 4 0 014-4h12"/>
-    </svg>
-  );
-}
-function EyeIcon({ size = 9 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
+    <div className="gr-hof-week-scroll-wrap">
+      <div className="gr-hof-week-row" ref={rowRef} onScroll={onScroll}>
+        {videos.map((entry) => (
+          <HofCard key={`${week}-${entry.rank}`} entry={entry} />
+        ))}
+      </div>
+      {!atEnd && (
+        <button className="gr-hof-week-arrow" onClick={scrollRight} aria-label="Scrolla höger">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
 function HallOfFameInner() {
-  const [rawEntries, setRawEntries] = useState<VideoEntry[]>([]);
-  const [scores, setScores] = useState<ScoreEntry[]>([]);
-  const [loadingWinners, setLoadingWinners] = useState(true);
-  const [loadingScores, setLoadingScores] = useState(true);
-  const [sort, setSort] = useState<SortOrder>("newest");
-  const [visibleRows, setVisibleRows] = useState(3);
-  const [cols, setCols] = useState(3);
-
-  // Match the CSS breakpoint: ≤600px → 2 columns, else 3
-  useEffect(() => {
-    const update = () => setCols(window.innerWidth <= 600 ? 2 : 3);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+  const [weekGroups, setWeekGroups] = useState<HofWeek[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCat, setSelectedCat] = useState("");
 
   useEffect(() => {
     fetch("/api/tidigare-raketer")
       .then((r) => r.json())
-      .then((d: { week: string; entries: Omit<VideoEntry, "week">[] }[]) => {
-        const flat = d.flatMap((g) => g.entries.map((e) => ({ ...e, week: g.week })));
-        setRawEntries(flat);
-        setLoadingWinners(false);
-      });
-    fetch("/api/topplistan")
+      .then((d) => { setWeekGroups(d); setLoading(false); });
+    fetch("/api/categories")
       .then((r) => r.json())
-      .then((d) => { setScores(d); setLoadingScores(false); });
+      .then(setCategories);
   }, []);
 
-  const sortedEntries = useMemo(() => {
-    setVisibleRows(3);
-    const list = [...rawEntries];
-    switch (sort) {
-      case "oldest":   return list.sort((a, b) => a.week.localeCompare(b.week));
-      case "er":       return list.sort((a, b) => b.bestVideo.engagement_rate - a.bestVideo.engagement_rate);
-      case "views":    return list.sort((a, b) => b.bestVideo.views - a.bestVideo.views);
-      case "likes":    return list.sort((a, b) => b.bestVideo.likes - a.bestVideo.likes);
-      case "comments": return list.sort((a, b) => b.bestVideo.comments - a.bestVideo.comments);
-      case "shares":   return list.sort((a, b) => b.bestVideo.shares - a.bestVideo.shares);
-      default:         return list.sort((a, b) => b.week.localeCompare(a.week));
-    }
-  }, [rawEntries, sort]);
+  const filtered = useMemo(() => {
+    if (!selectedCat) return weekGroups;
+    return weekGroups
+      .map((g) => ({
+        ...g,
+        videos: g.videos.filter((v) => v.category === selectedCat),
+      }))
+      .filter((g) => g.videos.length > 0);
+  }, [weekGroups, selectedCat]);
 
   return (
     <main className="gr-hof-page gr-page">
-
-      {/* ── Page header ── */}
-      <div className="gr-page-hdr">
+      <div className="gr-hof-hdr">
         <h1 className="gr-page-title">Hall of Fame</h1>
+        {categories.length > 0 && (
+          <select
+            className="gr-calc-cat-select gr-hof-cat-select"
+            value={selectedCat}
+            onChange={(e) => setSelectedCat(e.target.value)}
+          >
+            <option value="">Alla kategorier</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {/* ── Split grid ── */}
-      <div className="gr-content-grid">
-
-        {/* ── Left: Raketer ── */}
-        <div className="gr-content-main">
-          <div className="gr-hof-section-hdr gr-hof-sticky-hdr">
-            <span className="gr-hof-section-title">Raketer</span>
-            <div className="gr-sort-pills">
-              {SORT_OPTS.map((opt) => (
-                <button
-                  key={opt.key}
-                  className={"gr-sort-pill" + (sort === opt.key ? " active" : "")}
-                  onClick={() => setSort(opt.key)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+      {loading ? (
+        <div className="gr-hof-loading">Laddar…</div>
+      ) : filtered.length === 0 ? (
+        <div className="gr-hof-loading">Inga raketer att visa.</div>
+      ) : (
+        filtered.map((group) => (
+          <div key={group.week} className="gr-hof-week">
+            <span className="gr-hof-week-label">{fmtWeek(group.week)}</span>
+            <WeekRow videos={group.videos} week={group.week} />
           </div>
-
-          {loadingWinners ? (
-            <div className="gr-loading" style={{ padding: "24px" }}>Laddar...</div>
-          ) : sortedEntries.length === 0 ? (
-            <p style={{ padding: "24px", color: "rgba(28,27,25,0.45)", fontFamily: "var(--gr-mono)", fontSize: "var(--gr-fs-xs)" }}>Inga vinnare ännu.</p>
-          ) : (
-            <>
-              <div className="gr-hof-flat-grid">
-                {sortedEntries.slice(0, visibleRows * cols).map((entry) => (
-                  <a
-                    key={`${entry.week}-${entry.handle}`}
-                    href={entry.bestVideo.video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="gr-vc"
-                  >
-                    <div className="gr-thumb">
-                      <Thumb src={entry.bestVideo.thumbnail_url} name={entry.displayName} />
-                      <span className="gr-thumb-er">{Number(entry.bestVideo.engagement_rate).toFixed(2)}%</span>
-                      <div className="gr-thumb-stats">
-                        <span><HeartIcon size={11} />{fmt(entry.bestVideo.likes)}</span>
-                        <span><CommentIcon size={11} />{fmt(entry.bestVideo.comments)}</span>
-                        <span><ShareIcon size={11} />{fmt(entry.bestVideo.shares)}</span>
-                        <span><EyeIcon size={11} />{fmt(entry.bestVideo.views)}</span>
-                      </div>
-                      <span className="gr-thumb-best" style={{ background: RANK_COLORS[entry.rank - 1] }}>
-                        #{entry.rank}
-                      </span>
-                    </div>
-                    <div className="gr-vid-info">
-                      <p className="gr-vid-title">{entry.bestVideo.caption ?? entry.displayName}</p>
-                      <p className="gr-hof-card-week">{fmtWeek(entry.week)}</p>
-                    </div>
-                  </a>
-                ))}
-                {/* Fill incomplete last row so no card is ever alone */}
-                {(() => {
-                  const shown = Math.min(visibleRows * cols, sortedEntries.length);
-                  const remainder = shown % cols;
-                  const fillers = remainder === 0 ? 0 : cols - remainder;
-                  return Array.from({ length: fillers }, (_, i) => (
-                    <div key={`filler-${i}`} className="gr-hof-filler" aria-hidden />
-                  ));
-                })()}
-              </div>
-              {visibleRows * cols < sortedEntries.length && (
-                <div className="gr-hof-load-more">
-                  <button
-                    className="gr-hof-load-more-btn"
-                    onClick={() => setVisibleRows((r) => r + 3)}
-                  >
-                    Visa fler ({sortedEntries.length - Math.min(visibleRows * cols, sortedEntries.length)} kvar)
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── Right: Konton ── */}
-        <div className="gr-content-aside gr-hof-aside-sticky" style={{ padding: "0 0 32px" }}>
-          <div className="gr-hof-section-hdr">
-            <span className="gr-hof-section-title">Konton</span>
-          </div>
-
-          {loadingScores ? (
-            <div className="gr-loading">Laddar...</div>
-          ) : scores.length === 0 ? (
-            <p style={{ color: "rgba(28,27,25,0.45)", fontFamily: "var(--gr-mono)", fontSize: "var(--gr-fs-xs)" }}>Inga poäng ännu.</p>
-          ) : (
-            <div style={{ padding: "15px 24px" }}>
-              <table className="gr-score-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 28 }}>#</th>
-                    <th>Konto</th>
-                    <th className="right">Medaljer</th>
-                    <th className="right">Poäng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scores.slice(0, 10).map((entry, i) => (
-                    <tr key={entry.handle} className="gr-score-row">
-                      <td className="gr-score-rank">{i + 1}</td>
-                      <td className="gr-score-name">
-                        {entry.displayName}
-                        <a href={`/konto/${entry.handle}`} className="gr-score-profile-btn" aria-label={`Visa profil för ${entry.displayName}`}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                          </svg>
-                        </a>
-                      </td>
-                      <td><MedalBadges gold={entry.gold} silver={entry.silver} bronze={entry.bronze} /></td>
-                      <td className="gr-score-pts">{entry.totalPoints}p</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-      </div>
+        ))
+      )}
     </main>
   );
 }

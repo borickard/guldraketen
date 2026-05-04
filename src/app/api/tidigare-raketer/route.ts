@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 const MIN_VIDEO_VIEWS = 10_000;
 const MIN_ACCOUNTS_PER_WEEK = 5;
+const TOP_N = 20;
 
 function toISOWeek(date: Date): string {
   const d = new Date(date);
@@ -27,13 +28,13 @@ function currentAndPreviousWeek(): [string, string] {
   return [curr, prev];
 }
 
-type VideoEntry = {
+export type HofVideo = {
   rank: number;
   handle: string;
   displayName: string;
   avatarUrl: string | null;
   category: string | null;
-  bestVideo: {
+  video: {
     video_url: string;
     thumbnail_url: string | null;
     caption: string | null;
@@ -45,19 +46,28 @@ type VideoEntry = {
   };
 };
 
+export type HofWeek = {
+  week: string;
+  videos: HofVideo[];
+};
+
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("videos")
-    .select("handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, followers, category, avatar_url)")
+    .select(
+      "handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
+    )
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
-    .order("published_at", { ascending: false });
+    .gte("views", MIN_VIDEO_VIEWS)
+    .not("engagement_rate", "is", null)
+    .order("engagement_rate", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const [currentWeek, previousWeek] = currentAndPreviousWeek();
 
-  // Group by week
+  // Group by week — already sorted by ER desc from query
   const byWeek = new Map<string, typeof data>();
   for (const v of data ?? []) {
     const week = toISOWeek(new Date(v.published_at!));
@@ -67,62 +77,38 @@ export async function GET() {
     byWeek.set(week, list);
   }
 
-  const weekGroups: { week: string; entries: VideoEntry[] }[] = [];
+  const weekGroups: HofWeek[] = [];
 
   for (const [week, videos] of byWeek) {
-    const byAccount = new Map<string, typeof data>();
-    for (const v of videos) {
-      if ((v.views ?? 0) < MIN_VIDEO_VIEWS) continue;
-      const list = byAccount.get(v.handle) ?? [];
-      list.push(v);
-      byAccount.set(v.handle, list);
-    }
+    // Need at least MIN_ACCOUNTS_PER_WEEK unique accounts
+    const uniqueAccounts = new Set(videos.map((v) => v.handle));
+    if (uniqueAccounts.size < MIN_ACCOUNTS_PER_WEEK) continue;
 
-    if (byAccount.size < MIN_ACCOUNTS_PER_WEEK) continue;
-
-    // Rank top accounts by best video engagement_rate
-    const ranked = [...byAccount.entries()]
-      .map(([handle, vids]) => {
-        const best = vids.reduce((a, b) =>
-          (b.engagement_rate ?? 0) > (a.engagement_rate ?? 0) ? b : a
-        );
-        const acct = Array.isArray(best.accounts) ? best.accounts[0] : best.accounts;
-        const acctEx = acct as { category?: string | null; avatar_url?: string | null } | null;
-        return {
-          handle,
-          displayName: acct?.display_name ?? `@${handle}`,
-          avatarUrl: acctEx?.avatar_url ?? null,
-          category: acctEx?.category ?? null,
-          bestVideo: best,
-        };
-      })
-      .sort((a, b) => (b.bestVideo.engagement_rate ?? 0) - (a.bestVideo.engagement_rate ?? 0));
-
-    if (ranked.length === 0) continue;
-
-    weekGroups.push({
-      week,
-      entries: ranked.slice(0, 3).map((r, i) => ({
+    const top = videos.slice(0, TOP_N).map((v, i) => {
+      const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
+      const acctEx = acct as { display_name?: string | null; category?: string | null; avatar_url?: string | null } | null;
+      return {
         rank: i + 1,
-        handle: r.handle,
-        displayName: r.displayName,
-        avatarUrl: r.avatarUrl,
-        category: r.category,
-        bestVideo: {
-          video_url: r.bestVideo.video_url,
-          thumbnail_url: r.bestVideo.thumbnail_url,
-          caption: r.bestVideo.caption,
-          views: r.bestVideo.views ?? 0,
-          likes: r.bestVideo.likes ?? 0,
-          comments: r.bestVideo.comments ?? 0,
-          shares: r.bestVideo.shares ?? 0,
-          engagement_rate: r.bestVideo.engagement_rate ?? 0,
+        handle: v.handle,
+        displayName: acctEx?.display_name ?? `@${v.handle}`,
+        avatarUrl: acctEx?.avatar_url ?? null,
+        category: acctEx?.category ?? null,
+        video: {
+          video_url: v.video_url,
+          thumbnail_url: v.thumbnail_url,
+          caption: v.caption,
+          views: v.views ?? 0,
+          likes: v.likes ?? 0,
+          comments: v.comments ?? 0,
+          shares: v.shares ?? 0,
+          engagement_rate: Number(v.engagement_rate),
         },
-      })),
+      };
     });
+
+    weekGroups.push({ week, videos: top });
   }
 
-  // Sort newest week first
   weekGroups.sort((a, b) => (b.week > a.week ? 1 : -1));
 
   const res = NextResponse.json(weekGroups);
