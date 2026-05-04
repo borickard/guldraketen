@@ -6,14 +6,16 @@ import { useState, useEffect, useRef } from "react";
 
 const homeLinks = [
   { href: "#topplistan",    label: "Veckans raketer" },
+  { href: "/hall-of-fame",  label: "Hall of Fame" },
   { href: "#kalkylator",    label: "Räkna ut engagemang" },
-  { href: "#om-engagemang", label: "Om Sociala\u00A0Raketer" },
+  { href: "#om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 const otherLinks = [
   { href: "/#topplistan",   label: "Veckans raketer" },
+  { href: "/hall-of-fame",  label: "Hall of Fame" },
   { href: "/#kalkylator",   label: "Räkna ut engagemang" },
-  { href: "/om-engagemang", label: "Om Sociala\u00A0Raketer" },
+  { href: "/om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 export default function NavBar() {
