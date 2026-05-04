@@ -1032,9 +1032,9 @@ function HomeInner() {
 
         {/* ── Hall of Fame CTA ── */}
         <div className="gr-rk-hof-cta">
-          <p className="gr-rk-hof-tagline">Vill du se mer riktigt bra innehåll?</p>
+          <p className="gr-rk-hof-tagline">Vill du ha se mer?</p>
           <a href="/hall-of-fame" className="gr-rk-hof-btn">
-            Kolla in Hall of Fame
+            Hall of Fame
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}>
               <path d="M9 18l6-6-6-6" />
             </svg>
