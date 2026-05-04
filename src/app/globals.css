@@ -950,118 +950,101 @@ body {
   min-height: 100vh;
 }
 
-.gr-hof-page .gr-page-hdr {
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-}
-
-.gr-hof-page .gr-content-aside {
-  border-left: 1px solid rgba(28,27,25,0.1);
-}
-
-@media (max-width: 839px) {
-  .gr-hof-page .gr-content-aside {
-    border-left: none;
-    border-top: 1px solid rgba(28,27,25,0.1);
-  }
-}
-
-/* ── Hall of Fame ── */
-.gr-hof-section-hdr {
+/* ── Hall of Fame — page header with category filter ── */
+.gr-hof-hdr {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
-  min-height: 55px;
-  padding: 14px 24px;
+  padding: 32px 32px 24px;
   border-bottom: 1px solid rgba(28,27,25,0.1);
-  flex-wrap: wrap;
+}
+.gr-hof-hdr .gr-page-title { margin: 0; }
+
+.gr-hof-cat-select {
+  align-self: center;
 }
 
-.gr-hof-sticky-hdr {
-  position: sticky;
-  top: 34px;
-  z-index: 10;
-  background: #EBE7E2;
-}
-
-@media (min-width: 840px) {
-  .gr-hof-aside-sticky {
-    position: sticky;
-    top: 34px;
-    align-self: start;
-    z-index: 15;
-  }
-}
-
-.gr-hof-section-title {
+.gr-hof-loading {
+  padding: 40px 32px;
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-xs);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,0.45);
-  margin: 0;
+  font-size: var(--gr-fs-sm);
+  color: rgba(28,27,25,0.4);
 }
 
-/* Sort pills */
-.gr-sort-pills {
+/* ── Week sections ── */
+.gr-hof-week {
+  padding-top: 28px;
+  padding-bottom: 8px;
+}
+
+.gr-hof-week-label {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,0.4);
+  padding: 0 32px 12px;
+}
+
+@media (max-width: 639px) {
+  .gr-hof-hdr { padding: 24px 16px 20px; }
+  .gr-hof-week-label { padding-left: 16px; padding-right: 16px; }
+  .gr-hof-loading { padding-left: 16px; }
+}
+
+/* ── Horizontal scroll row ── */
+.gr-hof-week-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 10px;
+  padding: 0 32px 20px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.gr-hof-week-row::-webkit-scrollbar { display: none; }
+
+@media (max-width: 639px) {
+  .gr-hof-week-row { padding-left: 16px; padding-right: 16px; }
 }
 
-.gr-sort-pill {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(28,27,25,0.2);
-  background: transparent;
-  color: var(--gr-dark);
-  opacity: 0.45;
-  cursor: pointer;
-  transition: all 0.15s;
+/* ── Cards inside the scroll row ── */
+.gr-hof-row-card {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  color: #1C1B19;
+  position: relative;
+  /* mobile: 1.5 cards visible */
+  width: calc((100vw - 32px - 10px * 0.5) / 1.5);
 }
 
-.gr-sort-pill.active {
-  background: var(--gr-dark);
-  border-color: var(--gr-dark);
-  color: #EBE7E2;
-  opacity: 1;
-}
-
-.gr-hof-flat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 24px;
-}
-
-@media (max-width: 600px) {
-  .gr-hof-flat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 16px;
+@media (min-width: 640px) {
+  .gr-hof-row-card {
+    /* desktop: 9.5 cards visible */
+    width: calc((100vw - 64px - 10px * 8.5) / 9.5);
   }
 }
 
-.gr-hof-flat-grid .gr-vc {
-  width: 100%;
-  flex-shrink: unset;
-  background: #fff;
-  border-color: rgba(28,27,25,0.1);
-  color: #1C1B19;
-}
-
-.gr-hof-flat-grid .gr-thumb {
+.gr-hof-row-thumb {
+  display: block;
   width: 100%;
   height: unset;
   aspect-ratio: 9 / 16;
-  border-radius: 16.5px 16.5px 0 0;
+  border-radius: 0;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  background: rgba(28,27,25,0.06);
 }
 
-/* ER badge on HoF thumbnails (replaces views badge) */
+/* ER badge on HoF row cards */
 .gr-thumb-er {
   position: absolute;
   bottom: 6px;
@@ -1075,57 +1058,6 @@ body {
   border-radius: 8px;
   letter-spacing: .03em;
   line-height: 1.3;
-}
-
-/* Larger stats + caption in HoF grid cards */
-.gr-hof-flat-grid .gr-thumb-stats span {
-  font-size: 12px;
-  padding: 2px 5px;
-}
-
-.gr-hof-flat-grid .gr-vid-title {
-  font-size: 13px;
-  line-height: 1.4;
-  color: #1C1B19;
-}
-
-.gr-hof-filler {
-  /* Invisible placeholder to fill incomplete grid rows */
-  visibility: hidden;
-}
-
-.gr-hof-card-week {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,0.3);
-  margin: 2px 0 0;
-}
-
-.gr-hof-load-more {
-  padding: 8px 24px 32px;
-  display: flex;
-  justify-content: center;
-}
-
-.gr-hof-load-more-btn {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-sm);
-  font-weight: 500;
-  letter-spacing: .04em;
-  padding: 10px 24px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(28,27,25,0.25);
-  background: transparent;
-  color: var(--gr-dark);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.gr-hof-load-more-btn:hover {
-  background: rgba(28,27,25,0.06);
-  border-color: rgba(28,27,25,0.4);
 }
 
 /* Raketer list rows — mirror entry row style */
@@ -1174,104 +1106,6 @@ body {
   .gr-raket-stats { display: none; }
 }
 
-/* Konton score table */
-.gr-score-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gr-score-table th {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,.4);
-  text-align: left;
-  padding: 0 0 12px;
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-}
-
-.gr-score-table th.right { text-align: right; }
-
-.gr-score-row td {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(28,27,25,0.1);
-  vertical-align: middle;
-}
-.gr-score-row:last-child td { border-bottom: none; }
-
-.gr-score-rank {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: var(--gr-fs-sm);
-  color: rgba(28,27,25,.3);
-  width: 28px;
-  padding-right: 8px;
-}
-
-.gr-score-name {
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-base);
-  font-weight: 500;
-  color: var(--gr-dark);
-}
-
-.gr-score-name-link {
-  color: #EDF8FB;
-  text-decoration: none;
-}
-
-.gr-score-name-link:hover {
-  opacity: 0.75;
-  text-decoration: underline;
-}
-
-.gr-score-profile-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 6px;
-  padding: 3px 5px;
-  border: 1px solid rgba(28,27,25,0.25);
-  border-radius: 4px;
-  color: rgba(28,27,25,0.5);
-  text-decoration: none;
-  vertical-align: middle;
-  line-height: 1;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.gr-score-profile-btn:hover {
-  background: rgba(28,27,25,0.07);
-  color: var(--gr-dark);
-  border-color: rgba(28,27,25,0.5);
-}
-
-.gr-score-pts {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: var(--gr-fs-lg);
-  color: var(--gr-dark);
-  text-align: right;
-  white-space: nowrap;
-  padding-left: 16px;
-}
-
-.gr-medal-badges {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  padding-left: 8px;
-}
-
-.gr-medal-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
-  color: var(--gr-dark);
-  opacity: 0.7;
-}
 
 /* ── Kalkylator v2 ── */
 
