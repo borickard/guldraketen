@@ -61,6 +61,7 @@ function displayName(v: RawVideo): string {
 interface AllTimeEntry {
   handle: string;
   displayName: string;
+  avatarUrl: string | null;
   category: string | null;
   bestEr: number;
 }
@@ -214,96 +215,104 @@ function VideoThumb({ src, alt, fallback }: { src: string | null; alt: string; f
   );
 }
 
-// ─── Comparison scope + category picker ───────────────────────────────────────
+// ─── Top profiles strip ───────────────────────────────────────────────────────
 
-function CompPicker({ scope, onScope, category, onCategory, weekCategories, allTimeCategories, loading }: {
-  scope: "week" | "alltime";
-  onScope: (s: "week" | "alltime") => void;
-  category: string;
-  onCategory: (c: string) => void;
-  weekCategories: string[];
-  allTimeCategories: string[];
-  loading: boolean;
-}) {
-  const cats = scope === "alltime" ? allTimeCategories : weekCategories;
+function TopProfilesStrip({ profiles, loading }: { profiles: AllTimeEntry[] | null; loading: boolean }) {
+  const items = loading || !profiles ? Array.from({ length: 15 }) : profiles;
   return (
-    <div className="gr-calc-cat-picker">
-      <div className="gr-calc-scope-toggle">
-        <button type="button" className={`gr-calc-scope-btn${scope === "week" ? " gr-calc-scope-btn--on" : ""}`} onClick={() => onScope("week")}>Denna vecka</button>
-        <button type="button" className={`gr-calc-scope-btn${scope === "alltime" ? " gr-calc-scope-btn--on" : ""}`} onClick={() => onScope("alltime")}>{loading ? "Laddar…" : "Alla tider"}</button>
+    <div className="gr-top-profiles-section">
+      <div className="gr-top-profiles-row">
+        {items.map((p, i) => {
+          if (!p) return (
+            <div key={i} className="gr-top-profiles-item">
+              <div className="gr-top-profiles-skel-avatar" />
+              <div className="gr-top-profiles-skel-text" />
+              <div className="gr-top-profiles-skel-er" />
+            </div>
+          );
+          const entry = p as AllTimeEntry;
+          const er = entry.bestEr.toFixed(2).replace(".", ",") + "%";
+          return (
+            <div key={entry.handle} className="gr-top-profiles-item">
+              {entry.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={entry.avatarUrl} alt={entry.displayName} className="gr-top-profiles-avatar" />
+              ) : (
+                <div className="gr-top-profiles-avatar gr-top-profiles-avatar--fallback">
+                  {entry.handle[0].toUpperCase()}
+                </div>
+              )}
+              <span className="gr-top-profiles-name">{entry.displayName}</span>
+              <span className="gr-top-profiles-er">{er}</span>
+            </div>
+          );
+        })}
       </div>
-      {cats.length > 0 && (
-        <div className="gr-calc-cat-picker-pills">
-          <button type="button" className={`gr-calc-cat-pill${category === "all" ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory("all")}>Alla</button>
-          {cats.map((cat) => (
-            <button key={cat} type="button" className={`gr-calc-cat-pill${category === cat ? " gr-calc-cat-pill--on" : ""}`} onClick={() => onCategory(cat)}>{cat}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-// ─── Weekly comparison component ──────────────────────────────────────────────
+// ─── Calc comparison ─────────────────────────────────────────────────────────
 
-function WeeklyComparison({ accounts, userEr, userLabel, weekLabel }: {
-  accounts: AccountRow[];
-  userEr: number;
-  userLabel: string;
-  weekLabel: string;
+function CalcComparison({ er, allBench, categories, handle, type }: {
+  er: number;
+  allBench: Benchmark;
+  categories: string[];
+  handle?: string | null;
+  type: "konton" | "videor";
 }) {
-  const top3 = accounts.slice(0, 3);
-  if (top3.length === 0) return null;
+  const [selectedCat, setSelectedCat] = useState("");
+  const [catBench, setCatBench] = useState<Benchmark | null>(null);
+  const [catLoading, setCatLoading] = useState(false);
 
-  const maxEr = Math.max(...top3.map(a => a.bestEngagement), userEr);
+  useEffect(() => {
+    if (!selectedCat) { setCatBench(null); return; }
+    setCatLoading(true);
+    fetch(`/api/benchmark?category=${encodeURIComponent(selectedCat)}`)
+      .then((r) => r.json())
+      .then((d) => setCatBench(d))
+      .catch(() => setCatBench(null))
+      .finally(() => setCatLoading(false));
+  }, [selectedCat]);
 
-  const rows = [
-    ...top3.map((acc, i) => ({
-      id: acc.handle,
-      label: acc.displayName,
-      er: acc.bestEngagement,
-      color: rankColor(i),
-      isUser: false,
-    })),
-    { id: "you", label: userLabel, er: userEr, color: C.userHighlight, isUser: true },
-  ].sort((a, b) => b.er - a.er);
-
-  const goldEr = top3[0]?.bestEngagement ?? 0;
-  const silverEr = top3[1]?.bestEngagement ?? 0;
-  const bronzeEr = top3[2]?.bestEngagement ?? 0;
-
-  let insight: string | null = null;
-  if (userEr >= goldEr) {
-    insight = "Du slår den här veckans guldvinnare!";
-  } else if (silverEr && userEr >= silverEr) {
-    insight = "Du når den här veckans silvernivå.";
-  } else if (bronzeEr && userEr >= bronzeEr) {
-    insight = "Du når den här veckans bronsnivå.";
-  } else if (bronzeEr > 0 && userEr >= bronzeEr * 0.7) {
-    const pct = Math.round(((bronzeEr - userEr) / bronzeEr) * 100);
-    insight = `${pct}% ifrån bronsnivå i Veckans Raketer.`;
-  }
+  // beatPct = "you beat X% of all videos/accounts" — used directly in "Bättre än X%"
+  const beatPct = Math.min(99, Math.round(computePercentile(er, allBench)));
+  const catBeatPct: number | null = catBench && catBench.count >= 10
+    ? Math.min(99, Math.round(computePercentile(er, catBench)))
+    : null;
 
   return (
-    <div className="gr-calc-weekly-cmp">
-      <p className="gr-calc-weekly-cmp-title">{weekLabel}</p>
-      {rows.map((row) => (
-        <div key={row.id} className={`gr-calc-weekly-cmp-row${row.isUser ? " gr-calc-weekly-cmp-row--you" : ""}`}>
-          <span className="gr-calc-weekly-cmp-name" style={{ color: row.isUser ? C.userHighlight : C.lightMuted }}>
-            {row.label}
-          </span>
-          <div className="gr-calc-weekly-cmp-bar-track">
-            <div
-              className="gr-calc-weekly-cmp-bar"
-              style={{ width: `${maxEr > 0 ? (row.er / maxEr) * 100 : 0}%`, background: row.color }}
-            />
-          </div>
-          <span className="gr-calc-weekly-cmp-val" style={{ color: row.color }}>
-            {row.er.toFixed(2)}%
-          </span>
-        </div>
-      ))}
-      {insight && <p className="gr-calc-weekly-cmp-insight">{insight}</p>}
+    <div className="gr-calc-comparison">
+      <p className="gr-calc-comparison-line">
+        Bättre än <strong>{beatPct >= 99 ? "99+" : beatPct}%</strong> av uppmätta {type} på Sociala Raketer
+      </p>
+      {categories.length > 0 && (
+        <select
+          className="gr-calc-cat-select"
+          value={selectedCat}
+          onChange={(e) => setSelectedCat(e.target.value)}
+        >
+          <option value="">Välj kategori</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      )}
+      {selectedCat && (
+        catLoading ? (
+          <p className="gr-calc-comparison-line gr-calc-comparison-line--muted">Hämtar…</p>
+        ) : catBeatPct !== null ? (
+          <p className="gr-calc-comparison-line">
+            {type === "konton" ? (
+              <>I kategori <strong>{selectedCat}</strong> är <strong>@{handle ?? "kontot"}</strong> bättre än <strong>{catBeatPct >= 99 ? "99+" : catBeatPct}%</strong> av uppmätta konton</>
+            ) : (
+              <>I kategori <strong>{selectedCat}</strong> är videon bättre än <strong>{catBeatPct >= 99 ? "99+" : catBeatPct}%</strong> av uppmätta videor</>
+            )}
+          </p>
+        ) : (
+          <p className="gr-calc-comparison-line gr-calc-comparison-line--muted">
+            För lite data i den kategorin just nu
+          </p>
+        )
+      )}
     </div>
   );
 }
@@ -342,15 +351,10 @@ function HomeInner() {
   const [calcProfileHandle, setCalcProfileHandle] = useState<string | null>(null);
   const [calcProfileVideos, setCalcProfileVideos] = useState<ProfileVideo[] | null>(null);
   const [calcProfileError, setCalcProfileError] = useState<string | null>(null);
-  const [profileCategory, setProfileCategory] = useState<string>("all");
-  const [videoCategory, setVideoCategory] = useState<string>("all");
-  const [compScope, setCompScope] = useState<"week" | "alltime">("week");
   const [allTimeData, setAllTimeData] = useState<AllTimeEntry[] | null>(null);
   const [loadingAllTime, setLoadingAllTime] = useState(false);
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
-  const [wLikes, setWLikes] = useState(1);
-  const [wComments, setWComments] = useState(5);
-  const [wShares, setWShares] = useState(10);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
   const [betaEmail, setBetaEmail] = useState("");
   const [betaSubmitted, setBetaSubmitted] = useState(false);
   const [betaLoading, setBetaLoading] = useState(false);
@@ -488,9 +492,10 @@ function HomeInner() {
   }, [prevAccounts]);
 
 
-  // Fetch benchmark on mount
+  // Fetch benchmark + categories on mount
   useEffect(() => {
     fetch("/api/benchmark").then((r) => r.json()).then(setCalcBench).catch(() => null);
+    fetch("/api/categories").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setAllCategories(d); }).catch(() => null);
     return () => { if (calcPollRef.current) clearInterval(calcPollRef.current); };
   }, []);
 
@@ -661,46 +666,13 @@ function HomeInner() {
 
   const calcEr = useMemo(() => {
     if (!calcStats || calcStats.views <= 0) return null;
-    return ((calcStats.likes * wLikes + calcStats.comments * wComments + calcStats.shares * wShares) / calcStats.views) * 100;
-  }, [calcStats, wLikes, wComments, wShares]);
-
-  const calcBenchPct = calcBench && calcBench.count > 0 && calcEr !== null
-    ? Math.round(computePercentile(calcEr, calcBench))
-    : null;
-
-  const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
+    return ((calcStats.likes * 1 + calcStats.comments * 5 + calcStats.shares * 10) / calcStats.views) * 100;
+  }, [calcStats]);
 
   const profileAvgEr = useMemo(() => {
     if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
     return calcProfileVideos.reduce((s, v) => s + v.engagementRate, 0) / calcProfileVideos.length;
   }, [calcProfileVideos]);
-
-  const profileBenchPct = calcBench && calcBench.count > 0 && profileAvgEr !== null
-    ? Math.round(computePercentile(profileAvgEr, calcBench))
-    : null;
-
-  const profileBestEr = useMemo(() => {
-    if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
-    return Math.max(...calcProfileVideos.map(v => v.engagementRate));
-  }, [calcProfileVideos]);
-
-  const availableCategories = useMemo(() => {
-    const set = new Set<string>();
-    for (const a of accounts) {
-      if (a.category) set.add(a.category);
-    }
-    return Array.from(set).sort();
-  }, [accounts]);
-
-  const filteredAccounts = useMemo(() => {
-    if (profileCategory === "all") return accounts;
-    return accounts.filter((a) => a.category === profileCategory);
-  }, [accounts, profileCategory]);
-
-  const videoFilteredAccounts = useMemo(() => {
-    if (videoCategory === "all") return accounts;
-    return accounts.filter((a) => a.category === videoCategory);
-  }, [accounts, videoCategory]);
 
   // All-time pool: best ER per handle across all weeks, sorted desc (no slice — caller filters)
   const allTimePool = useMemo((): AccountRow[] => {
@@ -719,11 +691,14 @@ function HomeInner() {
       }));
   }, [allTimeData]);
 
-  const allTimeCategories = useMemo(() => {
-    if (!allTimeData) return [];
-    const set = new Set<string>();
-    for (const e of allTimeData) { if (e.category) set.add(e.category); }
-    return Array.from(set).sort();
+  const topProfiles = useMemo(() => {
+    if (!allTimeData) return null;
+    const byHandle = new Map<string, AllTimeEntry>();
+    for (const e of allTimeData) {
+      const ex = byHandle.get(e.handle);
+      if (!ex || e.bestEr > ex.bestEr) byHandle.set(e.handle, e);
+    }
+    return [...byHandle.values()].sort((a, b) => b.bestEr - a.bestEr).slice(0, 15);
   }, [allTimeData]);
 
   const fetchAllTime = useCallback(async () => {
@@ -731,21 +706,27 @@ function HomeInner() {
     setLoadingAllTime(true);
     try {
       const res = await fetch("/api/tidigare-raketer");
-      const rawWeeks: { entries: { handle: string; displayName: string; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
+      const rawWeeks: { entries: { handle: string; displayName: string; avatarUrl: string | null; category: string | null; bestVideo: { engagement_rate: number } }[] }[] = await res.json();
       const flat: AllTimeEntry[] = rawWeeks.flatMap((w) =>
-        w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, category: e.category, bestEr: e.bestVideo.engagement_rate }))
+        w.entries.map((e) => ({ handle: e.handle, displayName: e.displayName, avatarUrl: e.avatarUrl ?? null, category: e.category, bestEr: e.bestVideo.engagement_rate }))
       );
       setAllTimeData(flat);
     } catch { /* silently ignore */ }
     finally { setLoadingAllTime(false); }
   }, [allTimeData, loadingAllTime]);
 
-  function getCompAccounts(cat: string, weekPool: AccountRow[]): AccountRow[] {
-    const pool = compScope === "alltime" ? allTimePool : weekPool;
-    const cats = compScope === "alltime" ? allTimeCategories : availableCategories;
-    const activeCat = cats.includes(cat) ? cat : "all";
-    return (activeCat === "all" ? pool : pool.filter((a) => a.category === activeCat)).slice(0, 3);
-  }
+  useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
+
+  const profileAvgStats = useMemo(() => {
+    if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
+    const n = calcProfileVideos.length;
+    return {
+      views: Math.round(calcProfileVideos.reduce((s, v) => s + v.views, 0) / n),
+      likes: Math.round(calcProfileVideos.reduce((s, v) => s + v.likes, 0) / n),
+      comments: Math.round(calcProfileVideos.reduce((s, v) => s + v.comments, 0) / n),
+      shares: Math.round(calcProfileVideos.reduce((s, v) => s + v.shares, 0) / n),
+    };
+  }, [calcProfileVideos]);
 
   function handleCalcSubmit() {
     const detected = detectCalcInput(calcUrl);
@@ -852,7 +833,7 @@ function HomeInner() {
               Veckans topplista
             </a>
             <a href="#kalkylator" className="gr-hero-v2-link">
-              Testa din video
+              Testa ditt engagemang
             </a>
           </div>
         </div>
@@ -1063,7 +1044,7 @@ function HomeInner() {
             <input
               className={"gr-calc-section-input" + (calcUrlError ? " error" : "")}
               type="url"
-              placeholder="tiktok.com/@konto eller tiktok.com/@konto/video/..."
+              placeholder="Fyll i namnet på ditt TikTok-konto eller länk till en video här"
               value={calcUrl}
               onChange={(e) => { setCalcUrl(e.target.value); setCalcUrlError(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleCalcSubmit(); }}
@@ -1130,215 +1111,108 @@ function HomeInner() {
 
           {calcMode === "profile-ready" && calcProfileVideos && (
             <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-              {/* Hero: avg ER */}
-              <div className="gr-calc-prof-hero">
-                <p className="gr-kalky-v2-er-lbl">@{calcProfileHandle} · {calcProfileVideos.length} senaste videos · snitt</p>
-                {profileAvgEr !== null ? (
-                  <p className="gr-kalky-v2-er">{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                ) : (
-                  <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
-                )}
-              </div>
-
-              {/* Percentile benchmark */}
-              {profileBenchPct !== null && profileAvgEr !== null && (
-                <div style={{ marginBottom: 8 }}>
-                  <p className="gr-kalky-v2-bench-line">
-                    Snittet är bättre än <strong>{profileBenchPct >= 99 ? "99+" : profileBenchPct}%</strong> av videor undersökta av Sociala Raketer
-                  </p>
-                  <div className="gr-kalky-v2-bench-track">
-                    <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(profileBenchPct, 99)}%` }} />
-                    <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(profileBenchPct, 99)}%` }} />
-                  </div>
-                  <div className="gr-kalky-v2-bench-labels"><span>Låg</span><span>Medel</span><span>Hög</span></div>
-                </div>
+              <p className="gr-calc-prof-intro">
+                <strong>@{calcProfileHandle}</strong> {calcProfileVideos.length} senaste videos har i genomsnitt en engagemangsgrad på
+              </p>
+              {profileAvgEr !== null ? (
+                <p className="gr-kalky-v2-er" style={{ marginTop: 8 }}>{profileAvgEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+              ) : (
+                <p className="gr-kalky-v2-er-empty">Ingen ER att beräkna</p>
               )}
-
-              {/* Scope + category pickers */}
-              {profileBestEr !== null && (
-                <CompPicker
-                  scope={compScope}
-                  onScope={(s) => { setCompScope(s); if (s === "alltime") fetchAllTime(); }}
-                  category={profileCategory}
-                  onCategory={setProfileCategory}
-                  weekCategories={availableCategories}
-                  allTimeCategories={allTimeCategories}
-                  loading={loadingAllTime}
+              {calcBench && calcBench.count > 0 && profileAvgEr !== null && (
+                <CalcComparison
+                  er={profileAvgEr}
+                  allBench={calcBench}
+                  categories={allCategories}
+                  handle={calcProfileHandle}
+                  type="konton"
                 />
               )}
-
-              {/* Comparison bars */}
-              {(() => {
-                const cmp = getCompAccounts(profileCategory, accounts);
-                const label = compScope === "alltime"
-                  ? (profileCategory !== "all" ? `Alla tider · ${profileCategory}` : "Alla tider · topp 3")
-                  : (profileCategory === "all" ? `${fmtWeekShort(selectedWeek)} · topp 3` : `${fmtWeekShort(selectedWeek)} · ${profileCategory}`);
-                return cmp.length > 0 && profileBestEr !== null ? (
-                  <WeeklyComparison accounts={cmp} userEr={profileBestEr} userLabel="Din bästa video" weekLabel={label} />
-                ) : profileBestEr !== null && compScope === "week" ? (
-                  <p className="gr-calc-cat-empty">Inga rankade konton{profileCategory !== "all" ? ` i kategorin &ldquo;${profileCategory}&rdquo;` : ""} den här veckan.</p>
-                ) : null;
-              })()}
-
-              {/* Video thumbnail grid */}
-              <div className="gr-calc-prof-grid">
-                {calcProfileVideos.map((v, i) => (
-                  <a key={i} href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="gr-calc-prof-card">
-                    <div className="gr-calc-prof-thumb-wrap">
-                      {v.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={v.thumbnailUrl} alt="" className="gr-calc-prof-thumb-img" />
-                      ) : (
-                        <div style={{ position: "absolute", inset: 0, background: "rgba(237,248,251,0.04)" }} />
-                      )}
-                      <span className="gr-calc-prof-er-badge">{v.engagementRate.toFixed(2)}%</span>
-                    </div>
-                    {v.caption && <p className="gr-calc-prof-caption">{v.caption}</p>}
-                    <div className="gr-calc-prof-metrics">
-                      <span><Eye size={13} />{fmt(v.views)}</span>
-                      <span><ThumbsUp size={13} />{fmt(v.likes)}</span>
-                      <span><Share2 size={13} />{fmt(v.shares)}</span>
-                    </div>
-                  </a>
-                ))}
-              </div>
+              {profileAvgStats && (
+                <>
+                  <p className="gr-calc-prof-stats-heading">Genomsnittliga resultat per inlägg</p>
+                  <div className="gr-calc-prof-stats-grid">
+                    {[
+                      { icon: <Eye size={15} />, val: fmt(profileAvgStats.views), lbl: "visningar" },
+                      { icon: <ThumbsUp size={15} />, val: fmt(profileAvgStats.likes), lbl: "likes" },
+                      { icon: <MessageCircle size={15} />, val: fmt(profileAvgStats.comments), lbl: "kommentarer" },
+                      { icon: <Share2 size={15} />, val: fmt(profileAvgStats.shares), lbl: "delningar" },
+                    ].map(({ icon, val, lbl }) => (
+                      <div key={lbl} className="gr-calc-prof-stat-card">
+                        <span className="gr-calc-prof-stat-icon">{icon}</span>
+                        <span className="gr-calc-prof-stat-val">{val}</span>
+                        <span className="gr-calc-prof-stat-lbl">snitt {lbl}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {calcMode === "video-ready" && calcStats && (
-            <div className="gr-kalky-v2-result" style={{ marginTop: 32 }}>
-
-              {/* Low-views warning */}
+            <div className="gr-calc-video-result">
               {calcStats.views < 10000 && (
                 <div className="gr-kalky-v2-notice gr-kalky-v2-notice--warn" style={{ marginBottom: 16 }}>
                   Videon har färre än 10 000 visningar. ER-jämförelsen är mindre tillförlitlig på låg räckvidd.
                 </div>
               )}
-
-              {/* 2-col result body */}
-              <div className="gr-kalky-v2-result-body">
-                {/* Left: thumbnail + copy + cache note */}
-                <div className="gr-kalky-v2-result-left">
-                  {/* Always reserve thumbnail space to prevent layout shift */}
-                  <button
-                    className="gr-kalky-v2-thumb-btn"
-                    onClick={calcThumb ? () => setCalcLightbox(true) : undefined}
-                    aria-label={calcThumb ? "Spela upp video" : undefined}
-                    style={{ cursor: calcThumb ? "pointer" : "default" }}
-                  >
-                    {calcThumb && (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
-                        <div className="gr-kalky-v2-play">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
-                        </div>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    className="gr-kalky-v2-copy-btn"
-                    onClick={() => { navigator.clipboard.writeText(window.location.href); setCalcCopied(true); setTimeout(() => setCalcCopied(false), 2000); }}
-                  >
-                    {calcCopied ? "Kopierad!" : "Kopiera länk"}
-                  </button>
-                  {calcLastUpdated && (
-                    <p className="gr-kalky-v2-cache-note" style={{ marginBottom: 0 }}>
-                      Statistik hämtad {new Date(calcLastUpdated).toLocaleDateString("sv-SE")}
-                    </p>
-                  )}
-                </div>
-
-                {/* Right: ER + bench + stats */}
-                <div className="gr-kalky-v2-result-right">
-                  {calcEr !== null ? (
-                    <>
-                      <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
-                      <p className="gr-kalky-v2-er">{calcEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
-                      {calcBenchPct !== null && (
-                        <>
-                          <p className="gr-kalky-v2-bench-line">
-                            Bättre än <strong>{calcBenchPct >= 99 ? "99+" : calcBenchPct}%</strong> av videor undersökta av Sociala Raketer
-                          </p>
-                          <div className="gr-kalky-v2-bench-track">
-                            <div className="gr-kalky-v2-bench-fill" style={{ width: `${Math.min(calcBenchPct, 99)}%` }} />
-                            <div className="gr-kalky-v2-bench-dot" style={{ left: `${Math.min(calcBenchPct, 99)}%` }} />
-                          </div>
-                          <div className="gr-kalky-v2-bench-labels">
-                            <span>Låg</span><span>Medel</span><span>Hög</span>
-                          </div>
-                        </>
-                      )}
-                      {calcEr !== null && (
-                        <>
-                          <CompPicker
-                            scope={compScope}
-                            onScope={(s) => { setCompScope(s); if (s === "alltime") fetchAllTime(); }}
-                            category={videoCategory}
-                            onCategory={setVideoCategory}
-                            weekCategories={availableCategories}
-                            allTimeCategories={allTimeCategories}
-                            loading={loadingAllTime}
-                          />
-                          {(() => {
-                            const cmp = getCompAccounts(videoCategory, accounts);
-                            const label = compScope === "alltime"
-                              ? (videoCategory !== "all" ? `Alla tider · ${videoCategory}` : "Alla tider · topp 3")
-                              : (videoCategory === "all" ? `${fmtWeekShort(selectedWeek)} · topp 3` : `${fmtWeekShort(selectedWeek)} · ${videoCategory}`);
-                            return cmp.length > 0 ? (
-                              <WeeklyComparison accounts={cmp} userEr={calcEr} userLabel="Din video" weekLabel={label} />
-                            ) : null;
-                          })()}
-                        </>
-                      )}
-                      <div className="gr-kalky-v2-stats-col">
-                        {[
-                          { lbl: "Visningar", val: calcStats.views },
-                          { lbl: "Likes", val: calcStats.likes },
-                          { lbl: "Kommentarer", val: calcStats.comments },
-                          { lbl: "Delningar", val: calcStats.shares },
-                        ].map(({ lbl, val }) => (
-                          <div key={lbl} className="gr-kalky-v2-stat-row">
-                            <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
-                            <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
-                  )}
-                </div>
-              </div>
-
-              <details className="gr-kalky-v2-weights">
-                <summary>Justera formelns vikter</summary>
-                <div className="gr-kalky-v2-weights-row">
-                  {([
-                    { label: "Likes", value: wLikes, setter: setWLikes },
-                    { label: "Kommentarer", value: wComments, setter: setWComments },
-                    { label: "Delningar", value: wShares, setter: setWShares },
-                  ] as { label: string; value: number; setter: (v: number) => void }[]).map(({ label, value, setter }) => (
-                    <div key={label} className="gr-kalky-v2-weight">
-                      <span>{label}</span>
-                      <div className="gr-kalky-v2-stepper">
-                        <button onClick={() => setter(Math.max(0, value - 1))}>−</button>
-                        <span>×{value}</span>
-                        <button onClick={() => setter(Math.min(20, value + 1))}>+</button>
-                      </div>
+              <button
+                className="gr-kalky-v2-thumb-btn"
+                onClick={calcThumb ? () => setCalcLightbox(true) : undefined}
+                aria-label={calcThumb ? "Spela upp video" : undefined}
+                style={{ cursor: calcThumb ? "pointer" : "default" }}
+              >
+                {calcThumb && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={calcThumb} alt="" className="gr-kalky-v2-thumb" />
+                    <div className="gr-kalky-v2-play">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
                     </div>
-                  ))}
-                </div>
-                <p className="gr-kalky-v2-formula">
-                  (likes×{wLikes} + kommentarer×{wComments} + delningar×{wShares}) ÷ visningar × 100
-                </p>
-                {weightsChanged && (
-                  <button className="gr-kalky-v2-reset" onClick={() => { setWLikes(1); setWComments(5); setWShares(10); }}>
-                    Återställ standardvikter
-                  </button>
+                  </>
                 )}
-              </details>
-
+              </button>
+              {calcEr !== null ? (
+                <>
+                  <p className="gr-kalky-v2-er-lbl">Engagement rate</p>
+                  <p className="gr-kalky-v2-er">{calcEr.toFixed(2)}<span className="gr-kalky-v2-er-unit">%</span></p>
+                  {calcBench && calcBench.count > 0 && (
+                    <CalcComparison
+                      er={calcEr}
+                      allBench={calcBench}
+                      categories={allCategories}
+                      type="videor"
+                    />
+                  )}
+                  <div className="gr-kalky-v2-stats-col">
+                    {[
+                      { lbl: "Visningar", val: calcStats.views },
+                      { lbl: "Likes", val: calcStats.likes },
+                      { lbl: "Kommentarer", val: calcStats.comments },
+                      { lbl: "Delningar", val: calcStats.shares },
+                    ].map(({ lbl, val }) => (
+                      <div key={lbl} className="gr-kalky-v2-stat-row">
+                        <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
+                        <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
+              )}
+              <button
+                className="gr-kalky-v2-copy-btn"
+                onClick={() => { navigator.clipboard.writeText(window.location.href); setCalcCopied(true); setTimeout(() => setCalcCopied(false), 2000); }}
+              >
+                {calcCopied ? "Kopierad!" : "Kopiera länk"}
+              </button>
+              {calcLastUpdated && (
+                <p className="gr-kalky-v2-cache-note">
+                  Statistik hämtad {new Date(calcLastUpdated).toLocaleDateString("sv-SE")}
+                </p>
+              )}
               <div className="gr-kalky-beta">
                 <p className="gr-kalky-beta-desc">
                   Vill du vara beta-testare när vi lägger till fler funktioner i framtiden? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
@@ -1367,7 +1241,35 @@ function HomeInner() {
             </div>
           )}
         </div>
+
+        {calcMode === "profile-ready" && calcProfileVideos && (
+          <div className="gr-calc-prof-grid-wrap">
+            <div className="gr-calc-prof-grid">
+              {calcProfileVideos.map((v, i) => (
+                <a key={i} href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="gr-calc-prof-card">
+                  <div className="gr-calc-prof-thumb-wrap">
+                    {v.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={v.thumbnailUrl} alt="" className="gr-calc-prof-thumb-img" />
+                    ) : (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(237,248,251,0.04)" }} />
+                    )}
+                    <span className="gr-calc-prof-er-badge">{v.engagementRate.toFixed(2)}%</span>
+                  </div>
+                  {v.caption && <p className="gr-calc-prof-caption">{v.caption}</p>}
+                  <div className="gr-calc-prof-metrics">
+                    <span><Eye size={13} />{fmt(v.views)}</span>
+                    <span><ThumbsUp size={13} />{fmt(v.likes)}</span>
+                    <span><Share2 size={13} />{fmt(v.shares)}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
+
+      <TopProfilesStrip profiles={topProfiles} loading={loadingAllTime} />
 
       {calcLightbox && calcVideoId && (
         <div className="gr-kalky-lightbox" onClick={() => setCalcLightbox(false)}>
