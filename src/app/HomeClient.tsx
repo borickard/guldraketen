@@ -354,6 +354,7 @@ function HomeInner() {
   const [allTimeData, setAllTimeData] = useState<AllTimeEntry[] | null>(null);
   const [loadingAllTime, setLoadingAllTime] = useState(false);
   const [calcBench, setCalcBench] = useState<Benchmark | null>(null);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
   const [betaEmail, setBetaEmail] = useState("");
   const [betaSubmitted, setBetaSubmitted] = useState(false);
   const [betaLoading, setBetaLoading] = useState(false);
@@ -491,9 +492,10 @@ function HomeInner() {
   }, [prevAccounts]);
 
 
-  // Fetch benchmark on mount
+  // Fetch benchmark + categories on mount
   useEffect(() => {
     fetch("/api/benchmark").then((r) => r.json()).then(setCalcBench).catch(() => null);
+    fetch("/api/categories").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setAllCategories(d); }).catch(() => null);
     return () => { if (calcPollRef.current) clearInterval(calcPollRef.current); };
   }, []);
 
@@ -714,13 +716,6 @@ function HomeInner() {
   }, [allTimeData, loadingAllTime]);
 
   useEffect(() => { fetchAllTime(); }, [fetchAllTime]);
-
-  const allTimeCategories = useMemo(() => {
-    if (!allTimeData) return [];
-    const set = new Set<string>();
-    for (const e of allTimeData) { if (e.category) set.add(e.category); }
-    return Array.from(set).sort();
-  }, [allTimeData]);
 
   const profileAvgStats = useMemo(() => {
     if (!calcProfileVideos || calcProfileVideos.length === 0) return null;
@@ -1128,7 +1123,7 @@ function HomeInner() {
                 <CalcComparison
                   er={profileAvgEr}
                   allBench={calcBench}
-                  categories={allTimeCategories}
+                  categories={allCategories}
                   handle={calcProfileHandle}
                   type="konton"
                 />
@@ -1186,7 +1181,7 @@ function HomeInner() {
                     <CalcComparison
                       er={calcEr}
                       allBench={calcBench}
-                      categories={allTimeCategories}
+                      categories={allCategories}
                       type="videor"
                     />
                   )}
