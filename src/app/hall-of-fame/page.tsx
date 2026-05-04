@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import type { HofVideo, HofWeek } from "@/app/api/tidigare-raketer/route";
 
 function fmtWeek(w: string) {
@@ -149,23 +149,22 @@ function HallOfFameInner() {
   const [selectedCat, setSelectedCat] = useState("");
 
   useEffect(() => {
-    fetch("/api/tidigare-raketer")
+    setLoading(true);
+    const url = selectedCat
+      ? `/api/tidigare-raketer?category=${encodeURIComponent(selectedCat)}`
+      : "/api/tidigare-raketer";
+    fetch(url)
       .then((r) => r.json())
       .then((d) => { setWeekGroups(d); setLoading(false); });
+  }, [selectedCat]);
+
+  useEffect(() => {
     fetch("/api/categories")
       .then((r) => r.json())
       .then(setCategories);
   }, []);
 
-  const filtered = useMemo(() => {
-    if (!selectedCat) return weekGroups;
-    return weekGroups
-      .map((g) => ({
-        ...g,
-        videos: g.videos.filter((v) => v.category === selectedCat),
-      }))
-      .filter((g) => g.videos.length > 0);
-  }, [weekGroups, selectedCat]);
+  const filtered = weekGroups;
 
   return (
     <main className="gr-hof-page gr-page">

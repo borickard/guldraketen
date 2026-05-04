@@ -51,8 +51,11 @@ export type HofWeek = {
   videos: HofVideo[];
 };
 
-export async function GET() {
-  const { data, error } = await supabaseAdmin
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const categoryFilter = searchParams.get("category") ?? "";
+
+  let query = supabaseAdmin
     .from("videos")
     .select(
       "handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
@@ -62,6 +65,19 @@ export async function GET() {
     .gte("views", MIN_VIDEO_VIEWS)
     .not("engagement_rate", "is", null)
     .order("engagement_rate", { ascending: false });
+
+  if (categoryFilter) {
+    // Get handles for accounts in the requested category
+    const { data: acctHandles } = await supabaseAdmin
+      .from("accounts")
+      .select("handle")
+      .eq("category", categoryFilter);
+    const handles = (acctHandles ?? []).map((a) => a.handle);
+    if (handles.length === 0) return NextResponse.json([]);
+    query = query.in("handle", handles);
+  }
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
