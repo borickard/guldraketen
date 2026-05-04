@@ -995,7 +995,7 @@ body {
   letter-spacing: .1em;
   text-transform: uppercase;
   color: rgba(28,27,25,0.4);
-  padding: 0 48px 12px;
+  padding: 0 48px 12px 45px;
 }
 
 @media (max-width: 639px) {
@@ -1052,14 +1052,14 @@ body {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   gap: 10px;
-  padding: 0 48px 20px;
+  padding: 0 48px 20px 0;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 .gr-hof-week-row::-webkit-scrollbar { display: none; }
 
 @media (max-width: 639px) {
-  .gr-hof-week-row { padding-left: 20px; padding-right: 20px; }
+  .gr-hof-week-row { padding-left: 0; padding-right: 20px; }
 }
 
 /* ── Cards inside the scroll row ── */
