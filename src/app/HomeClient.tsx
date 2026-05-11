@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { calculateEngagement } from "@/lib/engagement";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ interface RawVideo {
   likes: number;
   comments: number;
   shares: number;
+  collect_count: number | null;
   engagement_rate: number;
   thumbnail_url: string | null;
   caption: string | null;
@@ -73,6 +75,7 @@ interface ProfileVideo {
   likes: number;
   comments: number;
   shares: number;
+  collectCount?: number | null;
   engagementRate: number;
   caption: string;
   thumbnailUrl: string | null;
@@ -342,7 +345,7 @@ function HomeInner() {
   const [calcMode, setCalcMode] = useState<CalcMode>("idle");
   const [calcVideoId, setCalcVideoId] = useState<string | null>(null);
   const [calcHandle, setCalcHandle] = useState<string | null>(null);
-  const [calcStats, setCalcStats] = useState<{ views: number; likes: number; comments: number; shares: number } | null>(null);
+  const [calcStats, setCalcStats] = useState<{ views: number; likes: number; comments: number; shares: number; collect_count: number | null } | null>(null);
   const [calcLastUpdated, setCalcLastUpdated] = useState<string | null>(null);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [calcThumb, setCalcThumb] = useState<string | null>(null);
@@ -553,7 +556,13 @@ function HomeInner() {
         return;
       }
       if (data.source === "db") {
-        setCalcStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
+        setCalcStats({
+          views: data.views as number,
+          likes: data.likes as number,
+          comments: data.comments as number,
+          shares: data.shares as number,
+          collect_count: (data.collect_count as number | null | undefined) ?? null,
+        });
         setCalcLastUpdated((data.lastUpdated as string) ?? null);
         setCalcMode("video-ready");
         return;
@@ -566,7 +575,7 @@ function HomeInner() {
         try {
           const r = await fetch(`/api/fetch-video/result?runId=${runId}&videoId=${id}&handle=${encodeURIComponent(handle)}`);
           const d = await r.json();
-          if (d.status === "ready") { clearInterval(calcPollRef.current!); setCalcStats({ views: d.views, likes: d.likes, comments: d.comments, shares: d.shares }); setCalcMode("video-ready"); }
+          if (d.status === "ready") { clearInterval(calcPollRef.current!); setCalcStats({ views: d.views, likes: d.likes, comments: d.comments, shares: d.shares, collect_count: d.collect_count ?? null }); setCalcMode("video-ready"); }
           else if (d.status === "not-found") { clearInterval(calcPollRef.current!); setCalcMode("video-not-found"); }
           else if (d.status === "error") { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Hämtningen misslyckades."); }
         } catch { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Nätverksfel."); }
@@ -666,7 +675,7 @@ function HomeInner() {
 
   const calcEr = useMemo(() => {
     if (!calcStats || calcStats.views <= 0) return null;
-    return ((calcStats.likes * 1 + calcStats.comments * 5 + calcStats.shares * 10) / calcStats.views) * 100;
+    return calculateEngagement(calcStats);
   }, [calcStats]);
 
   const profileAvgEr = useMemo(() => {
@@ -986,6 +995,9 @@ function HomeInner() {
                       <span><ThumbsUp size={9} />{fmt(acc.bestVideo.likes)}</span>
                       <span><MessageCircle size={9} />{fmt(acc.bestVideo.comments)}</span>
                       <span><Share2 size={9} />{fmt(acc.bestVideo.shares)}</span>
+                      {acc.bestVideo.collect_count != null && (
+                        <span><Bookmark size={9} />{fmt(acc.bestVideo.collect_count)}</span>
+                      )}
                       <span><Eye size={9} />{fmt(acc.bestVideo.views)}</span>
                     </div>
                     <span className="gr-thumb-er gr-rk-vk-er" style={{ color: rankColor(i) }}>
@@ -1201,15 +1213,16 @@ function HomeInner() {
                     />
                   )}
                   <div className="gr-kalky-v2-stats-col">
-                    {[
-                      { lbl: "Visningar", val: calcStats.views },
-                      { lbl: "Likes", val: calcStats.likes },
-                      { lbl: "Kommentarer", val: calcStats.comments },
-                      { lbl: "Delningar", val: calcStats.shares },
-                    ].map(({ lbl, val }) => (
+                    {([
+                      { lbl: "Visningar", val: calcStats.views as number | null },
+                      { lbl: "Likes", val: calcStats.likes as number | null },
+                      { lbl: "Kommentarer", val: calcStats.comments as number | null },
+                      { lbl: "Delningar", val: calcStats.shares as number | null },
+                      ...(calcStats.collect_count != null ? [{ lbl: "Favoriter", val: calcStats.collect_count as number | null }] : []),
+                    ] as { lbl: string; val: number | null }[]).map(({ lbl, val }) => (
                       <div key={lbl} className="gr-kalky-v2-stat-row">
                         <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
-                        <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                        <span className="gr-kalky-v2-stat-val">{(val ?? 0).toLocaleString("sv-SE")}</span>
                       </div>
                     ))}
                   </div>
@@ -1276,6 +1289,9 @@ function HomeInner() {
                     <span><Eye size={13} />{fmt(v.views)}</span>
                     <span><ThumbsUp size={13} />{fmt(v.likes)}</span>
                     <span><Share2 size={13} />{fmt(v.shares)}</span>
+                    {v.collectCount != null && (
+                      <span><Bookmark size={13} />{fmt(v.collectCount)}</span>
+                    )}
                   </div>
                 </a>
               ))}
@@ -1310,7 +1326,8 @@ function HomeInner() {
                 q: "Hur beräknas engagemangsgraden?",
                 body: (
                   <>
-                    <p>Vi använder formeln <em>(likes + kommentarer × 5 + delningar × 10) / visningar × 100</em>. Delningar väger tyngst — de kräver att tittaren aktivt väljer att förknippa sig med innehållet och exponerar det för sitt eget nätverk. Kommentarer kräver mer av tittaren än en like men mindre än en delning. Det ger en rättvisare bild av vad som faktiskt berör.</p>
+                    <p>Vi använder formeln <em>(likes + kommentarer × 5 + favoriter × 5 + delningar × 10) / visningar × 100</em>. Delningar väger tyngst — de kräver att tittaren aktivt väljer att förknippa sig med innehållet och exponerar det för sitt eget nätverk. Kommentarer och favoriter (bokmärken) väger lika tungt: båda kräver att tittaren stannar upp, antingen för att uttrycka sig eller för att spara innehållet för senare. En like är billigast och väger minst. Det ger en rättvisare bild av vad som faktiskt berör.</p>
+                    <p style={{ marginTop: 8, fontSize: "0.95em", opacity: 0.85 }}>Vi började mäta favoriter (bokmärken) i maj 2026. Äldre videor saknar denna data och rankas på den tidigare formeln utan favoriter.</p>
                   </>
                 ),
               },

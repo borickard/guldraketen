@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { calculateEngagement } from "@/lib/engagement";
 
 const APIFY_ACTOR_ID = "clockworks~tiktok-profile-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
@@ -98,9 +99,22 @@ export async function GET(req: NextRequest) {
     stats.shareCount as number,
     item.shareCount as number
   );
+  const collectCount = firstNumber(
+    stats.collectCount as number,
+    stats.bookmarkCount as number,
+    stats.collect_count as number,
+    item.collectCount as number,
+    item.bookmarkCount as number
+  );
 
   const er = (views ?? 0) > 0
-    ? (((likes ?? 0) + (comments ?? 0) * 5 + (shares ?? 0) * 10) / views!) * 100
+    ? calculateEngagement({
+        views: views ?? 0,
+        likes: likes ?? 0,
+        comments: comments ?? 0,
+        shares: shares ?? 0,
+        collect_count: collectCount,
+      })
     : null;
   await supabaseAdmin.from("calculator_tests").insert({
     video_url: handle
@@ -112,9 +126,10 @@ export async function GET(req: NextRequest) {
     likes,
     comments,
     shares,
+    collect_count: collectCount,
     engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
     source: "apify",
   });
 
-  return NextResponse.json({ status: "ready", views, likes, comments, shares });
+  return NextResponse.json({ status: "ready", views, likes, comments, shares, collect_count: collectCount });
 }

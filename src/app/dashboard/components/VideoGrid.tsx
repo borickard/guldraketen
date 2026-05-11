@@ -15,6 +15,7 @@ interface Video {
   likes: number | null;
   comments: number | null;
   shares: number | null;
+  collect_count: number | null;
   engagement_rate: number | null;
   caption: string | null;
 }
@@ -415,6 +416,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                     ["Likes",     fmt(v.likes)],
                     ["Komment.",  fmt(v.comments)],
                     ["Delningar", fmt(v.shares)],
+                    ...(v.collect_count != null ? [["Favoriter", fmt(v.collect_count)]] : []),
                   ] as [string, string][]).map(([lbl, val]) => (
                     <div key={lbl} className="vg-stat-row">
                       <span className="vg-stat-lbl">{lbl}</span>

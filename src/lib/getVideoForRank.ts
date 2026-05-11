@@ -8,6 +8,7 @@ export interface VideoForRank {
     likes: number;
     comments: number;
     shares: number;
+    collect_count: number | null;
     engagement_rate: number;
     thumbnail_url: string | null;
     caption: string | null;
@@ -56,7 +57,7 @@ export async function getVideoForRank(week: string, rank: number): Promise<Video
     const { start, end } = weekBounds(week);
 
     const fields =
-        "handle, video_url, published_at, views, likes, comments, shares, engagement_rate, thumbnail_url, caption, accounts ( followers, display_name )";
+        "handle, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption, accounts ( followers, display_name )";
 
     const { data, error } = await supabaseAdmin
         .from("videos")

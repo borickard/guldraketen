@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { calculateEngagement } from "@/lib/engagement";
 
 const APIFY_API_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "clockworks~tiktok-profile-scraper";
@@ -10,6 +11,17 @@ function firstNum(...vals: unknown[]): number {
     if (!isNaN(n) && isFinite(n)) return n;
   }
   return 0;
+}
+
+// Returns null if no value was provided in any input — used for fields where
+// "absent" must remain distinguishable from "zero" (collect_count).
+function firstNumOrNull(...vals: unknown[]): number | null {
+  for (const v of vals) {
+    if (v === null || v === undefined || v === "") continue;
+    const n = Number(v);
+    if (!isNaN(n) && isFinite(n)) return n;
+  }
+  return null;
 }
 
 export async function GET(req: NextRequest) {
@@ -64,7 +76,14 @@ export async function GET(req: NextRequest) {
       const likes = firstNum(stats.diggCount, stats.likeCount, item.diggCount, item.likeCount);
       const comments = firstNum(stats.commentCount, item.commentCount);
       const shares = firstNum(stats.shareCount, item.shareCount);
-      const er = views > 0 ? ((likes + comments * 5 + shares * 10) / views) * 100 : 0;
+      const collectCount = firstNumOrNull(
+        stats.collectCount,
+        stats.bookmarkCount,
+        stats.collect_count,
+        item.collectCount,
+        item.bookmarkCount
+      );
+      const er = calculateEngagement({ views, likes, comments, shares, collect_count: collectCount });
       const videoUrl = ((item.webVideoUrl ?? item.videoUrl ?? item.url ?? "") as string);
       const videoIdMatch = videoUrl.match(/\/video\/(\d+)/);
       const vm = item.videoMeta as Record<string, unknown> | undefined;
@@ -75,6 +94,7 @@ export async function GET(req: NextRequest) {
         likes,
         comments,
         shares,
+        collectCount,
         engagementRate: parseFloat(er.toFixed(4)),
         caption: ((item.text ?? item.description ?? "") as string).slice(0, 120),
         thumbnailUrl: (vm?.coverUrl as string | null) ?? (item.cover as string | null) ?? null,

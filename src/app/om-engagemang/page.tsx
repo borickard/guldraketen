@@ -34,6 +34,11 @@ export default function OmEngagemang() {
           en reaktion.
         </p>
         <p className="gr-page-body">
+          En favoritmarkering (bokmärke) säger något annat — tittaren vill
+          spara videon för senare. Det är en intentionssignal: innehållet
+          är värt att återvända till.
+        </p>
+        <p className="gr-page-body">
           En delning är något helt annat. Att dela en video betyder att du
           tar den med dig ut ur appen och visar den för andra — det kräver
           engagemang, omdöme och en vilja att associera sig med innehållet.
@@ -46,7 +51,7 @@ export default function OmEngagemang() {
 
         <div className="gr-formula-box">
           <div className="gr-formula">
-            (likes × 1) + (kommentarer × 5) + (delningar × 10)
+            (likes × 1) + (kommentarer × 5) + (favoriter × 5) + (delningar × 10)
             <span className="gr-formula-divider">÷</span>
             visningar × 100
           </div>
@@ -54,9 +59,15 @@ export default function OmEngagemang() {
         </div>
 
         <p className="gr-page-body">
-          Delningar väger tio gånger mer än en like. Kommentarer väger fem
-          gånger mer. Det är ett medvetet val: vi vill belöna innehåll som
-          verkligen når fram, inte innehåll som råkar synas för många.
+          Delningar väger tio gånger mer än en like. Kommentarer och
+          favoriter (bokmärken) väger fem gånger mer — båda kräver att
+          tittaren stannar upp. Det är ett medvetet val: vi vill belöna
+          innehåll som verkligen når fram, inte innehåll som råkar synas
+          för många.
+        </p>
+        <p className="gr-page-body" style={{ fontSize: "0.95em", opacity: 0.85 }}>
+          Vi började mäta favoritmarkeringar i maj 2026. Videor scrapade
+          före dess rankas på den tidigare formeln utan favoriter.
         </p>
 
         <h2 className="gr-page-subtitle">Varför bara bästa videon?</h2>

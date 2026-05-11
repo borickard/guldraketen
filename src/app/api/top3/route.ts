@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         .from("videos")
         .select(`
       id, handle, video_url, published_at,
-      views, likes, comments, shares,
+      views, likes, comments, shares, collect_count,
       engagement_rate, thumbnail_url, caption,
       accounts ( followers, display_name )
     `)
