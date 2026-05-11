@@ -222,6 +222,8 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
             it.collectCount,
             it.bookmarkCount
         );
+        const isAd = firstBoolean(it.isAd, it.is_ad);
+        const isSponsored = firstBoolean(it.isSponsored, it.is_sponsored);
 
         const thumbnailUrl =
             it?.videoMeta?.coverUrl ||
@@ -250,6 +252,8 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
             thumbnail_url: thumbnailUrl,
             caption: captionTrimmed,
             is_contest: detectContest(captionTrimmed),
+            is_ad: isAd,
+            is_sponsored: isSponsored,
             last_updated: new Date().toISOString(),
         });
 
@@ -386,6 +390,8 @@ interface VideoRow {
     thumbnail_url: string | null;
     caption: string | null;
     is_contest: boolean;
+    is_ad: boolean | null;
+    is_sponsored: boolean | null;
     last_updated: string;
 }
 
@@ -409,6 +415,10 @@ interface ApifyItem {
     shareCount?: number;
     collectCount?: number;
     bookmarkCount?: number;
+    isAd?: boolean;
+    is_ad?: boolean;
+    isSponsored?: boolean;
+    is_sponsored?: boolean;
     videoMeta?: { coverUrl?: string };
     covers?: { default?: string };
     cover?: string;
@@ -437,6 +447,15 @@ function firstNumber(...vals: unknown[]): number | null {
         if (v === 0) return 0;
         const n = Number(v);
         if (!isNaN(n) && isFinite(n)) return n;
+    }
+    return null;
+}
+
+// Returns the first boolean present in the inputs. Null means "field absent in
+// payload" (not tracked yet) — distinct from explicit false.
+function firstBoolean(...vals: unknown[]): boolean | null {
+    for (const v of vals) {
+        if (typeof v === "boolean") return v;
     }
     return null;
 }
