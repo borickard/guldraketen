@@ -60,7 +60,7 @@ export async function GET(
 
   const { data: videos, error: vidErr } = await supabaseAdmin
     .from("videos")
-    .select("id, video_url, published_at, views, likes, comments, shares, engagement_rate, thumbnail_url, caption")
+    .select("id, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption")
     .eq("handle", handle)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .lt("published_at", cutoffDate.toISOString())

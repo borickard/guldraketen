@@ -215,6 +215,13 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         const likes = firstNumber(stats.diggCount, stats.likeCount, it.diggCount, it.likeCount);
         const comments = firstNumber(stats.commentCount, it.commentCount);
         const shares = firstNumber(stats.shareCount, it.shareCount);
+        const collectCount = firstNumber(
+            stats.collectCount,
+            stats.bookmarkCount,
+            stats.collect_count,
+            it.collectCount,
+            it.bookmarkCount
+        );
 
         const thumbnailUrl =
             it?.videoMeta?.coverUrl ||
@@ -239,6 +246,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
             likes: likes ?? 0,
             comments: comments ?? 0,
             shares: shares ?? 0,
+            collect_count: collectCount,
             thumbnail_url: thumbnailUrl,
             caption: captionTrimmed,
             is_contest: detectContest(captionTrimmed),
@@ -374,6 +382,7 @@ interface VideoRow {
     likes: number;
     comments: number;
     shares: number;
+    collect_count: number | null;
     thumbnail_url: string | null;
     caption: string | null;
     is_contest: boolean;
@@ -398,6 +407,8 @@ interface ApifyItem {
     likeCount?: number;
     commentCount?: number;
     shareCount?: number;
+    collectCount?: number;
+    bookmarkCount?: number;
     videoMeta?: { coverUrl?: string };
     covers?: { default?: string };
     cover?: string;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ThumbsUp, MessageCircle, Share2, Eye } from "lucide-react";
+import { ThumbsUp, MessageCircle, Share2, Eye, Bookmark } from "lucide-react";
 
 interface Video {
     handle: string;
@@ -12,6 +12,7 @@ interface Video {
     likes: number;
     comments: number;
     shares: number;
+    collect_count: number | null;
     engagement_rate: number;
     thumbnail_url: string | null;
     caption: string | null;
@@ -127,6 +128,7 @@ export default function VideoSharePage() {
                                 { icon: <ThumbsUp size={14} />, val: fmt(video.likes), lbl: "Likes" },
                                 { icon: <MessageCircle size={14} />, val: fmt(video.comments), lbl: "Kommentarer" },
                                 { icon: <Share2 size={14} />, val: fmt(video.shares), lbl: "Delningar" },
+                                ...(video.collect_count != null ? [{ icon: <Bookmark size={14} />, val: fmt(video.collect_count), lbl: "Favoriter" }] : []),
                                 { icon: <Eye size={14} />, val: fmt(video.views), lbl: "Visningar" },
                             ].map(({ icon, val, lbl }) => (
                                 <div key={lbl} className="sp2-stat">

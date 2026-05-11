@@ -22,6 +22,7 @@ interface VideoRow {
   likes: number;
   comments: number;
   shares: number;
+  collect_count: number | null;
   engagement_rate: number | null;
   thumbnail_url: string | null;
   caption: string | null;
@@ -35,7 +36,7 @@ interface Stats {
   topFinishes: { gold: number; silver: number; bronze: number };
 }
 
-type SortKey = "published_at" | "views" | "engagement_rate" | "likes" | "comments" | "shares";
+type SortKey = "published_at" | "views" | "engagement_rate" | "likes" | "comments" | "shares" | "collect_count";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ export default function KontoPage() {
                       { key: "likes", label: "Likes" },
                       { key: "comments", label: "Komm." },
                       { key: "shares", label: "Delningar" },
+                      { key: "collect_count", label: "Favoriter" },
                     ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
                       <th
                         key={key}
@@ -214,6 +216,7 @@ export default function KontoPage() {
                       <td className="gr-konto-td">{fmt(v.likes)}</td>
                       <td className="gr-konto-td">{fmt(v.comments)}</td>
                       <td className="gr-konto-td">{fmt(v.shares)}</td>
+                      <td className="gr-konto-td">{v.collect_count != null ? fmt(v.collect_count) : "–"}</td>
                       <td className="gr-konto-td gr-konto-td--link">
                         <a
                           href={v.video_url}

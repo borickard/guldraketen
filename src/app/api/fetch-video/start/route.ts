@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { calculateEngagement } from "@/lib/engagement";
 
 const APIFY_ACTOR_ID = "clockworks~tiktok-video-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   // 1. Check videos table (weekly scrape data)
   const { data: dbVideo } = await supabaseAdmin
     .from("videos")
-    .select("views,likes,comments,shares,last_updated")
+    .select("views,likes,comments,shares,collect_count,last_updated")
     .ilike("video_url", `%${videoId}%`)
     .maybeSingle();
 
@@ -25,7 +26,13 @@ export async function POST(req: NextRequest) {
     const timeSinceScrape = Date.now() - new Date(dbVideo.last_updated).getTime();
     if (timeSinceScrape <= TWO_DAYS_MS) {
       const er = (dbVideo.views ?? 0) > 0
-        ? ((dbVideo.likes + dbVideo.comments * 5 + dbVideo.shares * 10) / dbVideo.views) * 100
+        ? calculateEngagement({
+            views: dbVideo.views,
+            likes: dbVideo.likes,
+            comments: dbVideo.comments,
+            shares: dbVideo.shares,
+            collect_count: dbVideo.collect_count,
+          })
         : null;
       await supabaseAdmin.from("calculator_tests").insert({
         video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
@@ -35,6 +42,7 @@ export async function POST(req: NextRequest) {
         likes: dbVideo.likes,
         comments: dbVideo.comments,
         shares: dbVideo.shares,
+        collect_count: dbVideo.collect_count,
         engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
         source: "db",
       });
@@ -44,6 +52,7 @@ export async function POST(req: NextRequest) {
         likes: dbVideo.likes,
         comments: dbVideo.comments,
         shares: dbVideo.shares,
+        collect_count: dbVideo.collect_count,
         lastUpdated: dbVideo.last_updated,
       });
     }
@@ -63,11 +72,12 @@ export async function POST(req: NextRequest) {
     if (profileScan?.videos) {
       const age = Date.now() - new Date(profileScan.scanned_at).getTime();
       if (age <= TWO_DAYS_MS) {
-        type CachedVideo = { videoId: string | null; videoUrl: string; views: number; likes: number; comments: number; shares: number; engagementRate: number };
+        type CachedVideo = { videoId: string | null; videoUrl: string; views: number; likes: number; comments: number; shares: number; collectCount?: number | null; engagementRate: number };
         const match = (profileScan.videos as CachedVideo[]).find(
           (v) => v.videoId === videoId || v.videoUrl?.includes(videoId)
         );
         if (match) {
+          const matchCollect = match.collectCount ?? null;
           await supabaseAdmin.from("calculator_tests").insert({
             video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
             video_id: videoId,
@@ -76,6 +86,7 @@ export async function POST(req: NextRequest) {
             likes: match.likes,
             comments: match.comments,
             shares: match.shares,
+            collect_count: matchCollect,
             engagement_rate: parseFloat(match.engagementRate.toFixed(4)),
             source: "db",
           });
@@ -85,6 +96,7 @@ export async function POST(req: NextRequest) {
             likes: match.likes,
             comments: match.comments,
             shares: match.shares,
+            collect_count: matchCollect,
             lastUpdated: profileScan.scanned_at,
           });
         }
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
   //    are not in the videos table, so we need this as a second cache layer)
   const { data: cachedTest } = await supabaseAdmin
     .from("calculator_tests")
-    .select("views,likes,comments,shares,engagement_rate,tested_at")
+    .select("views,likes,comments,shares,collect_count,engagement_rate,tested_at")
     .ilike("video_url", `%${videoId}%`)
     .order("tested_at", { ascending: false })
     .limit(1)
@@ -113,6 +125,7 @@ export async function POST(req: NextRequest) {
         likes: cachedTest.likes,
         comments: cachedTest.comments,
         shares: cachedTest.shares,
+        collect_count: cachedTest.collect_count,
         engagement_rate: cachedTest.engagement_rate,
         source: "db",
       });
@@ -122,6 +135,7 @@ export async function POST(req: NextRequest) {
         likes: cachedTest.likes,
         comments: cachedTest.comments,
         shares: cachedTest.shares,
+        collect_count: cachedTest.collect_count,
         lastUpdated: cachedTest.tested_at,
       });
     }

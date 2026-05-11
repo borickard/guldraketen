@@ -42,6 +42,7 @@ export type HofVideo = {
     likes: number;
     comments: number;
     shares: number;
+    collect_count: number | null;
     engagement_rate: number;
   };
 };
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
   let query = supabaseAdmin
     .from("videos")
     .select(
-      "handle, views, likes, comments, shares, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
+      "handle, views, likes, comments, shares, collect_count, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
     )
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
@@ -118,6 +119,7 @@ export async function GET(request: Request) {
           likes: v.likes ?? 0,
           comments: v.comments ?? 0,
           shares: v.shares ?? 0,
+          collect_count: v.collect_count ?? null,
           engagement_rate: Number(v.engagement_rate),
         },
       };

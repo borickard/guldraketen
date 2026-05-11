@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { calculateEngagement } from "@/lib/engagement";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ interface ProfileVideo {
   likes: number;
   comments: number;
   shares: number;
+  collectCount?: number | null;
   engagementRate: number;
   caption: string;
   thumbnailUrl: string | null;
@@ -90,7 +92,7 @@ function KalkylatornPage() {
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoHandle, setVideoHandle] = useState<string | null>(null);
   const [videoStats, setVideoStats] = useState<{
-    views: number; likes: number; comments: number; shares: number;
+    views: number; likes: number; comments: number; shares: number; collect_count: number | null;
   } | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
@@ -107,6 +109,7 @@ function KalkylatornPage() {
   const [wLikes, setWLikes] = useState(1);
   const [wComments, setWComments] = useState(5);
   const [wShares, setWShares] = useState(10);
+  const [wCollects, setWCollects] = useState(5);
   const [bench, setBench] = useState<Benchmark | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,7 +176,13 @@ function KalkylatornPage() {
       }
 
       if (data.source === "db") {
-        setVideoStats({ views: data.views as number, likes: data.likes as number, comments: data.comments as number, shares: data.shares as number });
+        setVideoStats({
+          views: data.views as number,
+          likes: data.likes as number,
+          comments: data.comments as number,
+          shares: data.shares as number,
+          collect_count: (data.collect_count as number | null | undefined) ?? null,
+        });
         setMode("video-ready");
         return;
       }
@@ -193,7 +202,13 @@ function KalkylatornPage() {
           const d = await r.json();
           if (d.status === "ready") {
             clearInterval(pollRef.current!);
-            setVideoStats({ views: d.views, likes: d.likes, comments: d.comments, shares: d.shares });
+            setVideoStats({
+              views: d.views,
+              likes: d.likes,
+              comments: d.comments,
+              shares: d.shares,
+              collect_count: d.collect_count ?? null,
+            });
             setMode("video-ready");
           } else if (d.status === "not-found") {
             clearInterval(pollRef.current!);
@@ -330,14 +345,19 @@ function KalkylatornPage() {
 
   const er = useMemo(() => {
     if (!videoStats || videoStats.views <= 0) return null;
-    return ((videoStats.likes * wLikes + videoStats.comments * wComments + videoStats.shares * wShares) / videoStats.views) * 100;
-  }, [videoStats, wLikes, wComments, wShares]);
+    return calculateEngagement(videoStats, {
+      likes: wLikes,
+      comments: wComments,
+      shares: wShares,
+      collects: wCollects,
+    });
+  }, [videoStats, wLikes, wComments, wShares, wCollects]);
 
   const benchPct = bench && bench.count > 0 && er !== null
     ? Math.round(computePercentile(er, bench))
     : null;
 
-  const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10;
+  const weightsChanged = wLikes !== 1 || wComments !== 5 || wShares !== 10 || wCollects !== 5;
   const activeProfile = profileHandle;
   const siteBase = process.env.NEXT_PUBLIC_SITE_URL ?? "socialaraketer.se";
 
@@ -442,14 +462,15 @@ function KalkylatornPage() {
             </div>
 
             <div className="gr-kalky-v2-stats">
-              {[
-                { lbl: "Visningar", val: videoStats.views },
-                { lbl: "Likes", val: videoStats.likes },
-                { lbl: "Kommentarer", val: videoStats.comments },
-                { lbl: "Delningar", val: videoStats.shares },
-              ].map(({ lbl, val }) => (
+              {([
+                { lbl: "Visningar", val: videoStats.views as number | null },
+                { lbl: "Likes", val: videoStats.likes as number | null },
+                { lbl: "Kommentarer", val: videoStats.comments as number | null },
+                { lbl: "Delningar", val: videoStats.shares as number | null },
+                ...(videoStats.collect_count != null ? [{ lbl: "Favoriter", val: videoStats.collect_count as number | null }] : []),
+              ] as { lbl: string; val: number | null }[]).map(({ lbl, val }) => (
                 <div key={lbl} className="gr-kalky-v2-stat">
-                  <span className="gr-kalky-v2-stat-val">{val.toLocaleString("sv-SE")}</span>
+                  <span className="gr-kalky-v2-stat-val">{(val ?? 0).toLocaleString("sv-SE")}</span>
                   <span className="gr-kalky-v2-stat-lbl">{lbl}</span>
                 </div>
               ))}
@@ -462,6 +483,7 @@ function KalkylatornPage() {
                   { label: "Likes", value: wLikes, setter: setWLikes },
                   { label: "Kommentarer", value: wComments, setter: setWComments },
                   { label: "Delningar", value: wShares, setter: setWShares },
+                  { label: "Favoriter", value: wCollects, setter: setWCollects },
                 ] as { label: string; value: number; setter: (v: number) => void }[]).map(({ label, value, setter }) => (
                   <div key={label} className="gr-kalky-v2-weight">
                     <span>{label}</span>
@@ -474,12 +496,14 @@ function KalkylatornPage() {
                 ))}
               </div>
               <p className="gr-kalky-v2-formula">
-                (likes×{wLikes} + kommentarer×{wComments} + delningar×{wShares}) ÷ visningar × 100
+                {videoStats.collect_count != null
+                  ? `(likes×${wLikes} + kommentarer×${wComments} + favoriter×${wCollects} + delningar×${wShares}) ÷ visningar × 100`
+                  : `(likes×${wLikes} + kommentarer×${wComments} + delningar×${wShares}) ÷ visningar × 100`}
               </p>
               {weightsChanged && (
                 <button
                   className="gr-kalky-v2-reset"
-                  onClick={() => { setWLikes(1); setWComments(5); setWShares(10); }}
+                  onClick={() => { setWLikes(1); setWComments(5); setWShares(10); setWCollects(5); }}
                 >
                   Återställ standardvikter
                 </button>
