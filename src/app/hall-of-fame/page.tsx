@@ -1,18 +1,43 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
-import type { HofVideo, HofWeek } from "@/app/api/tidigare-raketer/route";
+import type { HofVideo, HofGroup } from "@/app/api/tidigare-raketer/route";
 
-function fmtWeek(w: string) {
-  const m = w.match(/(\d{4})-W(\d{2})/);
-  if (!m) return w;
-  return `V${parseInt(m[2])} ${m[1]}`;
-}
+type Scope = "week" | "month" | "all";
+type SortKey = "er" | "likes" | "comments" | "shares" | "collects" | "views" | "newest";
+type Filter = "all" | "organic" | "boosted";
+
+const SCOPES: { key: Scope; label: string }[] = [
+  { key: "week", label: "Per vecka" },
+  { key: "month", label: "Per månad" },
+  { key: "all", label: "Sedan start" },
+];
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: "er", label: "Eng.rate" },
+  { key: "likes", label: "Likes" },
+  { key: "comments", label: "Kommentarer" },
+  { key: "shares", label: "Delningar" },
+  { key: "collects", label: "Favoriter" },
+  { key: "views", label: "Visningar" },
+  { key: "newest", label: "Nyaste" },
+];
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Alla" },
+  { key: "organic", label: "Organisk" },
+  { key: "boosted", label: "Boostad" },
+];
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return Math.round(n / 1_000) + "K";
   return String(n);
+}
+
+function fmtFullDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("sv-SE", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 function rankBg(rank: number): string {
@@ -108,17 +133,21 @@ function HofCard({ entry }: { entry: HofVideo }) {
         <span className="gr-thumb-best" style={{ background: rankBg(entry.rank) }}>
           #{entry.rank}
         </span>
+        {entry.video.is_ad === true && (
+          <span className="gr-hof-boost-badge">Boostad</span>
+        )}
       </a>
       <div className="gr-vid-info">
         <a href={`/konto/${entry.handle}`} className="gr-rk-vk-name">
           {entry.displayName}
         </a>
+        <p className="gr-hof-card-date">{fmtFullDate(entry.video.published_at)}</p>
       </div>
     </div>
   );
 }
 
-function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
+function GroupRow({ videos, groupKey }: { videos: HofVideo[]; groupKey: string }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
 
@@ -145,7 +174,7 @@ function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
     <div className="gr-hof-week-scroll-wrap">
       <div className="gr-hof-week-row" ref={rowRef} onScroll={onScroll}>
         {videos.map((entry) => (
-          <HofCard key={`${week}-${entry.rank}`} entry={entry} />
+          <HofCard key={`${groupKey}-${entry.rank}-${entry.handle}`} entry={entry} />
         ))}
       </div>
       {!atEnd && (
@@ -160,20 +189,22 @@ function WeekRow({ videos, week }: { videos: HofVideo[]; week: string }) {
 }
 
 function HallOfFameInner() {
-  const [weekGroups, setWeekGroups] = useState<HofWeek[]>([]);
+  const [groups, setGroups] = useState<HofGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCat, setSelectedCat] = useState("");
+  const [scope, setScope] = useState<Scope>("week");
+  const [sort, setSort] = useState<SortKey>("er");
+  const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
     setLoading(true);
-    const url = selectedCat
-      ? `/api/tidigare-raketer?category=${encodeURIComponent(selectedCat)}`
-      : "/api/tidigare-raketer";
-    fetch(url)
+    const params = new URLSearchParams({ scope, sort, filter });
+    if (selectedCat) params.set("category", selectedCat);
+    fetch(`/api/tidigare-raketer?${params}`)
       .then((r) => r.json())
-      .then((d) => { setWeekGroups(d); setLoading(false); });
-  }, [selectedCat]);
+      .then((d) => { setGroups(Array.isArray(d) ? d : []); setLoading(false); });
+  }, [selectedCat, scope, sort, filter]);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -181,35 +212,75 @@ function HallOfFameInner() {
       .then(setCategories);
   }, []);
 
-  const filtered = weekGroups;
-
   return (
     <main className="gr-hof-page gr-page">
       <div className="gr-hof-hdr">
         <h1 className="gr-page-title">Hall of Fame</h1>
-        {categories.length > 0 && (
-          <select
-            className="gr-calc-cat-select"
-            value={selectedCat}
-            onChange={(e) => setSelectedCat(e.target.value)}
-          >
-            <option value="">Alla kategorier</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
+      </div>
+
+      <div className="gr-hof-controls">
+        <div className="gr-hof-control-row">
+          <span className="gr-hof-control-label">Gruppera</span>
+          <div className="gr-hof-pills gr-hof-pills--segment">
+            {SCOPES.map((s) => (
+              <button
+                key={s.key}
+                className={"gr-hof-pill" + (scope === s.key ? " active" : "")}
+                onClick={() => setScope(s.key)}
+              >
+                {s.label}
+              </button>
             ))}
-          </select>
-        )}
+          </div>
+          <div className="gr-hof-pills gr-hof-pills--segment">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                className={"gr-hof-pill" + (filter === f.key ? " active" : "")}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {categories.length > 0 && (
+            <select
+              className="gr-calc-cat-select gr-hof-cat-select"
+              value={selectedCat}
+              onChange={(e) => setSelectedCat(e.target.value)}
+            >
+              <option value="">Alla kategorier</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="gr-hof-control-row">
+          <span className="gr-hof-control-label">Sortera på</span>
+          <div className="gr-hof-pills">
+            {SORTS.map((s) => (
+              <button
+                key={s.key}
+                className={"gr-hof-pill gr-hof-pill--sort" + (sort === s.key ? " active" : "")}
+                onClick={() => setSort(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="gr-hof-loading">Laddar…</div>
-      ) : filtered.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="gr-hof-loading">Inga raketer att visa.</div>
       ) : (
-        filtered.map((group) => (
-          <div key={group.week} className="gr-hof-week">
-            <span className="gr-hof-week-label">{fmtWeek(group.week)}</span>
-            <WeekRow videos={group.videos} week={group.week} />
+        groups.map((group) => (
+          <div key={group.key} className="gr-hof-week">
+            <span className="gr-hof-week-label">{group.label}</span>
+            <GroupRow videos={group.videos} groupKey={group.key} />
           </div>
         ))
       )}

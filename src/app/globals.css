@@ -389,7 +389,7 @@ body {
   background: var(--gr-dark);
   color: rgba(235, 231, 226, .85);
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
+  font-size: 15px;
   padding: 1px 4px;
   border-radius: 6px;
   line-height: 1;
@@ -981,6 +981,119 @@ body {
   color: rgba(28,27,25,0.4);
 }
 
+/* ── HoF control bar (scope/sort/filter) ── */
+.gr-hof-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 48px 8px;
+  border-bottom: 1px solid rgba(28,27,25,0.08);
+  position: sticky;
+  top: 0;
+  background: #EBE7E2;
+  z-index: 10;
+}
+.gr-hof-control-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.gr-hof-control-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,0.5);
+}
+.gr-hof-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.gr-hof-pills--segment {
+  background: rgba(28,27,25,0.06);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 0;
+}
+.gr-hof-pill {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(28,27,25,0.6);
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.gr-hof-pill:hover {
+  color: var(--gr-dark);
+}
+.gr-hof-pill.active {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+.gr-hof-pills--segment .gr-hof-pill.active {
+  background: #fff;
+  color: var(--gr-dark);
+  box-shadow: 0 1px 3px rgba(28,27,25,0.1);
+}
+.gr-hof-pill--sort {
+  background: rgba(28,27,25,0.04);
+}
+.gr-hof-pill--sort.active {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+
+@media (max-width: 639px) {
+  .gr-hof-controls { padding: 16px 20px 8px; }
+}
+
+/* Date below handle on HoF cards */
+.gr-hof-card-date {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  color: rgba(28,27,25,0.45);
+  margin: 2px 0 0;
+  letter-spacing: .02em;
+}
+
+/* Boost badge — top-right on HoF cards */
+.gr-hof-boost-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(28,27,25,0.85);
+  color: #EBE7E2;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+/* Larger rank badge ("#1") on HoF cards */
+.gr-hof-row-card .gr-thumb-best {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+/* HoF category select sits in the control row, slim styling */
+.gr-hof-cat-select {
+  margin-left: auto;
+}
+
 /* ── Week sections ── */
 .gr-hof-week {
   padding-top: 28px;
@@ -1075,9 +1188,37 @@ body {
   width: calc((100vw - 40px - 10px * 0.5) / 1.5);
 }
 
+/* Tablet portrait / large mobile */
+@media (min-width: 480px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 40px - 10px * 1.5) / 2.5);
+  }
+}
+
+/* Small tablet / phone landscape */
 @media (min-width: 640px) {
   .gr-hof-row-card {
-    /* desktop: 9.5 cards visible (96px total padding) */
+    width: calc((100vw - 96px - 10px * 3.5) / 4.5);
+  }
+}
+
+/* Laptop */
+@media (min-width: 1024px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 96px - 10px * 5.5) / 6.5);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1280px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 96px - 10px * 7.5) / 8.5);
+  }
+}
+
+/* Wide desktop — original layout */
+@media (min-width: 1600px) {
+  .gr-hof-row-card {
     width: calc((100vw - 96px - 10px * 8.5) / 9.5);
   }
 }
@@ -3690,6 +3831,7 @@ body {
   text-decoration: none;
   cursor: pointer;
   background: none;
+  white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -4584,7 +4726,7 @@ body {
 }
 
 .gr-rk-grid .gr-thumb-stats span {
-  font-size: 11px;
+  font-size: 15px;
   padding: 2px 5px;
 }
 

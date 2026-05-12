@@ -16,15 +16,21 @@ interface Video {
   comments: number | null;
   shares: number | null;
   collect_count: number | null;
+  is_ad: boolean | null;
   engagement_rate: number | null;
   caption: string | null;
 }
 
+type Scope = "week" | "month" | "all";
+type BoostFilter = "all" | "organic" | "boosted";
+
 type SortKey = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
 
 type GridItem =
-  | { type: "week"; label: string; key: string }
+  | { type: "group"; label: string; key: string }
   | { type: "video"; video: Video };
+
+const MONTH_NAMES_SV = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
 
 function toWeekLabel(dateStr: string): string {
   const date = new Date(dateStr);
@@ -36,6 +42,12 @@ function toWeekLabel(dateStr: string): string {
     ((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000 + 1) / 7
   );
   return `V${week} ${year}`;
+}
+
+function toMonthLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  const name = MONTH_NAMES_SV[d.getMonth()];
+  return `${name[0].toUpperCase()}${name.slice(1)} ${d.getFullYear()}`;
 }
 
 function sorted(videos: Video[], sort: SortKey): Video[] {
@@ -51,25 +63,34 @@ function sorted(videos: Video[], sort: SortKey): Video[] {
   }
 }
 
-function buildItems(videos: Video[], sort: SortKey): GridItem[] {
-  const vids = sorted(videos, sort);
-
-  if (sort !== "newest" && sort !== "oldest") {
-    return vids.map((v) => ({ type: "video", video: v }));
+function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
+  if (scope === "all") {
+    return sorted(videos, sort).map((v) => ({ type: "video", video: v }));
   }
 
-  const items: GridItem[] = [];
-  let lastWeek = "";
+  const labelFn = scope === "month" ? toMonthLabel : toWeekLabel;
+  const groups = new Map<string, Video[]>();
+  for (const v of videos) {
+    if (!v.published_at) continue;
+    const key = labelFn(v.published_at);
+    const list = groups.get(key) ?? [];
+    list.push(v);
+    groups.set(key, list);
+  }
 
-  for (const video of vids) {
-    if (video.published_at) {
-      const week = toWeekLabel(video.published_at);
-      if (week !== lastWeek) {
-        items.push({ type: "week", label: week, key: `w-${week}-${video.id}` });
-        lastWeek = week;
-      }
+  // Each group is sorted internally; groups themselves are ordered by most-recent video.
+  const sortedKeys = [...groups.keys()].sort((a, b) => {
+    const aDate = Math.max(...groups.get(a)!.map((v) => new Date(v.published_at!).getTime()));
+    const bDate = Math.max(...groups.get(b)!.map((v) => new Date(v.published_at!).getTime()));
+    return bDate - aDate;
+  });
+
+  const items: GridItem[] = [];
+  for (const key of sortedKeys) {
+    items.push({ type: "group", label: key, key: `g-${key}` });
+    for (const v of sorted(groups.get(key)!, sort)) {
+      items.push({ type: "video", video: v });
     }
-    items.push({ type: "video", video });
   }
   return items;
 }
@@ -94,6 +115,7 @@ type Filters = {
   likes_min: string; likes_max: string;
   comments_min: string; comments_max: string;
   shares_min: string; shares_max: string;
+  boost: BoostFilter;
 };
 
 const EMPTY_FILTERS: Filters = {
@@ -102,6 +124,7 @@ const EMPTY_FILTERS: Filters = {
   likes_min: "", likes_max: "",
   comments_min: "", comments_max: "",
   shares_min: "", shares_max: "",
+  boost: "all",
 };
 
 function applyFilters(videos: Video[], f: Filters): Video[] {
@@ -115,6 +138,9 @@ function applyFilters(videos: Video[], f: Filters): Video[] {
       toEnd.setHours(23, 59, 59, 999);
       if (new Date(v.published_at) > toEnd) return false;
     }
+    // Boost — when filtering, exclude rows without tracked is_ad data
+    if (f.boost === "organic" && v.is_ad !== false) return false;
+    if (f.boost === "boosted" && v.is_ad !== true) return false;
     // Numeric ranges
     const check = (val: number | null, min: string, max: string) => {
       const n = val ?? 0;
@@ -133,13 +159,14 @@ function applyFilters(videos: Video[], f: Filters): Video[] {
 
 function activeFilterCount(f: Filters): number {
   const numActive = (Object.keys(f) as (keyof Filters)[])
-    .filter((k) => k !== "dateRange")
-    .filter((k) => f[k] !== "").length;
+    .filter((k) => k !== "dateRange" && k !== "boost")
+    .filter((k) => f[k as NumericFilterKey] !== "").length;
   const dateActive = f.dateRange?.from ? 1 : 0;
-  return numActive + dateActive;
+  const boostActive = f.boost !== "all" ? 1 : 0;
+  return numActive + dateActive + boostActive;
 }
 
-type NumericFilterKey = Exclude<keyof Filters, "dateRange">;
+type NumericFilterKey = Exclude<keyof Filters, "dateRange" | "boost">;
 
 const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey }[] = [
   { label: "Visningar", min: "views_min",    max: "views_max"    },
@@ -152,6 +179,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
+  const [scope, setScope]     = useState<Scope>("week");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [showCal, setShowCal] = useState(false);
@@ -217,7 +245,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
   const filtered = applyFilters(videos, filters);
-  const items = buildItems(filtered, sort);
+  const items = buildItems(filtered, sort, scope);
   const nActive = activeFilterCount(filters);
 
   function setFilter(key: NumericFilterKey, val: string) {
@@ -247,6 +275,24 @@ export default function VideoGrid({ handle }: { handle?: string }) {
       <div className="vg-root">
 
         <div className="vg-toolbar">
+          <div className="vg-toolbar-row">
+            <span className="vg-row-label">Gruppera</span>
+            <div className="vg-segment">
+              {([
+                { key: "week",  label: "Per vecka"   },
+                { key: "month", label: "Per månad"   },
+                { key: "all",   label: "Sedan start" },
+              ] as { key: Scope; label: string }[]).map((s) => (
+                <button
+                  key={s.key}
+                  className={`vg-segment-btn${scope === s.key ? " vg-segment-btn--on" : ""}`}
+                  onClick={() => setScope(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="vg-toolbar-row">
             <span className="vg-row-label">Sortering och filter</span>
             <div className="vg-sorts">
@@ -365,12 +411,31 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                 </div>
               </div>
             ))}
+            {/* Boost filter */}
+            <div className="vg-filter-row">
+              <span className="vg-filter-label">Boost</span>
+              <div className="vg-segment vg-segment--inline">
+                {([
+                  { key: "all",     label: "Alla" },
+                  { key: "organic", label: "Organisk" },
+                  { key: "boosted", label: "Boostad" },
+                ] as { key: BoostFilter; label: string }[]).map((b) => (
+                  <button
+                    key={b.key}
+                    className={`vg-segment-btn${filters.boost === b.key ? " vg-segment-btn--on" : ""}`}
+                    onClick={() => setFilters((p) => ({ ...p, boost: b.key }))}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         <div className="vg-grid">
           {items.map((item) => {
-            if (item.type === "week") return (
+            if (item.type === "group") return (
               <div key={item.key} className="vg-week-label">{item.label}</div>
             );
 
@@ -387,6 +452,12 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                     ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
                     : <div className="vg-thumb vg-thumb--empty" />
                   }
+                  {v.is_ad === true && (
+                    <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
+                  )}
+                  {v.is_ad === false && (
+                    <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
+                  )}
                 </a>
 
                 {/* ER + link bar */}
@@ -472,26 +543,64 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: #fff;
-    border: 1px solid rgba(28,27,25,0.2);
-    color: #1C1B19;
+    background: rgba(28,27,25,0.04);
+    border: none;
+    color: rgba(28,27,25,0.6);
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    padding: 0.3rem 0.75rem;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    transition: background 0.12s, color 0.12s;
     white-space: nowrap;
   }
 
   .vg-pill--on {
     background: #1C1B19;
-    border-color: #1C1B19;
-    color: #EDF8FB;
+    color: #EBE7E2;
   }
 
   .vg-pill:not(.vg-pill--on):hover {
-    border-color: rgba(28,27,25,0.5);
+    color: #1C1B19;
+  }
+
+  /* Filter button keeps its old visual weight when active (badge state) */
+  .vg-pill--active:not(.vg-pill--on) {
+    background: rgba(28,27,25,0.1);
+    color: #1C1B19;
+  }
+
+  /* Segmented toggle (scope, boost) */
+  .vg-segment {
+    display: inline-flex;
+    background: rgba(28,27,25,0.06);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 0;
+  }
+  .vg-segment--inline {
+    margin-left: auto;
+  }
+  .vg-segment-btn {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: rgba(28,27,25,0.6);
+    background: transparent;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .vg-segment-btn:hover { color: #1C1B19; }
+  .vg-segment-btn--on {
+    background: #fff;
+    color: #1C1B19;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.08);
   }
 
   /* Grid */
@@ -540,11 +649,30 @@ const css = `
 
   /* Thumbnail: 4:5 */
   .vg-thumb-wrap {
+    position: relative;
     aspect-ratio: 4 / 5;
     overflow: hidden;
     background: rgba(28,27,25,0.08);
     flex-shrink: 0;
   }
+
+  /* Boost / Organisk badge — top right of card thumbnail */
+  .vg-boost-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #EBE7E2;
+    backdrop-filter: blur(4px);
+  }
+  .vg-boost-badge--boosted { background: rgba(232, 17, 106, 0.85); }
+  .vg-boost-badge--organic { background: rgba(28,27,25,0.7); }
 
   .vg-thumb {
     width: 100%;
@@ -618,10 +746,6 @@ const css = `
 
   /* Filter pill variant */
   .vg-pill--filter { margin-left: 0.25rem; }
-  .vg-pill--active:not(.vg-pill--on) {
-    border-color: #C8962A;
-    color: #C8962A;
-  }
 
   /* Filter panel */
   .vg-filter-panel {
