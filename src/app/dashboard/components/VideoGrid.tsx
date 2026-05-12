@@ -27,8 +27,16 @@ type BoostFilter = "all" | "organic" | "boosted";
 type SortKey = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
 
 type GridItem =
-  | { type: "group"; label: string; key: string }
+  | { type: "group"; label: string; key: string; avgEr: number | null }
   | { type: "video"; video: Video };
+
+function avgEngagement(videos: Video[]): number | null {
+  const ers = videos
+    .map((v) => (v.engagement_rate != null ? Number(v.engagement_rate) : null))
+    .filter((n): n is number => n != null && !isNaN(n));
+  if (ers.length === 0) return null;
+  return ers.reduce((s, n) => s + n, 0) / ers.length;
+}
 
 const MONTH_NAMES_SV = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
 
@@ -87,7 +95,7 @@ function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
 
   const items: GridItem[] = [];
   for (const key of sortedKeys) {
-    items.push({ type: "group", label: key, key: `g-${key}` });
+    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: avgEngagement(groups.get(key)!) });
     for (const v of sorted(groups.get(key)!, sort)) {
       items.push({ type: "video", video: v });
     }
@@ -444,7 +452,12 @@ export default function VideoGrid({ handle }: { handle?: string }) {
         <div className="vg-grid">
           {items.map((item) => {
             if (item.type === "group") return (
-              <div key={item.key} className="vg-week-label">{item.label}</div>
+              <div key={item.key} className="vg-week-label">
+                <span>{item.label}</span>
+                {item.avgEr != null && (
+                  <span className="vg-group-er">⌀ ER {item.avgEr.toFixed(2)}%</span>
+                )}
+              </div>
             );
 
             const v = item.video;
@@ -628,15 +641,26 @@ const css = `
   /* Week label spans full row */
   .vg-week-label {
     grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #888;
-    padding: 1rem 0 0.25rem;
+    padding: 1rem 0 0.35rem;
     border-top: 1px solid rgba(28,27,25,0.12);
     margin-top: 0.25rem;
+  }
+  .vg-group-er {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: rgba(28,27,25,0.7);
   }
 
   .vg-week-label:first-child {
