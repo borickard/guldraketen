@@ -675,7 +675,7 @@ export default function AdminPage() {
               <div className="scrape-row">
                 <select
                   className="handle-input"
-                  style={{ flex: 2, height: 36 }}
+                  style={{ flex: 2, border: "1px solid var(--border)", borderRadius: 8, background: "var(--bg1)" }}
                   value={rescrapeHandle}
                   onChange={(e) => setRescrapeHandle(e.target.value)}
                 >
@@ -741,8 +741,8 @@ export default function AdminPage() {
 
         {/* ── Section 2: Tävlingsvideor ── */}
         {activeSection === "tavlingar" && (() => {
-          const pending  = contestVideos.filter(v => !v.contest_approved);
-          const approved = contestVideos.filter(v =>  v.contest_approved);
+          const pendingCount = contestVideos.filter(v => !v.contest_approved).length;
+          const approvedCount = contestVideos.filter(v => v.contest_approved).length;
 
           function groupByWeek(videos: ContestVideo[]): [string, ContestVideo[]][] {
             const buckets = new Map<string, ContestVideo[]>();
@@ -759,8 +759,11 @@ export default function AdminPage() {
             const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
             const name = acct?.display_name ?? `@${v.handle}`;
             return (
-              <li key={v.id} className="contest-row">
+              <li key={v.id} className={`contest-card${v.contest_approved ? " approved" : ""}`}>
                 <a className="contest-thumb" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                  <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
+                    {v.contest_approved ? "Inkluderad" : "Utesluten"}
+                  </span>
                   {v.thumbnail_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={v.thumbnail_url} alt="" />
@@ -773,9 +776,7 @@ export default function AdminPage() {
                     {name}
                   </a>
                   {v.caption && (
-                    <p className="contest-caption">
-                      {v.caption.slice(0, 140)}{v.caption.length > 140 ? "…" : ""}
-                    </p>
+                    <p className="contest-caption">{v.caption}</p>
                   )}
                   <span className="contest-meta">
                     {v.published_at && new Date(v.published_at).toLocaleDateString("sv-SE")}
@@ -783,14 +784,11 @@ export default function AdminPage() {
                   </span>
                 </div>
                 <div className="contest-actions">
-                  <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
-                    {v.contest_approved ? "Inkluderad" : "Utesluten"}
-                  </span>
                   <button
                     className="scrape-btn contest-action-btn"
                     onClick={() => handleContestToggle(v)}
                   >
-                    {v.contest_approved ? "Återflagga" : "Godkänn"}
+                    {v.contest_approved ? "Återflagga" : "Godkänn för rankning"}
                   </button>
                 </div>
               </li>
@@ -820,31 +818,19 @@ export default function AdminPage() {
 
               {loadingContests ? (
                 <p className="loading">Laddar…</p>
+              ) : contestVideos.length === 0 ? (
+                <p className="loading">Inga flaggade videor.</p>
               ) : (
                 <>
-                  <p className="contest-group-label">
-                    Att granska
-                    <span className="contest-group-count">{pending.length}</span>
+                  <p className="contest-group-label" style={{ marginTop: "0.5rem" }}>
+                    {pendingCount} att granska
+                    {approvedCount > 0 && (
+                      <span className="contest-group-count">{approvedCount} godkända</span>
+                    )}
                   </p>
-                  {pending.length === 0 ? (
-                    <p className="loading" style={{ paddingTop: "0.75rem" }}>Inga videor att granska.</p>
-                  ) : (
-                    groupByWeek(pending).map(([week, vids]) => (
-                      <WeekGroup key={`p-${week}`} label={week} videos={vids} />
-                    ))
-                  )}
-
-                  {approved.length > 0 && (
-                    <>
-                      <p className="contest-group-label" style={{ marginTop: "2rem" }}>
-                        Godkända för rankning
-                        <span className="contest-group-count">{approved.length}</span>
-                      </p>
-                      {groupByWeek(approved).map(([week, vids]) => (
-                        <WeekGroup key={`a-${week}`} label={week} videos={vids} />
-                      ))}
-                    </>
-                  )}
+                  {groupByWeek(contestVideos).map(([week, vids]) => (
+                    <WeekGroup key={week} label={week} videos={vids} />
+                  ))}
                 </>
               )}
             </div>
@@ -913,7 +899,7 @@ export default function AdminPage() {
               ) : null;
             })()}
           </p>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+          <div className="calc-sort-row">
             {[
               { key: "newest", label: "Senaste" },
               { key: "oldest", label: "Äldsta" },
@@ -922,13 +908,7 @@ export default function AdminPage() {
             ].map((opt) => (
               <button
                 key={opt.key}
-                className="scrape-btn"
-                style={{
-                  fontSize: 9,
-                  padding: "0.3rem 0.75rem",
-                  boxShadow: calcSort === opt.key ? "none" : "2px 2px 0 var(--border)",
-                  opacity: calcSort === opt.key ? 1 : 0.5,
-                }}
+                className={`calc-sort-pill${calcSort === opt.key ? " active" : ""}`}
                 onClick={() => setCalcSort(opt.key)}
               >
                 {opt.label}
@@ -941,17 +921,17 @@ export default function AdminPage() {
             <p className="loading">Inga tester ännu.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <table className="calc-table">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Handle</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Visningar</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Källa</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Kostnad</th>
-                    <th style={{ padding: "6px 8px" }}></th>
-                    <th style={{ padding: "6px 8px" }}></th>
+                  <tr>
+                    <th>Handle</th>
+                    <th className="right">Visningar</th>
+                    <th className="right">Eng.rate</th>
+                    <th>Testad</th>
+                    <th>Källa</th>
+                    <th className="right">Kostnad</th>
+                    <th></th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -959,46 +939,46 @@ export default function AdminPage() {
                     const alreadyTracked = accounts.some((a) => a.handle === t.handle);
                     const feedback = t.handle ? addFeedback[t.handle] : undefined;
                     return (
-                      <tr key={t.id} style={{ borderBottom: "1px solid var(--border-light)" }}>
-                        <td style={{ padding: "6px 8px", fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                      <tr key={t.id}>
+                        <td style={{ fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
+                        <td className="right" style={{ color: "var(--mid)" }}>
                           {t.views != null ? t.views.toLocaleString("sv-SE") : "—"}
                         </td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                        <td className="right" style={{ color: "var(--mid)" }}>
                           {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
                         </td>
-                        <td style={{ padding: "6px 8px", color: "var(--muted)" }}>
+                        <td style={{ color: "var(--muted)" }}>
                           {new Date(t.tested_at).toLocaleDateString("sv-SE")}
                         </td>
-                        <td style={{ padding: "6px 8px" }}>
+                        <td>
                           {t.source === "db" ? (
-                            <span style={{ fontSize: 9, background: "#e8f4e8", color: "#2a7a2a", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DB</span>
+                            <span className="src-pill src-pill--db">DB</span>
                           ) : t.source === "apify" ? (
-                            <span style={{ fontSize: 9, background: "#f0f0f0", color: "#666", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Apify</span>
+                            <span className="src-pill src-pill--apify">Apify</span>
                           ) : (
-                            <span style={{ fontSize: 9, color: "var(--muted)" }}>—</span>
+                            <span style={{ color: "var(--muted)" }}>—</span>
                           )}
                         </td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
+                        <td className="right" style={{ color: "var(--mid)" }}>
                           {t.source === "apify" ? costSEK(1) : <span style={{ color: "var(--muted)" }}>—</span>}
                         </td>
-                        <td style={{ padding: "6px 8px" }}>
+                        <td>
                           {t.video_url && (
-                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--blue)", fontSize: 10, textDecoration: "underline" }}>
+                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontSize: 12, textDecoration: "underline" }}>
                               Video
                             </a>
                           )}
                         </td>
-                        <td style={{ padding: "6px 8px" }}>
+                        <td>
                           {t.handle && (
                             feedback ? (
-                              <span style={{ fontSize: 9, color: feedback === "Tillagd!" ? "green" : "#a33" }}>{feedback}</span>
+                              <span style={{ fontSize: 11, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
                             ) : alreadyTracked ? (
-                              <span style={{ fontSize: 9, color: "var(--muted)" }}>Trackas</span>
+                              <span style={{ fontSize: 11, color: "var(--muted)" }}>Trackas</span>
                             ) : (
                               <button
                                 className="scrape-btn"
-                                style={{ fontSize: 9, padding: "0.2rem 0.6rem", boxShadow: "none" }}
+                                style={{ fontSize: 11, padding: "0.3rem 0.7rem" }}
                                 disabled={addingHandle === t.handle}
                                 onClick={() => handleAddToTracking(t.handle!)}
                               >
@@ -1174,12 +1154,23 @@ export default function AdminPage() {
                       )}
 
                       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", paddingLeft: "2.5rem", alignItems: "center" }}>
-                        {u.handles.map((h) => (
-                          <span key={h} className="handle-chip">
-                            @{h}
-                            <button onClick={() => handleRemoveHandleFromUser(u.id, h)} aria-label="Ta bort handle">×</button>
-                          </span>
-                        ))}
+                        {u.handles.map((h) => {
+                          const acct = accounts.find((a) => a.handle === h);
+                          return (
+                            <span key={h} className="handle-chip">
+                              <span className="handle-chip-avatar">
+                                {acct?.avatar_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={acct.avatar_url} alt="" />
+                                ) : (
+                                  <span>{h.charAt(0).toUpperCase()}</span>
+                                )}
+                              </span>
+                              @{h}
+                              <button onClick={() => handleRemoveHandleFromUser(u.id, h)} aria-label="Ta bort handle">×</button>
+                            </span>
+                          );
+                        })}
                         {availableHandles.length > 0 && (
                           <select
                             className="category-select"
@@ -1756,13 +1747,35 @@ const styles = `
   .handle-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    font-size: 10px;
+    gap: 6px;
+    font-size: 12px;
     font-family: 'Barlow', sans-serif;
-    background: var(--bg2);
+    background: var(--bg1);
     border: 1px solid var(--border-light);
-    color: var(--mid);
-    padding: 1px 6px 1px 8px;
+    color: var(--ink);
+    padding: 2px 8px 2px 4px;
+    border-radius: 999px;
+  }
+  .handle-chip-avatar {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .handle-chip-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .handle-chip button {
@@ -2072,9 +2085,9 @@ const styles = `
     letter-spacing: 0.02em;
   }
 
-  /* Contest videos (Tävlingar) */
+  /* Contest videos (Tävlingar) — card grid */
   .contest-week-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
   }
   .contest-week-label {
     font-family: 'Barlow Condensed', sans-serif;
@@ -2083,7 +2096,7 @@ const styles = `
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
-    margin: 1.25rem 0 0.5rem;
+    margin: 1.25rem 0 0.6rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -2099,36 +2112,36 @@ const styles = `
   }
   .contest-list {
     list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .contest-card {
     display: flex;
     flex-direction: column;
-    gap: 0;
     background: var(--bg1);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    transition: opacity 0.18s, box-shadow 0.18s, transform 0.18s;
   }
-  .contest-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    padding: 0.7rem 1rem;
-    border-bottom: 1px solid var(--border-light);
-    transition: background 0.12s;
+  .contest-card:hover {
+    box-shadow: 0 2px 8px rgba(28,27,25,0.08);
   }
-  .contest-row:last-child { border-bottom: none; }
-  .contest-row:hover { background: var(--bg3); }
+  .contest-card.approved {
+    opacity: 0.42;
+  }
+  .contest-card.approved:hover {
+    opacity: 0.85;
+  }
   .contest-thumb {
-    flex-shrink: 0;
-    width: 56px;
-    height: 72px;
-    border-radius: 8px;
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
     overflow: hidden;
     background: var(--bg3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
+    position: relative;
   }
   .contest-thumb img {
     width: 100%;
@@ -2138,23 +2151,35 @@ const styles = `
     display: block;
   }
   .contest-thumb-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 22px;
+    font-size: 36px;
     color: var(--muted);
   }
+  .contest-card .status-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+  }
   .contest-body {
-    flex: 1;
-    min-width: 0;
+    padding: 0.7rem 0.85rem 0.55rem;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
   }
   .contest-name {
     font-size: 13px;
     font-weight: 700;
     color: var(--ink);
     text-decoration: none;
+    line-height: 1.25;
   }
   .contest-name:hover { text-decoration: underline; }
   .contest-caption {
@@ -2163,22 +2188,68 @@ const styles = `
     font-style: italic;
     line-height: 1.4;
     margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .contest-meta {
     font-size: 11px;
     color: var(--muted);
+    margin-top: auto;
+    padding-top: 4px;
   }
   .contest-actions {
+    padding: 0 0.85rem 0.85rem;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.4rem;
-    flex-shrink: 0;
   }
   .contest-action-btn {
-    font-size: 11px;
-    padding: 0.35rem 0.85rem;
+    font-size: 12px;
+    padding: 0.45rem 0.9rem;
+    width: 100%;
   }
+
+  /* Kalkylator-tester sort pills */
+  .calc-sort-row {
+    display: inline-flex;
+    background: var(--bg3);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 1rem;
+    gap: 0;
+  }
+  .calc-sort-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mid);
+    background: transparent;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .calc-sort-pill:hover { color: var(--ink); }
+  .calc-sort-pill.active {
+    background: var(--bg1);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(28,27,25,0.1);
+  }
+
+  /* Source badge (DB / Apify) */
+  .src-pill {
+    display: inline-block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .src-pill--db { background: #d4ebd4; color: #2a5a2a; }
+  .src-pill--apify { background: var(--bg3); color: var(--mid); }
 
   /* Tables (scrape-log, kalkylator-tester) */
   .calc-table {
