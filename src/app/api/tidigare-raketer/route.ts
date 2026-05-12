@@ -3,7 +3,23 @@ import { NextResponse } from "next/server";
 
 const MIN_VIDEO_VIEWS = 10_000;
 const MIN_ACCOUNTS_PER_WEEK = 5;
-const TOP_N = 20;
+const TOP_N_PER_GROUP: Record<Scope, number> = { week: 20, month: 30, all: 100 };
+
+type Scope = "week" | "month" | "all";
+type SortKey = "er" | "likes" | "comments" | "shares" | "views" | "collects" | "newest";
+type Filter = "all" | "organic" | "boosted";
+
+const SORT_COLUMN: Record<SortKey, string> = {
+  er: "engagement_rate",
+  likes: "likes",
+  comments: "comments",
+  shares: "shares",
+  views: "views",
+  collects: "collect_count",
+  newest: "published_at",
+};
+
+const MONTH_NAMES_SV = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
 
 function toISOWeek(date: Date): string {
   const d = new Date(date);
@@ -19,6 +35,20 @@ function toISOWeek(date: Date): string {
         7
     );
   return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function toMonthKey(date: Date): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(key: string): string {
+  const [yr, mo] = key.split("-").map(Number);
+  return `${MONTH_NAMES_SV[mo - 1][0].toUpperCase()}${MONTH_NAMES_SV[mo - 1].slice(1)} ${yr}`;
+}
+
+function weekLabel(week: string): string {
+  const m = week.match(/(\d{4})-W(\d{2})/);
+  return m ? `V${parseInt(m[2])} ${m[1]}` : week;
 }
 
 function currentAndPreviousWeek(): [string, string] {
@@ -38,37 +68,103 @@ export type HofVideo = {
     video_url: string;
     thumbnail_url: string | null;
     caption: string | null;
+    published_at: string;
     views: number;
     likes: number;
     comments: number;
     shares: number;
     collect_count: number | null;
+    is_ad: boolean | null;
     engagement_rate: number;
   };
 };
 
-export type HofWeek = {
-  week: string;
+export type HofGroup = {
+  key: string;
+  label: string;
   videos: HofVideo[];
 };
+
+// Legacy alias kept so other code that imports HofWeek doesn't break.
+export type HofWeek = HofGroup & { week: string };
+
+type RawVideo = {
+  handle: string;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  collect_count: number | null;
+  is_ad: boolean | null;
+  engagement_rate: number | null;
+  published_at: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  video_url: string;
+  accounts: { display_name?: string | null; category?: string | null; avatar_url?: string | null } | { display_name?: string | null; category?: string | null; avatar_url?: string | null }[] | null;
+};
+
+function toHofVideo(v: RawVideo, rank: number): HofVideo {
+  const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
+  return {
+    rank,
+    handle: v.handle,
+    displayName: acct?.display_name ?? `@${v.handle}`,
+    avatarUrl: acct?.avatar_url ?? null,
+    category: acct?.category ?? null,
+    video: {
+      video_url: v.video_url,
+      thumbnail_url: v.thumbnail_url,
+      caption: v.caption,
+      published_at: v.published_at,
+      views: v.views ?? 0,
+      likes: v.likes ?? 0,
+      comments: v.comments ?? 0,
+      shares: v.shares ?? 0,
+      collect_count: v.collect_count,
+      is_ad: v.is_ad,
+      engagement_rate: Number(v.engagement_rate ?? 0),
+    },
+  };
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const categoryFilter = searchParams.get("category") ?? "";
+  const scope = (searchParams.get("scope") ?? "week") as Scope;
+  const sort = (searchParams.get("sort") ?? "er") as SortKey;
+  const filter = (searchParams.get("filter") ?? "all") as Filter;
+
+  if (!["week", "month", "all"].includes(scope)) {
+    return NextResponse.json({ error: "Ogiltigt scope" }, { status: 400 });
+  }
+  if (!Object.prototype.hasOwnProperty.call(SORT_COLUMN, sort)) {
+    return NextResponse.json({ error: "Ogiltigt sort" }, { status: 400 });
+  }
+  if (!["all", "organic", "boosted"].includes(filter)) {
+    return NextResponse.json({ error: "Ogiltigt filter" }, { status: 400 });
+  }
+
+  const sortCol = SORT_COLUMN[sort];
 
   let query = supabaseAdmin
     .from("videos")
     .select(
-      "handle, views, likes, comments, shares, collect_count, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
+      "handle, views, likes, comments, shares, collect_count, is_ad, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
     )
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .gte("views", MIN_VIDEO_VIEWS)
-    .not("engagement_rate", "is", null)
-    .order("engagement_rate", { ascending: false });
+    .not(sortCol, "is", null)
+    .order(sortCol, { ascending: false, nullsFirst: false });
+
+  if (filter === "organic") {
+    query = query.eq("is_ad", false);
+  } else if (filter === "boosted") {
+    query = query.eq("is_ad", true);
+  }
 
   if (categoryFilter) {
-    // Get handles for accounts in the requested category
     const { data: acctHandles } = await supabaseAdmin
       .from("accounts")
       .select("handle")
@@ -79,58 +175,65 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query;
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const [currentWeek, previousWeek] = currentAndPreviousWeek();
+  const videos = (data ?? []) as RawVideo[];
 
-  // Group by week — already sorted by ER desc from query
-  const byWeek = new Map<string, typeof data>();
-  for (const v of data ?? []) {
-    const week = toISOWeek(new Date(v.published_at!));
-    if (week === currentWeek || week === previousWeek) continue;
-    const list = byWeek.get(week) ?? [];
-    list.push(v);
-    byWeek.set(week, list);
+  // Always strip current + previous ISO week — same rule as before.
+  const eligible = videos.filter((v) => {
+    const wk = toISOWeek(new Date(v.published_at));
+    return wk !== currentWeek && wk !== previousWeek;
+  });
+
+  const topN = TOP_N_PER_GROUP[scope];
+  let groups: HofGroup[];
+
+  if (scope === "all") {
+    groups = [
+      {
+        key: "all",
+        label: "Alla videor",
+        videos: eligible.slice(0, topN).map((v, i) => toHofVideo(v, i + 1)),
+      },
+    ];
+  } else if (scope === "month") {
+    const byMonth = new Map<string, RawVideo[]>();
+    for (const v of eligible) {
+      const month = toMonthKey(new Date(v.published_at));
+      const list = byMonth.get(month) ?? [];
+      list.push(v);
+      byMonth.set(month, list);
+    }
+    groups = [...byMonth.entries()]
+      .sort(([a], [b]) => (b > a ? 1 : -1))
+      .map(([key, rows]) => ({
+        key,
+        label: monthLabel(key),
+        videos: rows.slice(0, topN).map((v, i) => toHofVideo(v, i + 1)),
+      }));
+  } else {
+    const byWeek = new Map<string, RawVideo[]>();
+    for (const v of eligible) {
+      const wk = toISOWeek(new Date(v.published_at));
+      const list = byWeek.get(wk) ?? [];
+      list.push(v);
+      byWeek.set(wk, list);
+    }
+    groups = [...byWeek.entries()]
+      .filter(([, rows]) => {
+        if (categoryFilter || filter !== "all") return true;
+        return new Set(rows.map((r) => r.handle)).size >= MIN_ACCOUNTS_PER_WEEK;
+      })
+      .sort(([a], [b]) => (b > a ? 1 : -1))
+      .map(([key, rows]) => ({
+        key,
+        label: weekLabel(key),
+        videos: rows.slice(0, topN).map((v, i) => toHofVideo(v, i + 1)),
+      }));
   }
 
-  const weekGroups: HofWeek[] = [];
-
-  for (const [week, videos] of byWeek) {
-    const uniqueAccounts = new Set(videos.map((v) => v.handle));
-    // When browsing all categories, require at least MIN_ACCOUNTS_PER_WEEK to avoid thin weeks.
-    // When filtered to a specific category, any week with content is valid.
-    if (!categoryFilter && uniqueAccounts.size < MIN_ACCOUNTS_PER_WEEK) continue;
-
-    const top = videos.slice(0, TOP_N).map((v, i) => {
-      const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
-      const acctEx = acct as { display_name?: string | null; category?: string | null; avatar_url?: string | null } | null;
-      return {
-        rank: i + 1,
-        handle: v.handle,
-        displayName: acctEx?.display_name ?? `@${v.handle}`,
-        avatarUrl: acctEx?.avatar_url ?? null,
-        category: acctEx?.category ?? null,
-        video: {
-          video_url: v.video_url,
-          thumbnail_url: v.thumbnail_url,
-          caption: v.caption,
-          views: v.views ?? 0,
-          likes: v.likes ?? 0,
-          comments: v.comments ?? 0,
-          shares: v.shares ?? 0,
-          collect_count: v.collect_count ?? null,
-          engagement_rate: Number(v.engagement_rate),
-        },
-      };
-    });
-
-    weekGroups.push({ week, videos: top });
-  }
-
-  weekGroups.sort((a, b) => (b.week > a.week ? 1 : -1));
-
-  const res = NextResponse.json(weekGroups);
+  const res = NextResponse.json(groups);
   res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
   return res;
 }
