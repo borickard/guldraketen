@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 const MIN_VIDEO_VIEWS = 10_000;
 const MIN_ACCOUNTS_PER_WEEK = 5;
+const MIN_PUBLISHED_DATE = "2026-01-01T00:00:00Z"; // exclude legacy/test data
 const TOP_N_PER_GROUP: Record<Scope, number> = { week: 20, month: 30, all: 100 };
 
 type Scope = "week" | "month" | "all";
@@ -153,6 +154,7 @@ export async function GET(request: Request) {
       "handle, views, likes, comments, shares, collect_count, is_ad, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
     )
     .not("published_at", "is", null)
+    .gte("published_at", MIN_PUBLISHED_DATE)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .gte("views", MIN_VIDEO_VIEWS)
     .not(sortCol, "is", null)
