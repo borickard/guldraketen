@@ -875,25 +875,25 @@ export default function AdminPage() {
               <button className="scrape-btn" onClick={handleSaveLimit} disabled={savingLimit}>
                 {limitSaved ? "Sparad!" : savingLimit ? "Sparar…" : "Spara"}
               </button>
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>
                 Cachat innehåll räknas inte mot gränsen.
               </span>
             </div>
             {calcUsage && (
               <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", borderTop: "1px solid var(--border-light)", paddingTop: "0.75rem" }}>
                 <div>
-                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: calcUsage.today >= calcDailyLimit ? "#b30000" : "var(--ink)" }}>
                     {calcUsage.today}
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
+                  <span style={{ fontSize: 14, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.week}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.month}</span>
                 </div>
               </div>
@@ -942,7 +942,6 @@ export default function AdminPage() {
                     <th className="right">Eng.rate</th>
                     <th>Testad</th>
                     <th>Källa</th>
-                    <th className="right">Kostnad</th>
                     <th></th>
                     <th></th>
                   </tr>
@@ -977,24 +976,21 @@ export default function AdminPage() {
                         <td className="right" style={{ color: "var(--mid)" }}>
                           {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
                         </td>
-                        <td style={{ color: "var(--muted)" }}>
-                          {new Date(t.tested_at).toLocaleDateString("sv-SE")}
+                        <td style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>
+                          {new Date(t.tested_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}
                         </td>
                         <td>
                           {t.source === "db" ? (
                             <span className="src-pill src-pill--db">DB</span>
                           ) : t.source === "apify" ? (
-                            <span className="src-pill src-pill--apify">Apify</span>
+                            <span className="src-pill src-pill--apify" title={`Kostnad ${costSEK(1)}`}>Apify</span>
                           ) : (
                             <span style={{ color: "var(--muted)" }}>—</span>
                           )}
                         </td>
-                        <td className="right" style={{ color: "var(--mid)" }}>
-                          {t.source === "apify" ? costSEK(1) : <span style={{ color: "var(--muted)" }}>—</span>}
-                        </td>
                         <td>
                           {t.video_url && (
-                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontSize: 12, textDecoration: "underline" }}>
+                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontSize: 13, textDecoration: "underline" }}>
                               Video
                             </a>
                           )}
@@ -1002,13 +998,13 @@ export default function AdminPage() {
                         <td>
                           {t.handle && (
                             feedback ? (
-                              <span style={{ fontSize: 13, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
+                              <span style={{ fontSize: 14, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
                             ) : alreadyTracked ? (
-                              <span style={{ fontSize: 13, color: "var(--muted)" }}>Trackas</span>
+                              <span style={{ fontSize: 14, color: "var(--muted)" }}>Trackas</span>
                             ) : (
                               <button
                                 className="scrape-btn"
-                                style={{ fontSize: 13, padding: "0.3rem 0.7rem" }}
+                                style={{ fontSize: 14, padding: "0.3rem 0.7rem" }}
                                 disabled={addingHandle === t.handle}
                                 onClick={() => handleAddToTracking(t.handle!)}
                               >
@@ -1148,11 +1144,10 @@ export default function AdminPage() {
                           <input type="checkbox" className="toggle-input" checked={u.is_active} onChange={() => handleToggleUser(u)} />
                           <span className="toggle-track"><span className="toggle-thumb" /></span>
                         </label>
-                        <span className="account-handle" style={{ flex: 1 }}>{u.username}</span>
+                        <span className="account-handle" style={{ flex: 1, fontSize: 15 }}>{u.username}</span>
                         <span className="account-meta">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
                         <button
-                          className="scrape-btn"
-                          style={{ fontSize: 12, padding: "0.25rem 0.6rem", boxShadow: "none" }}
+                          className="user-link-btn"
                           onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
                         >
                           Byt lösenord
@@ -1169,12 +1164,12 @@ export default function AdminPage() {
                             value={pwChangeValue}
                             onChange={(e) => setPwChangeValue(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleChangePassword(u.id)}
-                            style={{ border: "1px solid var(--border)", padding: "0.4rem 0.6rem", fontSize: 12, width: 200 }}
+                            style={{ border: "1px solid var(--border)", padding: "0.4rem 0.6rem", fontSize: 13, width: 200 }}
                             autoFocus
                           />
                           <button
                             className="scrape-btn"
-                            style={{ fontSize: 12, padding: "0.25rem 0.75rem", boxShadow: "none" }}
+                            style={{ fontSize: 13, padding: "0.25rem 0.75rem", boxShadow: "none" }}
                             onClick={() => handleChangePassword(u.id)}
                             disabled={!pwChangeValue.trim()}
                           >
@@ -1183,7 +1178,7 @@ export default function AdminPage() {
                         </div>
                       )}
 
-                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", paddingLeft: "2.5rem", alignItems: "center" }}>
+                      <div className="user-handles">
                         {u.handles.map((h) => {
                           const acct = accounts.find((a) => a.handle === h);
                           return (
@@ -1201,21 +1196,8 @@ export default function AdminPage() {
                             </span>
                           );
                         })}
-                        {availableHandles.length > 0 && (
-                          <select
-                            className="category-select"
-                            value=""
-                            onChange={(e) => { if (e.target.value) handleAddHandleToUser(u.id, e.target.value); }}
-                          >
-                            <option value="">+ Befintligt konto</option>
-                            {availableHandles.map((h) => (
-                              <option key={h} value={h}>@{h}</option>
-                            ))}
-                          </select>
-                        )}
                         <button
-                          className="scrape-btn"
-                          style={{ fontSize: 12, padding: "0.25rem 0.65rem", boxShadow: "none" }}
+                          className="add-handle-btn"
                           onClick={() => {
                             const opening = newHandleUserId !== u.id;
                             setNewHandleUserId(opening ? u.id : null);
@@ -1223,47 +1205,64 @@ export default function AdminPage() {
                             setNewHandleResult(null);
                           }}
                         >
-                          {newHandleUserId === u.id ? "Avbryt" : "+ Nytt konto"}
+                          {newHandleUserId === u.id ? "Avbryt" : "+ Lägg till konto"}
                         </button>
                       </div>
 
-                      {/* ── Inline new-handle + scrape form ── */}
+                      {/* Combined panel: pick existing OR create new */}
                       {newHandleUserId === u.id && (
-                        <div style={{ paddingLeft: "2.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                            <input
-                              className="handle-input"
-                              type="text"
-                              placeholder="@handle"
-                              value={newHandleInput}
-                              onChange={(e) => setNewHandleInput(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && !newHandleLoading && handleAddNewHandle(u.id)}
-                              disabled={newHandleLoading}
-                              autoFocus
-                              style={{ width: 160 }}
-                            />
-                            <select
-                              className="category-select"
-                              value={newHandlePosts}
-                              onChange={(e) => setNewHandlePosts(Number(e.target.value))}
-                              disabled={newHandleLoading}
-                              title="Antal inlägg att hämta"
-                            >
-                              <option value={20}>20 inlägg</option>
-                              <option value={50}>50 inlägg</option>
-                              <option value={100}>100 inlägg</option>
-                              <option value={200}>200 inlägg</option>
-                            </select>
-                            <button
-                              className="add-btn"
-                              onClick={() => handleAddNewHandle(u.id)}
-                              disabled={newHandleLoading || !newHandleInput.trim()}
-                            >
-                              {newHandleLoading ? "Skapar…" : "Lägg till & scrapa"}
-                            </button>
+                        <div className="user-add-panel">
+                          {availableHandles.length > 0 && (
+                            <div className="user-add-block">
+                              <p className="user-add-label">Välj befintligt</p>
+                              <select
+                                className="user-add-select"
+                                value=""
+                                onChange={(e) => { if (e.target.value) { handleAddHandleToUser(u.id, e.target.value); setNewHandleUserId(null); } }}
+                              >
+                                <option value="">Välj konto…</option>
+                                {availableHandles.map((h) => (
+                                  <option key={h} value={h}>@{h}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <div className="user-add-block">
+                            <p className="user-add-label">Lägg till nytt konto</p>
+                            <div className="user-add-row">
+                              <input
+                                className="handle-input user-add-input"
+                                type="text"
+                                placeholder="@handle"
+                                value={newHandleInput}
+                                onChange={(e) => setNewHandleInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && !newHandleLoading && handleAddNewHandle(u.id)}
+                                disabled={newHandleLoading}
+                                autoFocus
+                              />
+                              <select
+                                className="user-add-select"
+                                value={newHandlePosts}
+                                onChange={(e) => setNewHandlePosts(Number(e.target.value))}
+                                disabled={newHandleLoading}
+                                title="Antal inlägg att hämta"
+                              >
+                                <option value={20}>20 inlägg</option>
+                                <option value={50}>50 inlägg</option>
+                                <option value={100}>100 inlägg</option>
+                                <option value={200}>200 inlägg</option>
+                              </select>
+                              <button
+                                className="add-btn"
+                                onClick={() => handleAddNewHandle(u.id)}
+                                disabled={newHandleLoading || !newHandleInput.trim()}
+                              >
+                                {newHandleLoading ? "Skapar…" : "Lägg till & scrapa"}
+                              </button>
+                            </div>
                           </div>
                           {newHandleResult && (
-                            <p style={{ fontSize: 13, margin: 0, color: newHandleResult.ok ? "#2a7a2a" : "#c0392b" }}>
+                            <p className="user-add-msg" style={{ color: newHandleResult.ok ? "#3a7a3a" : "#9c2828" }}>
                               {newHandleResult.msg}
                             </p>
                           )}
@@ -1488,7 +1487,7 @@ const styles = `
     border: 1px solid var(--border-light);
     color: var(--muted);
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 0.4rem 0.85rem;
@@ -1515,7 +1514,7 @@ const styles = `
 
   .admin-eyebrow {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -1535,7 +1534,7 @@ const styles = `
   }
 
   .admin-sub {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
@@ -1561,7 +1560,7 @@ const styles = `
 
   .at-sign {
     padding: 0 0.6rem;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     flex-shrink: 0;
   }
@@ -1586,7 +1585,7 @@ const styles = `
     border-left: 1px solid rgba(28,27,25,0.4);
     color: #EBE7E2;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1602,14 +1601,14 @@ const styles = `
 
   .form-error {
     margin-top: 0.5rem;
-    font-size: 13px;
+    font-size: 14px;
     color: #a33;
   }
 
   /* List */
   .loading, .empty {
     color: var(--muted);
-    font-size: 13px;
+    font-size: 14px;
     padding: 2rem 0;
     letter-spacing: 0.04em;
   }
@@ -1708,7 +1707,7 @@ const styles = `
   }
 
   .account-handle {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--ink);
     text-decoration: none;
@@ -1723,7 +1722,7 @@ const styles = `
     border-bottom: 1px dashed var(--border-light);
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--mid);
     padding: 1px 2px;
     width: 100%;
@@ -1747,7 +1746,7 @@ const styles = `
     border-bottom: 1px dashed var(--border-light);
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--mid);
     padding: 1px 2px;
     cursor: pointer;
@@ -1757,7 +1756,7 @@ const styles = `
   .category-select:focus { border-bottom-color: var(--ink); }
 
   .accounts-divider {
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1768,7 +1767,7 @@ const styles = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 13px;
     font-family: 'Barlow', sans-serif;
     background: var(--bg1);
     border: 1px solid var(--border-light);
@@ -1788,7 +1787,7 @@ const styles = `
     justify-content: center;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
   }
   .handle-chip-avatar img {
@@ -1803,7 +1802,7 @@ const styles = `
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1;
     padding: 0;
     font-family: 'Barlow', sans-serif;
@@ -1812,7 +1811,7 @@ const styles = `
   .handle-chip button:hover { color: #a33; }
 
   .week-badge {
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     background: var(--bg2);
@@ -1823,12 +1822,12 @@ const styles = `
   }
 
   .account-meta {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
   }
 
   .status-badge {
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     flex-shrink: 0;
@@ -1855,7 +1854,7 @@ const styles = `
 
   /* Contest group labels */
   .contest-group-label {
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1870,7 +1869,7 @@ const styles = `
     background: var(--bg2);
     border: 1px solid var(--border-light);
     color: var(--muted);
-    font-size: 12px;
+    font-size: 13px;
     padding: 1px 6px;
     font-weight: 400;
     letter-spacing: 0;
@@ -1882,7 +1881,7 @@ const styles = `
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
@@ -1920,7 +1919,7 @@ const styles = `
     margin-bottom: -1px;
     padding: 0.85rem 1.25rem;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1937,7 +1936,7 @@ const styles = `
   }
 
   .admin-tab-meta {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: none;
@@ -1958,20 +1957,20 @@ const styles = `
 
   .admin-section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--ink);
   }
 
   .admin-section-meta {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
 
   .admin-section-desc {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 1rem;
     letter-spacing: 0.02em;
@@ -1989,7 +1988,7 @@ const styles = `
   }
 
   .admin-tool-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1998,7 +1997,7 @@ const styles = `
   }
 
   .admin-tool-desc {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 0.75rem;
     letter-spacing: 0.02em;
@@ -2018,7 +2017,7 @@ const styles = `
     border: none;
     padding: 0.75rem 0;
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2074,7 +2073,7 @@ const styles = `
   }
 
   .days-label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     letter-spacing: 0.04em;
     white-space: nowrap;
@@ -2085,7 +2084,7 @@ const styles = `
     border: 1px solid var(--ink);
     color: #EBE7E2;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2100,7 +2099,7 @@ const styles = `
 
   .scrape-msg {
     margin-top: 0.75rem;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--mid);
     letter-spacing: 0.02em;
   }
@@ -2111,7 +2110,7 @@ const styles = `
   }
   .contest-week-label {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2124,7 +2123,7 @@ const styles = `
   .contest-week-count {
     background: var(--bg3);
     color: var(--muted);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
     letter-spacing: 0;
     padding: 1px 7px;
@@ -2195,7 +2194,7 @@ const styles = `
     flex: 1;
   }
   .contest-name {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--ink);
     text-decoration: none;
@@ -2203,7 +2202,7 @@ const styles = `
   }
   .contest-name:hover { text-decoration: underline; }
   .contest-caption {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--mid);
     font-style: italic;
     line-height: 1.4;
@@ -2225,7 +2224,7 @@ const styles = `
     padding: 0;
     margin-top: -2px;
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--ink);
     text-decoration: underline;
@@ -2235,7 +2234,7 @@ const styles = `
   }
   .contest-caption-toggle:hover { opacity: 1; }
   .contest-meta {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     margin-top: auto;
     padding-top: 4px;
@@ -2245,7 +2244,7 @@ const styles = `
     display: flex;
   }
   .contest-action-btn {
-    font-size: 12px;
+    font-size: 13px;
     padding: 0.45rem 0.9rem;
     width: 100%;
   }
@@ -2261,7 +2260,7 @@ const styles = `
   }
   .calc-sort-pill {
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--mid);
     background: transparent;
@@ -2276,6 +2275,100 @@ const styles = `
     background: var(--bg1);
     color: var(--ink);
     box-shadow: 0 1px 2px rgba(28,27,25,0.1);
+  }
+
+  /* Användare — link-style action button (Byt lösenord) */
+  .user-link-btn {
+    background: none;
+    border: none;
+    color: var(--mid);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    padding: 4px 6px;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.12s;
+  }
+  .user-link-btn:hover { color: var(--ink); }
+
+  /* Användare — handle chips + add-account panel */
+  .user-handles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 2.75rem;
+    align-items: center;
+  }
+  .add-handle-btn {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mid);
+    background: var(--bg3);
+    border: 1px dashed var(--border);
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .add-handle-btn:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+    background: var(--bg1);
+  }
+
+  .user-add-panel {
+    margin-left: 2.75rem;
+    margin-top: 4px;
+    background: var(--bg3);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .user-add-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .user-add-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  .user-add-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .user-add-input {
+    flex: 1;
+    min-width: 160px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg1);
+    padding: 0.55rem 0.75rem;
+  }
+  .user-add-select {
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .user-add-msg {
+    font-size: 13px;
+    margin: 0;
   }
 
   /* Shared list for Feedback / Beta-anmälningar */
@@ -2320,7 +2413,7 @@ const styles = `
   .entry-primary--link:hover { text-decoration: underline; }
   .entry-pill {
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--mid);
     background: var(--bg3);
     padding: 2px 8px;
@@ -2329,14 +2422,14 @@ const styles = `
   }
   .entry-pill:hover { color: var(--ink); }
   .entry-link {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
   .entry-link:hover { opacity: 0.7; }
   .entry-date {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     margin-left: auto;
     white-space: nowrap;
@@ -2388,7 +2481,7 @@ const styles = `
   .src-pill {
     display: inline-block;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2415,7 +2508,7 @@ const styles = `
   }
   .calc-table th {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2428,7 +2521,7 @@ const styles = `
   .calc-table th.right { text-align: right; }
   .calc-table td {
     padding: 0.6rem 0.85rem;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink);
     border-bottom: 1px solid var(--border-light);
     vertical-align: middle;
