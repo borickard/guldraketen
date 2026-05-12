@@ -389,7 +389,7 @@ body {
   background: var(--gr-dark);
   color: rgba(235, 231, 226, .85);
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
+  font-size: 15px;
   padding: 1px 4px;
   border-radius: 6px;
   line-height: 1;
@@ -4584,7 +4584,7 @@ body {
 }
 
 .gr-rk-grid .gr-thumb-stats span {
-  font-size: 11px;
+  font-size: 15px;
   padding: 2px 5px;
 }
 
