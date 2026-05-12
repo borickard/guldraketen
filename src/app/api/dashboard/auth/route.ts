@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   // Fetch user
   const { data: user, error } = await supabaseAdmin
     .from("users")
-    .select("id, username, password_hash, is_active")
+    .select("id, username, password_hash, is_active, login_count")
     .eq("username", username.trim().toLowerCase())
     .single();
 
@@ -25,6 +25,17 @@ export async function POST(req: Request) {
   if (!valid) {
     return NextResponse.json({ error: "Fel användarnamn eller lösenord" }, { status: 401 });
   }
+
+  // Track login activity — best-effort, don't block on failure.
+  // login_count has a NOT NULL DEFAULT 0 in the schema so the read is safe.
+  void supabaseAdmin
+    .from("users")
+    .update({
+      last_login_at: new Date().toISOString(),
+      login_count: (user.login_count ?? 0) + 1,
+    })
+    .eq("id", user.id)
+    .then(() => null);
 
   // Fetch associated handles
   const { data: handleRows } = await supabaseAdmin

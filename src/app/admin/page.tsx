@@ -9,6 +9,8 @@ interface User {
   is_active: boolean;
   created_at: string;
   notes: string | null;
+  last_login_at: string | null;
+  login_count: number | null;
   handles: string[];
 }
 
@@ -18,6 +20,26 @@ const COST_USD_PER_RESULT = 4 / 1000;
 function costSEK(results: number): string {
   const sek = results * COST_USD_PER_RESULT * USD_TO_SEK;
   return sek.toLocaleString("sv-SE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " kr";
+}
+
+function relativeDate(iso: string | null): string {
+  if (!iso) return "aldrig";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const day = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diffMs / day);
+  if (days <= 0) return "idag";
+  if (days === 1) return "igår";
+  if (days < 7) return `${days} dagar sedan`;
+  if (days < 30) return `${Math.floor(days / 7)} v sedan`;
+  if (days < 365) return `${Math.floor(days / 30)} mån sedan`;
+  return `${Math.floor(days / 365)} år sedan`;
+}
+
+function loginSummary(u: { last_login_at: string | null; login_count: number | null }): string {
+  const count = u.login_count ?? 0;
+  if (!u.last_login_at) return "Aldrig inloggad";
+  const word = count === 1 ? "inloggning" : "inloggningar";
+  return `${count} ${word} · senast ${relativeDate(u.last_login_at)}`;
 }
 
 function toWeekLabel(dateStr: string): string {
@@ -1144,8 +1166,11 @@ export default function AdminPage() {
                           <input type="checkbox" className="toggle-input" checked={u.is_active} onChange={() => handleToggleUser(u)} />
                           <span className="toggle-track"><span className="toggle-thumb" /></span>
                         </label>
-                        <span className="account-handle" style={{ flex: 1, fontSize: 15 }}>{u.username}</span>
-                        <span className="account-meta">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                          <span className="account-handle" style={{ fontSize: 15 }}>{u.username}</span>
+                          <span className="user-login-meta">{loginSummary(u)}</span>
+                        </div>
+                        <span className="account-meta" title="Skapad">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
                         <button
                           className="user-link-btn"
                           onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
@@ -2275,6 +2300,13 @@ const styles = `
     background: var(--bg1);
     color: var(--ink);
     box-shadow: 0 1px 2px rgba(28,27,25,0.1);
+  }
+
+  /* Användare — login summary subtext */
+  .user-login-meta {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
   }
 
   /* Användare — link-style action button (Byt lösenord) */
