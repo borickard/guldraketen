@@ -296,6 +296,21 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
             .eq("handle", handle);
     }
 
+    // Snapshot followers per ISO week — used by dashboard trend display.
+    // Repeated scrapes within the same week just overwrite the row.
+    const isoWeek = toISOWeek(new Date());
+    const snapshotRows = Object.entries(followerMap).map(([handle, followers]) => ({
+        handle,
+        iso_week: isoWeek,
+        followers,
+    }));
+    if (snapshotRows.length > 0) {
+        const { error: snapErr } = await supabaseAdmin
+            .from("follower_snapshots")
+            .upsert(snapshotRows, { onConflict: "handle,iso_week" });
+        if (snapErr) console.error("follower_snapshots upsert error:", snapErr.message);
+    }
+
     // Ladda upp avatarer till Supabase Storage och spara URL
     for (const [handle, rawAvatarUrl] of Object.entries(avatarMap)) {
         if (isStoredThumbnail(rawAvatarUrl)) {
@@ -440,6 +455,14 @@ function parseCreateTime(v: unknown): Date | null {
     }
     const d = new Date(String(v));
     return isNaN(d.getTime()) ? null : d;
+}
+
+function toISOWeek(date: Date): string {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+    const week1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
 }
 
 function firstNumber(...vals: unknown[]): number | null {
