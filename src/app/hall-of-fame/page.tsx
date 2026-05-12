@@ -331,7 +331,7 @@ function HallOfFameInner() {
                     className="gr-hof-load-more"
                     onClick={() => setAllTimeLimit((n) => n + ALL_TIME_PAGE)}
                   >
-                    Ladda mer innehåll
+                    Ladda mer
                   </button>
                 </div>
               )}
