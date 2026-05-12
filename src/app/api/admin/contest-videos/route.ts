@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const fields = "id, handle, video_url, caption, views, published_at, is_contest, contest_approved, accounts ( display_name )";
+  const fields = "id, handle, video_url, thumbnail_url, caption, views, published_at, is_contest, contest_approved, accounts ( display_name, avatar_url )";
 
   const { data, error } = await supabaseAdmin
     .from("videos")
