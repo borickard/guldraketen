@@ -539,7 +539,7 @@ export default function AdminPage() {
           <h1 className="admin-title" style={{ margin: "0.75rem 0 1.5rem" }}>Logga in</h1>
           <input
             className="handle-input"
-            style={{ border: "1px solid var(--border)", padding: "0.65rem 0.85rem", width: "100%", marginBottom: "0.75rem", background: "var(--bg1)", fontSize: 13 }}
+            style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "0.7rem 0.85rem", width: "100%", marginBottom: "0.75rem", background: "var(--bg1)" }}
             type="password"
             placeholder="Lösenord"
             value={pwInput}
@@ -547,7 +547,7 @@ export default function AdminPage() {
             autoFocus
           />
           {pwError && <p className="form-error">Fel lösenord. Försök igen.</p>}
-          <button className="add-btn" type="submit" style={{ padding: "0.7rem", alignSelf: "auto" }}>
+          <button className="add-btn" type="submit" style={{ padding: "0.75rem", alignSelf: "auto", borderRadius: 8, borderLeft: "none" }}>
             Logga in
           </button>
         </form>
@@ -832,7 +832,7 @@ export default function AdminPage() {
           </div>
 
           {/* Limit + usage panel */}
-          <div style={{ background: "var(--bg1)", border: "1px solid var(--border)", boxShadow: "2px 2px 0 var(--border)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+          <div style={{ background: "var(--bg1)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 1px 2px rgba(28,27,25,0.04)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
             <p className="admin-tool-label" style={{ marginBottom: "0.75rem" }}>Daglig Apify-gräns</p>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: calcUsage ? "1rem" : 0 }}>
               <div className="days-input-wrap">
@@ -1387,17 +1387,17 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
 }
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-
   :root {
     --bg1:    #ffffff;
-    --bg2:    #f7f7f7;
-    --blue:   #222222;
-    --ink:    #222222;
-    --mid:    #555;
-    --muted:  #999;
-    --border: #222222;
-    --border-light: #e0e0e0;
+    --bg2:    #EBE7E2;
+    --bg3:    rgba(28,27,25,0.04);
+    --blue:   #1C1B19;
+    --ink:    #1C1B19;
+    --mid:    rgba(28,27,25,0.65);
+    --muted:  rgba(28,27,25,0.45);
+    --border: rgba(28,27,25,0.12);
+    --border-light: rgba(28,27,25,0.07);
+    --accent: #C8962A;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1408,10 +1408,10 @@ const styles = `
     background: var(--bg2);
     color: var(--ink);
     min-height: 100vh;
-    font-family: 'Inter', sans-serif;
-    max-width: 960px;
+    font-family: 'Barlow', sans-serif;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 0 2rem 6rem;
+    padding: 0 1.5rem 6rem;
   }
 
   .login-root {
@@ -1426,7 +1426,8 @@ const styles = `
   .login-form {
     background: var(--bg1);
     border: 1px solid var(--border);
-    box-shadow: 3px 3px 0 var(--ink);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(28,27,25,0.08), 0 4px 16px rgba(28,27,25,0.06);
     padding: 2.5rem 2rem;
     width: 100%;
     max-width: 360px;
@@ -1438,7 +1439,7 @@ const styles = `
     background: none;
     border: 1px solid var(--border-light);
     color: var(--muted);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 10px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1465,21 +1466,24 @@ const styles = `
   }
 
   .admin-eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.16em;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
     display: block;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .admin-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     color: var(--ink);
+    letter-spacing: -0.005em;
   }
 
   .admin-sub {
@@ -1497,7 +1501,14 @@ const styles = `
     border: 1px solid var(--border);
     background: var(--bg1);
     overflow: hidden;
-    box-shadow: 2px 2px 0 var(--ink);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--ink);
+    box-shadow: 0 1px 3px rgba(28,27,25,0.1);
   }
 
   .at-sign {
@@ -1509,13 +1520,14 @@ const styles = `
 
   .handle-input {
     flex: 1;
+    min-width: 0;
     background: transparent;
     border: none;
     outline: none;
     color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    padding: 0.65rem 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    padding: 0.7rem 0.85rem;
   }
 
   .handle-input::placeholder { color: var(--muted); }
@@ -1523,21 +1535,22 @@ const styles = `
   .add-btn {
     background: var(--ink);
     border: none;
-    border-left: 1px solid var(--border);
-    color: var(--bg1);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    border-left: 1px solid rgba(28,27,25,0.4);
+    color: #EBE7E2;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 0 1.25rem;
+    padding: 0 1.4rem;
     align-self: stretch;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: opacity 0.15s;
     white-space: nowrap;
   }
 
-  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .add-btn:not(:disabled):hover { background: #333; }
+  .add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .add-btn:not(:disabled):hover { opacity: 0.88; }
 
   .form-error {
     margin-top: 0.5rem;
@@ -1559,55 +1572,57 @@ const styles = `
     flex-direction: column;
     gap: 0;
     border: 1px solid var(--border);
-    box-shadow: 2px 2px 0 var(--ink);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
     background: var(--bg1);
   }
 
   .account-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.85rem;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
     border-bottom: 1px solid var(--border-light);
     transition: background 0.12s, opacity 0.15s;
   }
 
   .account-row:last-child { border-bottom: none; }
-  .account-row--inactive { opacity: 0.65; }
-  .account-row:hover { background: #faf7f1; opacity: 1; }
+  .account-row--inactive { opacity: 0.55; }
+  .account-row:hover { background: var(--bg3); opacity: 1; }
 
   /* Toggle */
   .toggle-label { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
   .toggle-input { display: none; }
 
   .toggle-track {
-    width: 32px;
-    height: 18px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 0;
+    width: 34px;
+    height: 20px;
+    background: rgba(28,27,25,0.12);
+    border: none;
+    border-radius: 999px;
     position: relative;
     transition: background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track {
-    background: var(--blue);
-    border-color: var(--blue);
+    background: var(--ink);
   }
 
   .toggle-thumb {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 12px;
-    height: 12px;
-    background: var(--muted);
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.18);
     transition: transform 0.2s, background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track .toggle-thumb {
     transform: translateX(14px);
-    background: #fff;
   }
 
   /* Account info */
@@ -1634,7 +1649,7 @@ const styles = `
     border: none;
     border-bottom: 1px dashed var(--border-light);
     outline: none;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 10px;
     color: var(--mid);
     padding: 1px 2px;
@@ -1658,7 +1673,7 @@ const styles = `
     border: none;
     border-bottom: 1px dashed var(--border-light);
     outline: none;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 10px;
     color: var(--mid);
     padding: 1px 2px;
@@ -1681,7 +1696,7 @@ const styles = `
     align-items: center;
     gap: 3px;
     font-size: 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
     background: var(--bg2);
     border: 1px solid var(--border-light);
     color: var(--mid);
@@ -1696,7 +1711,7 @@ const styles = `
     font-size: 13px;
     line-height: 1;
     padding: 0;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
   }
 
   .handle-chip button:hover { color: #a33; }
@@ -1776,7 +1791,7 @@ const styles = `
     padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
   }
 
   .delete-btn:hover { color: #a33; }
@@ -1790,10 +1805,9 @@ const styles = `
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    background: var(--bg1);
-    margin-left: -2rem;
-    margin-right: -2rem;
-    padding: 0 2rem;
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding: 0 1.5rem;
   }
 
   .admin-tabs::-webkit-scrollbar { display: none; }
@@ -1809,9 +1823,9 @@ const styles = `
     white-space: nowrap;
     flex-shrink: 0;
     margin-bottom: -1px;
-    padding: 0.75rem 1.25rem;
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    padding: 0.85rem 1.25rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1908,7 +1922,7 @@ const styles = `
     background: none;
     border: none;
     padding: 0.75rem 0;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -1948,8 +1962,9 @@ const styles = `
     gap: 0.5rem;
     border: 1px solid var(--border);
     background: var(--bg1);
-    padding: 0.5rem 0.75rem;
-    box-shadow: 1px 1px 0 var(--ink);
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
   }
 
   .days-input {
@@ -1957,14 +1972,14 @@ const styles = `
     background: transparent;
     border: none;
     outline: none;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
     color: var(--ink);
     text-align: center;
   }
 
   .days-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--muted);
     letter-spacing: 0.04em;
     white-space: nowrap;
@@ -1973,19 +1988,20 @@ const styles = `
   .scrape-btn {
     background: var(--ink);
     border: 1px solid var(--ink);
-    color: var(--bg1);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    color: #EBE7E2;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 0.55rem 1.25rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 999px;
     cursor: pointer;
-    box-shadow: 2px 2px 0 var(--border);
-    transition: background 0.12s;
+    transition: opacity 0.15s;
   }
 
-  .scrape-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .scrape-btn:not(:disabled):hover { background: #333; }
+  .scrape-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .scrape-btn:not(:disabled):hover { opacity: 0.88; }
 
   .scrape-msg {
     margin-top: 0.75rem;
