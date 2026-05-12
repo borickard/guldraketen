@@ -9,8 +9,8 @@ interface User {
   is_active: boolean;
   created_at: string;
   notes: string | null;
-  last_login_at: string | null;
-  login_count: number | null;
+  last_seen_at: string | null;
+  active_days: number | null;
   handles: string[];
 }
 
@@ -35,11 +35,11 @@ function relativeDate(iso: string | null): string {
   return `${Math.floor(days / 365)} år sedan`;
 }
 
-function loginSummary(u: { last_login_at: string | null; login_count: number | null }): string {
-  const count = u.login_count ?? 0;
-  if (!u.last_login_at) return "Aldrig inloggad";
-  const word = count === 1 ? "inloggning" : "inloggningar";
-  return `${count} ${word} · senast ${relativeDate(u.last_login_at)}`;
+function loginSummary(u: { last_seen_at: string | null; active_days: number | null }): string {
+  const count = u.active_days ?? 0;
+  if (!u.last_seen_at) return "Aldrig aktiv";
+  const word = count === 1 ? "aktiv dag" : "aktiva dagar";
+  return `${count} ${word} · senast ${relativeDate(u.last_seen_at)}`;
 }
 
 function toWeekLabel(dateStr: string): string {
