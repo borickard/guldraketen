@@ -197,6 +197,13 @@ function HallOfFameInner() {
   const [sort, setSort] = useState<SortKey>("er");
   const [filter, setFilter] = useState<Filter>("all");
   const [urlReady, setUrlReady] = useState(false);
+  const ALL_TIME_PAGE = 24;
+  const [allTimeLimit, setAllTimeLimit] = useState(ALL_TIME_PAGE);
+
+  // Reset pagination whenever the underlying view changes.
+  useEffect(() => {
+    setAllTimeLimit(ALL_TIME_PAGE);
+  }, [scope, sort, filter, selectedCat]);
 
   // Read URL params on mount so refreshes / shared links restore the view.
   useEffect(() => {
@@ -305,6 +312,32 @@ function HallOfFameInner() {
         <div className="gr-hof-loading">Laddar…</div>
       ) : groups.length === 0 ? (
         <div className="gr-hof-loading">Inga raketer att visa.</div>
+      ) : scope === "all" ? (
+        (() => {
+          const all = groups[0]?.videos ?? [];
+          const shown = all.slice(0, allTimeLimit);
+          const hasMore = allTimeLimit < all.length;
+          return (
+            <div className="gr-hof-week">
+              <span className="gr-hof-week-label">{groups[0]?.label}</span>
+              <div className="gr-hof-all-grid">
+                {shown.map((entry) => (
+                  <HofCard key={`all-${entry.rank}-${entry.handle}`} entry={entry} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="gr-hof-load-more-wrap">
+                  <button
+                    className="gr-hof-load-more"
+                    onClick={() => setAllTimeLimit((n) => n + ALL_TIME_PAGE)}
+                  >
+                    Ladda mer
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()
       ) : (
         groups.map((group) => (
           <div key={group.key} className="gr-hof-week">

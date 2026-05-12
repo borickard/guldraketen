@@ -1188,6 +1188,52 @@ body {
   width: calc((100vw - 40px - 10px * 0.5) / 1.5);
 }
 
+/* "Sedan start" multi-row grid: auto-fill columns, no fixed width per card. */
+.gr-hof-all-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 0 48px 24px;
+}
+.gr-hof-all-grid .gr-hof-row-card {
+  width: auto;
+  flex-shrink: 1;
+}
+@media (max-width: 639px) {
+  .gr-hof-all-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 0 20px 24px;
+  }
+}
+
+.gr-hof-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 48px 32px;
+}
+.gr-hof-load-more {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  background: rgba(28,27,25,0.06);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gr-hof-load-more:hover {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+@media (max-width: 639px) {
+  .gr-hof-load-more-wrap { padding: 12px 20px 32px; }
+}
+
 /* Tablet portrait / large mobile */
 @media (min-width: 480px) {
   .gr-hof-row-card {
