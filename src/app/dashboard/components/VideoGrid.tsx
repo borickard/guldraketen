@@ -279,9 +279,9 @@ export default function VideoGrid({ handle }: { handle?: string }) {
             <span className="vg-row-label">Gruppera</span>
             <div className="vg-segment">
               {([
-                { key: "week",  label: "Per vecka" },
-                { key: "month", label: "Per månad" },
-                { key: "all",   label: "All time"  },
+                { key: "week",  label: "Per vecka"   },
+                { key: "month", label: "Per månad"   },
+                { key: "all",   label: "Sedan start" },
               ] as { key: Scope; label: string }[]).map((s) => (
                 <button
                   key={s.key}
@@ -543,26 +543,33 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: #fff;
-    border: 1px solid rgba(28,27,25,0.2);
-    color: #1C1B19;
+    background: rgba(28,27,25,0.04);
+    border: none;
+    color: rgba(28,27,25,0.6);
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    padding: 0.3rem 0.75rem;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    transition: background 0.12s, color 0.12s;
     white-space: nowrap;
   }
 
   .vg-pill--on {
     background: #1C1B19;
-    border-color: #1C1B19;
-    color: #EDF8FB;
+    color: #EBE7E2;
   }
 
   .vg-pill:not(.vg-pill--on):hover {
-    border-color: rgba(28,27,25,0.5);
+    color: #1C1B19;
+  }
+
+  /* Filter button keeps its old visual weight when active (badge state) */
+  .vg-pill--active:not(.vg-pill--on) {
+    background: rgba(28,27,25,0.1);
+    color: #1C1B19;
   }
 
   /* Segmented toggle (scope, boost) */
@@ -739,10 +746,6 @@ const css = `
 
   /* Filter pill variant */
   .vg-pill--filter { margin-left: 0.25rem; }
-  .vg-pill--active:not(.vg-pill--on) {
-    border-color: #C8962A;
-    color: #C8962A;
-  }
 
   /* Filter panel */
   .vg-filter-panel {

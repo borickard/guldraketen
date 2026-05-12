@@ -1064,7 +1064,7 @@ body {
   letter-spacing: .02em;
 }
 
-/* Boost badge — top-left on HoF cards, paired with the #N badge */
+/* Boost badge — top-right on HoF cards */
 .gr-hof-boost-badge {
   position: absolute;
   top: 8px;
@@ -1072,14 +1072,26 @@ body {
   background: rgba(28,27,25,0.85);
   color: #EBE7E2;
   font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-  font-size: 10px;
+  font-weight: 700;
+  font-size: 13px;
   letter-spacing: .08em;
   text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
   backdrop-filter: blur(4px);
   z-index: 2;
+}
+
+/* Larger rank badge ("#1") on HoF cards */
+.gr-hof-row-card .gr-thumb-best {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+/* HoF category select sits in the control row, slim styling */
+.gr-hof-cat-select {
+  margin-left: auto;
 }
 
 /* ── Week sections ── */
@@ -3819,6 +3831,7 @@ body {
   text-decoration: none;
   cursor: pointer;
   background: none;
+  white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
 }
 

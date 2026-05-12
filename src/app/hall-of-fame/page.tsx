@@ -10,7 +10,7 @@ type Filter = "all" | "organic" | "boosted";
 const SCOPES: { key: Scope; label: string }[] = [
   { key: "week", label: "Per vecka" },
   { key: "month", label: "Per månad" },
-  { key: "all", label: "All time" },
+  { key: "all", label: "Sedan start" },
 ];
 
 const SORTS: { key: SortKey; label: string }[] = [
@@ -216,22 +216,11 @@ function HallOfFameInner() {
     <main className="gr-hof-page gr-page">
       <div className="gr-hof-hdr">
         <h1 className="gr-page-title">Hall of Fame</h1>
-        {categories.length > 0 && (
-          <select
-            className="gr-calc-cat-select"
-            value={selectedCat}
-            onChange={(e) => setSelectedCat(e.target.value)}
-          >
-            <option value="">Alla kategorier</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        )}
       </div>
 
       <div className="gr-hof-controls">
         <div className="gr-hof-control-row">
+          <span className="gr-hof-control-label">Gruppera</span>
           <div className="gr-hof-pills gr-hof-pills--segment">
             {SCOPES.map((s) => (
               <button
@@ -254,6 +243,18 @@ function HallOfFameInner() {
               </button>
             ))}
           </div>
+          {categories.length > 0 && (
+            <select
+              className="gr-calc-cat-select gr-hof-cat-select"
+              value={selectedCat}
+              onChange={(e) => setSelectedCat(e.target.value)}
+            >
+              <option value="">Alla kategorier</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="gr-hof-control-row">
           <span className="gr-hof-control-label">Sortera på</span>
