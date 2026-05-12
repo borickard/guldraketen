@@ -3993,6 +3993,73 @@ body {
   .gr-week-subtitle { display: block; }
 }
 
+/* Boost filter pill row under the week navigator */
+.gr-rk-boost-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 48px 4px;
+  flex-wrap: wrap;
+}
+.gr-rk-boost-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,0.5);
+}
+.gr-rk-boost-pills {
+  display: inline-flex;
+  background: rgba(28,27,25,0.06);
+  border-radius: 999px;
+  padding: 4px;
+}
+.gr-rk-boost-pill {
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(28,27,25,0.6);
+  background: transparent;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.gr-rk-boost-pill:hover {
+  color: var(--gr-dark);
+}
+.gr-rk-boost-pill.active {
+  background: #fff;
+  color: var(--gr-dark);
+  box-shadow: 0 1px 3px rgba(28,27,25,0.12);
+}
+
+@media (max-width: 759px) {
+  .gr-rk-boost-toggle { padding: 12px 20px 4px; gap: 10px; }
+  .gr-rk-boost-pill { padding: 6px 14px; font-size: 13px; }
+}
+
+/* Boost badge on topplistan cards — paired with the rank badge */
+.gr-rk-boost-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(28,27,25,0.85);
+  color: #EBE7E2;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
 @media (max-width: 759px) {
   .gr-rk-week-row { display: flex; }
   .gr-rk-week-hdr-nav { display: none; }

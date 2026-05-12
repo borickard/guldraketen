@@ -18,6 +18,7 @@ interface RawVideo {
   comments: number;
   shares: number;
   collect_count: number | null;
+  is_ad: boolean | null;
   engagement_rate: number;
   thumbnail_url: string | null;
   caption: string | null;
@@ -329,6 +330,7 @@ function HomeInner() {
   // Topplista state
   const [weeks, setWeeks] = useState<string[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
+  const [boost, setBoost] = useState<"all" | "organic" | "boosted">("all");
   const [videos, setVideos] = useState<RawVideo[]>([]);
   const [prevVideos, setPrevVideos] = useState<RawVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -439,7 +441,9 @@ function HomeInner() {
       });
   }, []);
 
-  // Fetch current + adjacent weeks, with cache so navigation is instant
+  // Fetch current + adjacent weeks, with cache so navigation is instant.
+  // Cache key includes boost so toggling between Alla/Organisk/Boostad
+  // doesn't reuse stale data from a different filter.
   useEffect(() => {
     if (!selectedWeek || weeks.length === 0) return;
 
@@ -448,9 +452,9 @@ function HomeInner() {
     const prevWeek = weekIdx + 1 < weeks.length ? weeks[weekIdx + 1] : null;
     const nextWeek = weekIdx > 0 ? weeks[weekIdx - 1] : null;
 
-    // Show cached data immediately
-    const cachedCurrent = cache.get(selectedWeek);
-    const cachedPrev = prevWeek ? cache.get(prevWeek) : [];
+    const key = (w: string) => `${w}|${boost}`;
+    const cachedCurrent = cache.get(key(selectedWeek));
+    const cachedPrev = prevWeek ? cache.get(key(prevWeek)) : [];
     if (cachedCurrent !== undefined) {
       setVideos(cachedCurrent);
       setPrevVideos(cachedPrev ?? []);
@@ -460,28 +464,33 @@ function HomeInner() {
       if (cachedPrev !== undefined) setPrevVideos(cachedPrev);
     }
 
-    // Fetch anything missing (current + prev for trend + next for preload)
     const missing = [
       cachedCurrent === undefined ? selectedWeek : null,
       prevWeek && cachedPrev === undefined ? prevWeek : null,
-      nextWeek && !cache.has(nextWeek) ? nextWeek : null,
+      nextWeek && !cache.has(key(nextWeek)) ? nextWeek : null,
     ].filter((w): w is string => w !== null);
 
     if (missing.length === 0) return;
     let active = true;
 
+    const boostParam = boost === "all" ? "" : `&boost=${boost}`;
+
     Promise.all(
-      missing.map((w) => fetch(`/api/videos?week=${w}`).then((r) => r.json()).then((data) => [w, data] as const))
+      missing.map((w) =>
+        fetch(`/api/videos?week=${w}${boostParam}`)
+          .then((r) => r.json())
+          .then((data) => [w, data] as const)
+      )
     ).then((results) => {
       if (!active) return;
-      results.forEach(([w, data]) => cache.set(w, data));
-      const curr = cache.get(selectedWeek);
+      results.forEach(([w, data]) => cache.set(key(w), data));
+      const curr = cache.get(key(selectedWeek));
       if (curr) { setVideos(curr); setLoading(false); }
-      if (prevWeek) { const prev = cache.get(prevWeek); if (prev) setPrevVideos(prev); }
+      if (prevWeek) { const prev = cache.get(key(prevWeek)); if (prev) setPrevVideos(prev); }
     });
 
     return () => { active = false; };
-  }, [selectedWeek, weeks]);
+  }, [selectedWeek, weeks, boost]);
 
   const accounts = useMemo(() => groupByAccount(videos), [videos]);
   const prevAccounts = useMemo(() => groupByAccount(prevVideos), [prevVideos]);
@@ -964,6 +973,26 @@ function HomeInner() {
                     </button>
                   </div>
 
+                  {/* Boost filter — organic vs boosted */}
+                  <div className="gr-rk-boost-toggle">
+                    <span className="gr-rk-boost-label">Visa</span>
+                    <div className="gr-rk-boost-pills">
+                      {([
+                        { key: "all",     label: "Alla"     },
+                        { key: "organic", label: "Organisk" },
+                        { key: "boosted", label: "Boostad"  },
+                      ] as const).map((b) => (
+                        <button
+                          key={b.key}
+                          className={"gr-rk-boost-pill" + (boost === b.key ? " active" : "")}
+                          onClick={() => setBoost(b.key)}
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="gr-rk-nav-wrap">
                     <div className="gr-rk-grid">
           {loading
@@ -1006,6 +1035,9 @@ function HomeInner() {
                     <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
                       #{i + 1}
                     </span>
+                    {acc.bestVideo.is_ad === true && (
+                      <span className="gr-rk-boost-badge">Boostad</span>
+                    )}
                   </a>
                   <button
                     className={"gr-rk-vk-copy" + (copiedIdx === i ? " copied" : "")}
