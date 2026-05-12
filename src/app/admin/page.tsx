@@ -758,6 +758,8 @@ export default function AdminPage() {
           function ContestRow({ v }: { v: ContestVideo }) {
             const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
             const name = acct?.display_name ?? `@${v.handle}`;
+            const [expanded, setExpanded] = useState(false);
+            const captionLong = (v.caption?.length ?? 0) > 100;
             return (
               <li key={v.id} className={`contest-card${v.contest_approved ? " approved" : ""}`}>
                 <a className="contest-thumb" href={v.video_url} target="_blank" rel="noopener noreferrer">
@@ -776,7 +778,16 @@ export default function AdminPage() {
                     {name}
                   </a>
                   {v.caption && (
-                    <p className="contest-caption">{v.caption}</p>
+                    <p className={`contest-caption${expanded ? " expanded" : ""}`}>{v.caption}</p>
+                  )}
+                  {captionLong && (
+                    <button
+                      type="button"
+                      className="contest-caption-toggle"
+                      onClick={() => setExpanded((x) => !x)}
+                    >
+                      {expanded ? "Visa mindre" : "Visa mer"}
+                    </button>
                   )}
                   <span className="contest-meta">
                     {v.published_at && new Date(v.published_at).toLocaleDateString("sv-SE")}
@@ -2193,6 +2204,27 @@ const styles = `
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .contest-caption.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+  .contest-caption-toggle {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: -2px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: underline;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.12s;
+  }
+  .contest-caption-toggle:hover { opacity: 1; }
   .contest-meta {
     font-size: 11px;
     color: var(--muted);
