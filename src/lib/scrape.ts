@@ -376,7 +376,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
 
 // ─── Contest detection ────────────────────────────────────────────────────────
 
-const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare"];
+const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare", "giveaway"];
 
 function detectContest(caption: string | null): boolean {
     if (!caption) return false;
