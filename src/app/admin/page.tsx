@@ -52,6 +52,7 @@ interface CalcTest {
   handle: string | null;
   video_url: string | null;
   video_id: string | null;
+  thumbnail_url: string | null;
   views: number | null;
   likes: number | null;
   comments: number | null;
@@ -935,6 +936,7 @@ export default function AdminPage() {
               <table className="calc-table">
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Handle</th>
                     <th className="right">Visningar</th>
                     <th className="right">Eng.rate</th>
@@ -949,8 +951,25 @@ export default function AdminPage() {
                   {calcTests.map((t) => {
                     const alreadyTracked = accounts.some((a) => a.handle === t.handle);
                     const feedback = t.handle ? addFeedback[t.handle] : undefined;
+                    const acct = accounts.find((a) => a.handle === t.handle);
+                    const fallbackChar = (t.handle ?? "?").charAt(0).toUpperCase();
                     return (
                       <tr key={t.id}>
+                        <td className="calc-thumb-cell">
+                          {t.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <a className="calc-thumb" href={t.video_url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <img src={t.thumbnail_url} alt="" />
+                            </a>
+                          ) : acct?.avatar_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <a className="calc-thumb calc-thumb--round" href={t.video_url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <img src={acct.avatar_url} alt="" />
+                            </a>
+                          ) : (
+                            <span className="calc-thumb calc-thumb--round calc-thumb--fallback">{fallbackChar}</span>
+                          )}
+                        </td>
                         <td style={{ fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
                         <td className="right" style={{ color: "var(--mid)" }}>
                           {t.views != null ? t.views.toLocaleString("sv-SE") : "—"}
@@ -1270,23 +1289,17 @@ export default function AdminPage() {
             ) : feedbackItems.length === 0 ? (
               <p className="empty">Inga feedbacksvar ännu.</p>
             ) : (
-              <ul className="account-list">
+              <ul className="entry-list">
                 {feedbackItems.map((item) => (
-                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
-                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", width: "100%" }}>
-                      <span className="account-handle" style={{ fontWeight: 600, fontSize: 12 }}>
-                        {item.email ?? "Anonym"}
-                      </span>
-                      {item.page && (
-                        <span className="account-meta" style={{ fontSize: 13, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}>
-                          {item.page}
-                        </span>
-                      )}
-                      <span className="account-meta" style={{ marginLeft: "auto" }}>
-                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  <li key={item.id} className="entry-item entry-item--column">
+                    <div className="entry-header">
+                      <span className="entry-primary">{item.email ?? "Anonym"}</span>
+                      {item.page && <span className="entry-pill">{item.page}</span>}
+                      <span className="entry-date">
+                        {new Date(item.created_at).toLocaleString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap" }}>{item.message}</p>
+                    <p className="entry-body">{item.message}</p>
                   </li>
                 ))}
               </ul>
@@ -1306,39 +1319,35 @@ export default function AdminPage() {
             ) : betaSignups.length === 0 ? (
               <p className="empty">Inga beta-anmälningar ännu.</p>
             ) : (
-              <ul className="account-list">
+              <ul className="entry-list">
                 {betaSignups.map((item) => (
-                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
-                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", width: "100%" }}>
-                      <a className="account-handle" href={`mailto:${item.email}`} style={{ fontWeight: 600, fontSize: 13 }}>
-                        {item.email}
+                  <li key={item.id} className="entry-item">
+                    <a className="entry-primary entry-primary--link" href={`mailto:${item.email}`}>
+                      {item.email}
+                    </a>
+                    {item.handle && (
+                      <a
+                        className="entry-pill"
+                        href={`https://www.tiktok.com/@${item.handle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        @{item.handle}
                       </a>
-                      {item.handle && (
-                        <a
-                          className="account-meta"
-                          href={`https://www.tiktok.com/@${item.handle}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 12, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}
-                        >
-                          @{item.handle}
-                        </a>
-                      )}
-                      {item.video_url && (
-                        <a
-                          className="account-meta"
-                          href={item.video_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 13, color: "var(--mid)" }}
-                        >
-                          Video
-                        </a>
-                      )}
-                      <span className="account-meta" style={{ marginLeft: "auto" }}>
-                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+                    )}
+                    {item.video_url && (
+                      <a
+                        className="entry-link"
+                        href={item.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Video
+                      </a>
+                    )}
+                    <span className="entry-date">
+                      {new Date(item.created_at).toLocaleString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -2267,6 +2276,112 @@ const styles = `
     background: var(--bg1);
     color: var(--ink);
     box-shadow: 0 1px 2px rgba(28,27,25,0.1);
+  }
+
+  /* Shared list for Feedback / Beta-anmälningar */
+  .entry-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+  }
+  .entry-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s;
+  }
+  .entry-item:last-child { border-bottom: none; }
+  .entry-item:hover { background: var(--bg3); }
+  .entry-item--column { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .entry-item--column .entry-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .entry-primary {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .entry-primary--link {
+    text-decoration: none;
+  }
+  .entry-primary--link:hover { text-decoration: underline; }
+  .entry-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    color: var(--mid);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+  .entry-pill:hover { color: var(--ink); }
+  .entry-link {
+    font-size: 13px;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .entry-link:hover { opacity: 0.7; }
+  .entry-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .entry-body {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  /* Calc-test thumbnail / avatar cell */
+  .calc-thumb-cell {
+    width: 56px;
+    padding: 0.4rem 0 0.4rem 0.85rem !important;
+  }
+  .calc-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg3);
+    text-decoration: none;
+  }
+  .calc-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .calc-thumb--round {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  .calc-thumb--fallback {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--muted);
   }
 
   /* Source badge (DB / Apify) */
