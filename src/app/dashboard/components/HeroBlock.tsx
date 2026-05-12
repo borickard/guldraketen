@@ -88,14 +88,13 @@ export default function HeroBlock({ handle }: { handle: string }) {
   const name = data.display_name ?? `@${data.handle}`;
   const f = data.followers;
   const b = data.benchmarks;
-  const deltaPct = f.delta ? f.delta.pct : null;
   const showDelta = f.delta?.meaningful ?? false;
   const deltaText = showDelta && f.delta
-    ? `${f.delta.abs > 0 ? "+" : ""}${fmt(f.delta.abs)}  ·  ${deltaPct! > 0 ? "+" : ""}${deltaPct!.toFixed(1)} %`
+    ? `${f.delta.abs > 0 ? "+" : ""}${fmt(f.delta.abs)}  ·  ${f.delta.pct > 0 ? "+" : ""}${f.delta.pct.toFixed(1)} %`
     : null;
   const deltaLabel = showDelta && f.delta
     ? `senaste ${f.delta.days} ${f.delta.days === 1 ? "dagen" : "dagarna"}`
-    : "Trend bygger upp — för få datapunkter ännu";
+    : null;
 
   return (
     <>
@@ -123,20 +122,16 @@ export default function HeroBlock({ handle }: { handle: string }) {
             </div>
             <Sparkline points={f.history} />
           </div>
-          <p className={`hero-followers-delta${showDelta ? "" : " hero-followers-delta--quiet"}`}>
-            {deltaText ? (
-              <>
-                <span className={`hero-delta-val${(f.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
-                <span className="hero-delta-period">  {deltaLabel}</span>
-              </>
-            ) : (
-              <span className="hero-delta-period">{deltaLabel}</span>
-            )}
-          </p>
+          {deltaText && (
+            <p className="hero-followers-delta">
+              <span className={`hero-delta-val${(f.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
+              <span className="hero-delta-period">  {deltaLabel}</span>
+            </p>
+          )}
         </div>
 
         <div>
-          <p className="hero-stat-label">Vanliga siffror per video</p>
+          <p className="hero-stat-label">Benchmarks</p>
           <div className="hero-benchmarks">
             <Benchmark icon={<Eye size={14} />} label="Visningar" value={b.avg_views} />
             <Benchmark icon={<ThumbsUp size={14} />} label="Likes" value={b.avg_likes} />
