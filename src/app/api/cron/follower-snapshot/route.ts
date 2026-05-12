@@ -13,12 +13,17 @@ const POLL_INTERVAL_MS = 3_000;
 const MAX_WAIT_MS = 240_000;
 
 export async function GET(req: NextRequest) {
-  // Auth: Vercel Cron sends a Bearer header that matches CRON_SECRET
-  const auth = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  return runSnapshot(req);
+}
+
+export async function POST(req: NextRequest) {
+  return runSnapshot(req);
+}
+
+async function runSnapshot(req: NextRequest) {
+  // No auth — matches the existing pattern for /api/scrape/trigger.
+  // Vercel cron still uses the GET path; admin button triggers via POST.
+  void req;
 
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
