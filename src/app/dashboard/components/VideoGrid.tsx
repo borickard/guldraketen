@@ -201,6 +201,12 @@ export default function VideoGrid({ handle }: { handle?: string }) {
     const p = new URLSearchParams(window.location.search);
     const s = p.get("sort");
     if (s && SORTS.find((x) => x.key === s)) setSort(s as SortKey);
+    const sc = p.get("scope");
+    if (sc === "week" || sc === "month" || sc === "all") setScope(sc);
+    const b = p.get("boost");
+    if (b === "all" || b === "organic" || b === "boosted") {
+      setFilters((prev) => ({ ...prev, boost: b }));
+    }
     const df = p.get("date_from");
     const dt = p.get("date_to");
     if (df || dt) {
@@ -222,6 +228,8 @@ export default function VideoGrid({ handle }: { handle?: string }) {
     if (!urlReady) return;
     const p = new URLSearchParams();
     if (sort !== "newest") p.set("sort", sort);
+    if (scope !== "week") p.set("scope", scope);
+    if (filters.boost !== "all") p.set("boost", filters.boost);
     if (filters.dateRange?.from) p.set("date_from", filters.dateRange.from.toISOString().split("T")[0]);
     if (filters.dateRange?.to)   p.set("date_to",   filters.dateRange.to.toISOString().split("T")[0]);
     const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
@@ -229,7 +237,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
     if (showFilters) p.set("filters", "1");
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [sort, filters, showFilters, urlReady]);
+  }, [sort, scope, filters, showFilters, urlReady]);
 
   // Close calendar on outside click
   useEffect(() => {

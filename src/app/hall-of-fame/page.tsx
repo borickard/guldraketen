@@ -196,6 +196,35 @@ function HallOfFameInner() {
   const [scope, setScope] = useState<Scope>("week");
   const [sort, setSort] = useState<SortKey>("er");
   const [filter, setFilter] = useState<Filter>("all");
+  const [urlReady, setUrlReady] = useState(false);
+
+  // Read URL params on mount so refreshes / shared links restore the view.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const s = p.get("scope");
+    if (s === "week" || s === "month" || s === "all") setScope(s);
+    const so = p.get("sort");
+    if (so && ["er","likes","comments","shares","collects","views","newest"].includes(so)) {
+      setSort(so as SortKey);
+    }
+    const f = p.get("filter");
+    if (f === "all" || f === "organic" || f === "boosted") setFilter(f);
+    const cat = p.get("category");
+    if (cat) setSelectedCat(cat);
+    setUrlReady(true);
+  }, []);
+
+  // Write URL params back on state change (after initial read).
+  useEffect(() => {
+    if (!urlReady) return;
+    const p = new URLSearchParams();
+    if (scope !== "week") p.set("scope", scope);
+    if (sort !== "er") p.set("sort", sort);
+    if (filter !== "all") p.set("filter", filter);
+    if (selectedCat) p.set("category", selectedCat);
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [scope, sort, filter, selectedCat, urlReady]);
 
   useEffect(() => {
     setLoading(true);
