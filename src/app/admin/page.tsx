@@ -1005,7 +1005,7 @@ export default function AdminPage() {
             <p className="empty">Inga körningar loggade ännu.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table className="calc-table" style={{ fontSize: 11 }}>
+              <table className="calc-table">
                 <thead>
                   <tr>
                     <th>Tid</th>
@@ -1024,7 +1024,7 @@ export default function AdminPage() {
                     const duration = r.completed_at
                       ? Math.round((new Date(r.completed_at).getTime() - new Date(r.started_at).getTime()) / 1000)
                       : null;
-                    const statusColor = r.status === "completed" ? "#2a7a2a" : r.status === "failed" ? "#b30000" : "#a06000";
+                    const statusColor = r.status === "completed" ? "#3a7a3a" : r.status === "failed" ? "#9c2828" : "#a07020";
                     return (
                       <tr key={r.id}>
                         <td style={{ whiteSpace: "nowrap" }}>{new Date(r.started_at).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}</td>
@@ -2009,4 +2009,43 @@ const styles = `
     color: var(--mid);
     letter-spacing: 0.02em;
   }
+
+  /* Tables (scrape-log, kalkylator-tester) */
+  .calc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    font-family: 'Barlow', sans-serif;
+  }
+  .calc-table thead tr {
+    background: var(--bg3);
+  }
+  .calc-table th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+  }
+  .calc-table th.right { text-align: right; }
+  .calc-table td {
+    padding: 0.6rem 0.85rem;
+    font-size: 13px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  .calc-table tbody tr:last-child td { border-bottom: none; }
+  .calc-table tbody tr:hover { background: var(--bg3); }
+  .calc-table td.right { text-align: right; }
 `;
