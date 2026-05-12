@@ -65,11 +65,12 @@ interface ContestVideo {
   id: string;
   handle: string;
   video_url: string;
+  thumbnail_url: string | null;
   caption: string | null;
   views: number | null;
   published_at: string | null;
   contest_approved: boolean;
-  accounts: { display_name: string | null } | { display_name: string | null }[] | null;
+  accounts: { display_name: string | null; avatar_url: string | null } | { display_name: string | null; avatar_url: string | null }[] | null;
 }
 
 interface ScrapeRun {
@@ -95,6 +96,7 @@ interface Account {
   is_active: boolean;
   followers: number | null;
   followers_updated_at: string | null;
+  avatar_url: string | null;
   created_at: string;
   videos: [{ count: number }] | null;
 }
@@ -742,40 +744,67 @@ export default function AdminPage() {
           const pending  = contestVideos.filter(v => !v.contest_approved);
           const approved = contestVideos.filter(v =>  v.contest_approved);
 
+          function groupByWeek(videos: ContestVideo[]): [string, ContestVideo[]][] {
+            const buckets = new Map<string, ContestVideo[]>();
+            for (const v of videos) {
+              const key = v.published_at ? toWeekLabel(v.published_at) : "Okänt datum";
+              const list = buckets.get(key) ?? [];
+              list.push(v);
+              buckets.set(key, list);
+            }
+            return [...buckets.entries()];
+          }
+
           function ContestRow({ v }: { v: ContestVideo }) {
             const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
             const name = acct?.display_name ?? `@${v.handle}`;
-            const weekLabel = v.published_at ? toWeekLabel(v.published_at) : null;
             return (
-              <li key={v.id} className="account-row">
-                <div className="account-info">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
-                      {name}
-                    </a>
-                    {weekLabel && <span className="week-badge">{weekLabel}</span>}
-                  </div>
-                  {v.caption && (
-                    <span className="account-meta" style={{ fontStyle: "italic" }}>
-                      {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
-                    </span>
+              <li key={v.id} className="contest-row">
+                <a className="contest-thumb" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                  {v.thumbnail_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.thumbnail_url} alt="" />
+                  ) : (
+                    <span className="contest-thumb-fallback">{name.charAt(0).toUpperCase()}</span>
                   )}
-                  <span className="account-meta">
-                    {v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : ""}
+                </a>
+                <div className="contest-body">
+                  <a className="contest-name" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                    {name}
+                  </a>
+                  {v.caption && (
+                    <p className="contest-caption">
+                      {v.caption.slice(0, 140)}{v.caption.length > 140 ? "…" : ""}
+                    </p>
+                  )}
+                  <span className="contest-meta">
+                    {v.published_at && new Date(v.published_at).toLocaleDateString("sv-SE")}
                     {v.views ? ` · ${v.views.toLocaleString("sv-SE")} visningar` : ""}
                   </span>
                 </div>
-                <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
-                  {v.contest_approved ? "Inkluderad" : "Utesluten"}
-                </span>
-                <button
-                  className="scrape-btn"
-                  style={{ fontSize: 10, padding: "0.3rem 0.75rem", boxShadow: "none", flexShrink: 0 }}
-                  onClick={() => handleContestToggle(v)}
-                >
-                  {v.contest_approved ? "Återflagga" : "Godkänn för rankning"}
-                </button>
+                <div className="contest-actions">
+                  <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
+                    {v.contest_approved ? "Inkluderad" : "Utesluten"}
+                  </span>
+                  <button
+                    className="scrape-btn contest-action-btn"
+                    onClick={() => handleContestToggle(v)}
+                  >
+                    {v.contest_approved ? "Återflagga" : "Godkänn"}
+                  </button>
+                </div>
               </li>
+            );
+          }
+
+          function WeekGroup({ label, videos }: { label: string; videos: ContestVideo[] }) {
+            return (
+              <div className="contest-week-group">
+                <p className="contest-week-label">{label} <span className="contest-week-count">{videos.length}</span></p>
+                <ul className="contest-list">
+                  {videos.map(v => <ContestRow key={v.id} v={v} />)}
+                </ul>
+              </div>
             );
           }
 
@@ -793,7 +822,6 @@ export default function AdminPage() {
                 <p className="loading">Laddar…</p>
               ) : (
                 <>
-                  {/* Group 1: Needs review */}
                   <p className="contest-group-label">
                     Att granska
                     <span className="contest-group-count">{pending.length}</span>
@@ -801,21 +829,20 @@ export default function AdminPage() {
                   {pending.length === 0 ? (
                     <p className="loading" style={{ paddingTop: "0.75rem" }}>Inga videor att granska.</p>
                   ) : (
-                    <ul className="account-list" style={{ marginBottom: "2rem" }}>
-                      {pending.map(v => <ContestRow key={v.id} v={v} />)}
-                    </ul>
+                    groupByWeek(pending).map(([week, vids]) => (
+                      <WeekGroup key={`p-${week}`} label={week} videos={vids} />
+                    ))
                   )}
 
-                  {/* Group 2: Approved for ranking */}
                   {approved.length > 0 && (
                     <>
-                      <p className="contest-group-label" style={{ marginTop: "1.5rem" }}>
+                      <p className="contest-group-label" style={{ marginTop: "2rem" }}>
                         Godkända för rankning
                         <span className="contest-group-count">{approved.length}</span>
                       </p>
-                      <ul className="account-list">
-                        {approved.map(v => <ContestRow key={v.id} v={v} />)}
-                      </ul>
+                      {groupByWeek(approved).map(([week, vids]) => (
+                        <WeekGroup key={`a-${week}`} label={week} videos={vids} />
+                      ))}
                     </>
                   )}
                 </>
@@ -1335,6 +1362,16 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
         <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => onToggle(a)} />
         <span className="toggle-track"><span className="toggle-thumb" /></span>
       </label>
+      <div className="account-avatar">
+        {a.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={a.avatar_url} alt="" />
+        ) : (
+          <span className="account-avatar-fallback">
+            {(a.display_name?.charAt(0) || a.handle.charAt(0) || "?").toUpperCase()}
+          </span>
+        )}
+      </div>
       <div className="account-info">
         <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
           @{a.handle}
@@ -1623,6 +1660,31 @@ const styles = `
 
   .toggle-input:checked + .toggle-track .toggle-thumb {
     transform: translateX(14px);
+  }
+
+  /* Avatar */
+  .account-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .account-avatar-fallback {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--muted);
   }
 
   /* Account info */
@@ -2008,6 +2070,114 @@ const styles = `
     font-size: 11px;
     color: var(--mid);
     letter-spacing: 0.02em;
+  }
+
+  /* Contest videos (Tävlingar) */
+  .contest-week-group {
+    margin-bottom: 1.5rem;
+  }
+  .contest-week-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.25rem 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .contest-week-count {
+    background: var(--bg3);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+  .contest-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+  }
+  .contest-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s;
+  }
+  .contest-row:last-child { border-bottom: none; }
+  .contest-row:hover { background: var(--bg3); }
+  .contest-thumb {
+    flex-shrink: 0;
+    width: 56px;
+    height: 72px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+  .contest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .contest-thumb-fallback {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--muted);
+  }
+  .contest-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .contest-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .contest-name:hover { text-decoration: underline; }
+  .contest-caption {
+    font-size: 12px;
+    color: var(--mid);
+    font-style: italic;
+    line-height: 1.4;
+    margin: 0;
+  }
+  .contest-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .contest-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+  .contest-action-btn {
+    font-size: 11px;
+    padding: 0.35rem 0.85rem;
   }
 
   /* Tables (scrape-log, kalkylator-tester) */
