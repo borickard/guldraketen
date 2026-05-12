@@ -874,25 +874,25 @@ export default function AdminPage() {
               <button className="scrape-btn" onClick={handleSaveLimit} disabled={savingLimit}>
                 {limitSaved ? "Sparad!" : savingLimit ? "Sparar…" : "Spara"}
               </button>
-              <span style={{ fontSize: 10, color: "var(--muted)" }}>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
                 Cachat innehåll räknas inte mot gränsen.
               </span>
             </div>
             {calcUsage && (
               <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", borderTop: "1px solid var(--border-light)", paddingTop: "0.75rem" }}>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
+                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: calcUsage.today >= calcDailyLimit ? "#b30000" : "var(--ink)" }}>
                     {calcUsage.today}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
+                  <span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
+                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.week}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
+                  <span style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.month}</span>
                 </div>
               </div>
@@ -983,13 +983,13 @@ export default function AdminPage() {
                         <td>
                           {t.handle && (
                             feedback ? (
-                              <span style={{ fontSize: 11, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
+                              <span style={{ fontSize: 13, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
                             ) : alreadyTracked ? (
-                              <span style={{ fontSize: 11, color: "var(--muted)" }}>Trackas</span>
+                              <span style={{ fontSize: 13, color: "var(--muted)" }}>Trackas</span>
                             ) : (
                               <button
                                 className="scrape-btn"
-                                style={{ fontSize: 11, padding: "0.3rem 0.7rem" }}
+                                style={{ fontSize: 13, padding: "0.3rem 0.7rem" }}
                                 disabled={addingHandle === t.handle}
                                 onClick={() => handleAddToTracking(t.handle!)}
                               >
@@ -1133,7 +1133,7 @@ export default function AdminPage() {
                         <span className="account-meta">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
                         <button
                           className="scrape-btn"
-                          style={{ fontSize: 9, padding: "0.25rem 0.6rem", boxShadow: "none" }}
+                          style={{ fontSize: 12, padding: "0.25rem 0.6rem", boxShadow: "none" }}
                           onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
                         >
                           Byt lösenord
@@ -1155,7 +1155,7 @@ export default function AdminPage() {
                           />
                           <button
                             className="scrape-btn"
-                            style={{ fontSize: 9, padding: "0.25rem 0.75rem", boxShadow: "none" }}
+                            style={{ fontSize: 12, padding: "0.25rem 0.75rem", boxShadow: "none" }}
                             onClick={() => handleChangePassword(u.id)}
                             disabled={!pwChangeValue.trim()}
                           >
@@ -1196,7 +1196,7 @@ export default function AdminPage() {
                         )}
                         <button
                           className="scrape-btn"
-                          style={{ fontSize: 10, padding: "0.25rem 0.65rem", boxShadow: "none" }}
+                          style={{ fontSize: 12, padding: "0.25rem 0.65rem", boxShadow: "none" }}
                           onClick={() => {
                             const opening = newHandleUserId !== u.id;
                             setNewHandleUserId(opening ? u.id : null);
@@ -1244,7 +1244,7 @@ export default function AdminPage() {
                             </button>
                           </div>
                           {newHandleResult && (
-                            <p style={{ fontSize: 11, margin: 0, color: newHandleResult.ok ? "#2a7a2a" : "#c0392b" }}>
+                            <p style={{ fontSize: 13, margin: 0, color: newHandleResult.ok ? "#2a7a2a" : "#c0392b" }}>
                               {newHandleResult.msg}
                             </p>
                           )}
@@ -1278,7 +1278,7 @@ export default function AdminPage() {
                         {item.email ?? "Anonym"}
                       </span>
                       {item.page && (
-                        <span className="account-meta" style={{ fontSize: 11, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}>
+                        <span className="account-meta" style={{ fontSize: 13, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}>
                           {item.page}
                         </span>
                       )}
@@ -1330,7 +1330,7 @@ export default function AdminPage() {
                           href={item.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: "#666" }}
+                          style={{ fontSize: 13, color: "var(--mid)" }}
                         >
                           Video
                         </a>
@@ -1432,10 +1432,10 @@ const styles = `
     --bg3:    rgba(28,27,25,0.04);
     --blue:   #1C1B19;
     --ink:    #1C1B19;
-    --mid:    rgba(28,27,25,0.65);
-    --muted:  rgba(28,27,25,0.45);
-    --border: rgba(28,27,25,0.12);
-    --border-light: rgba(28,27,25,0.07);
+    --mid:    rgba(28,27,25,0.78);
+    --muted:  rgba(28,27,25,0.6);
+    --border: rgba(28,27,25,0.14);
+    --border-light: rgba(28,27,25,0.08);
     --accent: #C8962A;
   }
 
@@ -1479,7 +1479,7 @@ const styles = `
     border: 1px solid var(--border-light);
     color: var(--muted);
     font-family: 'Barlow', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 0.4rem 0.85rem;
@@ -1506,7 +1506,7 @@ const styles = `
 
   .admin-eyebrow {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -1526,7 +1526,7 @@ const styles = `
   }
 
   .admin-sub {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
@@ -1593,14 +1593,14 @@ const styles = `
 
   .form-error {
     margin-top: 0.5rem;
-    font-size: 11px;
+    font-size: 13px;
     color: #a33;
   }
 
   /* List */
   .loading, .empty {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 13px;
     padding: 2rem 0;
     letter-spacing: 0.04em;
   }
@@ -1714,7 +1714,7 @@ const styles = `
     border-bottom: 1px dashed var(--border-light);
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--mid);
     padding: 1px 2px;
     width: 100%;
@@ -1738,7 +1738,7 @@ const styles = `
     border-bottom: 1px dashed var(--border-light);
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--mid);
     padding: 1px 2px;
     cursor: pointer;
@@ -1748,7 +1748,7 @@ const styles = `
   .category-select:focus { border-bottom-color: var(--ink); }
 
   .accounts-divider {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1779,7 +1779,7 @@ const styles = `
     justify-content: center;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
   }
   .handle-chip-avatar img {
@@ -1803,7 +1803,7 @@ const styles = `
   .handle-chip button:hover { color: #a33; }
 
   .week-badge {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     background: var(--bg2);
@@ -1814,12 +1814,12 @@ const styles = `
   }
 
   .account-meta {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
   }
 
   .status-badge {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     flex-shrink: 0;
@@ -1846,7 +1846,7 @@ const styles = `
 
   /* Contest group labels */
   .contest-group-label {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1861,7 +1861,7 @@ const styles = `
     background: var(--bg2);
     border: 1px solid var(--border-light);
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     padding: 1px 6px;
     font-weight: 400;
     letter-spacing: 0;
@@ -1873,7 +1873,7 @@ const styles = `
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 13px;
     padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
@@ -1928,7 +1928,7 @@ const styles = `
   }
 
   .admin-tab-meta {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: none;
@@ -1956,13 +1956,13 @@ const styles = `
   }
 
   .admin-section-meta {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
 
   .admin-section-desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 1rem;
     letter-spacing: 0.02em;
@@ -1980,7 +1980,7 @@ const styles = `
   }
 
   .admin-tool-label {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1989,7 +1989,7 @@ const styles = `
   }
 
   .admin-tool-desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 0.75rem;
     letter-spacing: 0.02em;
@@ -2009,7 +2009,7 @@ const styles = `
     border: none;
     padding: 0.75rem 0;
     font-family: 'Barlow', sans-serif;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2091,7 +2091,7 @@ const styles = `
 
   .scrape-msg {
     margin-top: 0.75rem;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--mid);
     letter-spacing: 0.02em;
   }
@@ -2115,7 +2115,7 @@ const styles = `
   .contest-week-count {
     background: var(--bg3);
     color: var(--muted);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 400;
     letter-spacing: 0;
     padding: 1px 7px;
@@ -2216,7 +2216,7 @@ const styles = `
     padding: 0;
     margin-top: -2px;
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--ink);
     text-decoration: underline;
@@ -2226,7 +2226,7 @@ const styles = `
   }
   .contest-caption-toggle:hover { opacity: 1; }
   .contest-meta {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin-top: auto;
     padding-top: 4px;
@@ -2273,7 +2273,7 @@ const styles = `
   .src-pill {
     display: inline-block;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
