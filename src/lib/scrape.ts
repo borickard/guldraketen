@@ -311,6 +311,22 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         if (snapErr) console.error("follower_snapshots upsert error:", snapErr.message);
     }
 
+    // Daily follower history — captured_date is today; UPSERT keeps the
+    // latest count for any given handle+date. Used by the dashboard
+    // follower trend chart.
+    const today = new Date().toISOString().slice(0, 10);
+    const historyRows = Object.entries(followerMap).map(([handle, followers]) => ({
+        handle,
+        captured_date: today,
+        followers,
+    }));
+    if (historyRows.length > 0) {
+        const { error: histErr } = await supabaseAdmin
+            .from("follower_history")
+            .upsert(historyRows, { onConflict: "handle,captured_date" });
+        if (histErr) console.error("follower_history upsert error:", histErr.message);
+    }
+
     // Ladda upp avatarer till Supabase Storage och spara URL
     for (const [handle, rawAvatarUrl] of Object.entries(avatarMap)) {
         if (isStoredThumbnail(rawAvatarUrl)) {
