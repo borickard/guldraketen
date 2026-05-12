@@ -6,6 +6,7 @@ const APIFY_ACTOR_ID = "clockworks~tiktok-video-scraper";
 const APIFY_API_BASE = "https://api.apify.com/v2";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+const PENDING_TTL_MS = 5 * 60 * 1000; // resume an in-flight Apify run if started within 5 min
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -104,12 +105,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. Check calculator_tests for a recent result (videos tested via calculator
-  //    are not in the videos table, so we need this as a second cache layer)
+  // 3. Check calculator_tests for a recent completed result. Pending rows
+  //    are skipped here — they're handled in step 4 below.
   const { data: cachedTest } = await supabaseAdmin
     .from("calculator_tests")
     .select("views,likes,comments,shares,collect_count,engagement_rate,tested_at")
     .ilike("video_url", `%${videoId}%`)
+    .in("source", ["db", "apify"])
     .order("tested_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -141,11 +143,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Not in cache — check daily Apify call limit before starting a run
+  // 4. Resume an in-flight Apify run if one was started recently for this
+  //    same video. Without this, refreshing the kalkylator page while Apify
+  //    is still running spawns a new Apify run on every refresh — the
+  //    completion handler only writes to calculator_tests when the client
+  //    polls /result through to SUCCEEDED.
+  const pendingCutoff = new Date(Date.now() - PENDING_TTL_MS).toISOString();
+  const { data: pendingRun } = await supabaseAdmin
+    .from("calculator_tests")
+    .select("run_id, tested_at")
+    .eq("video_id", videoId)
+    .eq("source", "pending")
+    .not("run_id", "is", null)
+    .gte("tested_at", pendingCutoff)
+    .order("tested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingRun?.run_id) {
+    return NextResponse.json({ source: "apify", runId: pendingRun.run_id });
+  }
+
+  // 5. Not in cache — check daily Apify call limit before starting a run.
+  //    Pending rows also count, so we don't keep spawning runs even if
+  //    completions never get written.
   const todayUTC = new Date();
   todayUTC.setUTCHours(0, 0, 0, 0);
 
-  // Fetch configurable limit from app_settings (default: 100)
   let dailyLimit = 100;
   try {
     const { data: limitSetting } = await supabaseAdmin
@@ -163,14 +187,14 @@ export async function POST(req: NextRequest) {
   const { count: todayCount } = await supabaseAdmin
     .from("calculator_tests")
     .select("id", { count: "exact", head: true })
-    .eq("source", "apify")
+    .in("source", ["apify", "pending"])
     .gte("tested_at", todayUTC.toISOString());
 
   if ((todayCount ?? 0) >= dailyLimit) {
     return NextResponse.json({ error: "daily_limit" }, { status: 429 });
   }
 
-  // 5. Start async Apify run
+  // 6. Start async Apify run
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
     return NextResponse.json({ error: "APIFY_TOKEN saknas" }, { status: 500 });
@@ -214,6 +238,16 @@ export async function POST(req: NextRequest) {
   if (!runId) {
     return NextResponse.json({ error: "Inget runId från Apify" }, { status: 502 });
   }
+
+  // Record a pending row so refreshes resume this run instead of spawning
+  // a new one. /result will UPDATE this row when Apify finishes.
+  await supabaseAdmin.from("calculator_tests").insert({
+    video_url: `https://www.tiktok.com/@${handle}/video/${videoId}`,
+    video_id: videoId,
+    handle,
+    run_id: runId,
+    source: "pending",
+  });
 
   return NextResponse.json({ source: "apify", runId });
 }
