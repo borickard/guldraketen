@@ -920,62 +920,30 @@ function HomeInner() {
               <div className="gr-list-section-hdr">
                 <h1 className="gr-page-title">Veckans raketer</h1>
                 {selectedWeek && (
-                  <div className="gr-rk-week-hdr-nav">
-                    <button
-                      className="gr-wk-arrow"
-                      disabled={!canBack}
-                      onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                      aria-label="Föregående vecka"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                    </button>
-                    <span className="gr-week-subtitle">{fmtWeekShort(selectedWeek)}</span>
-                    <button
-                      className="gr-wk-arrow"
-                      disabled={!canForward}
-                      onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                      aria-label="Nästa vecka"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {selectedWeek && (
-                <>
-                  {/* Mobile: compact arrow row */}
-                  <div className="gr-rk-week-row">
-                    <button
-                      className="gr-wk-arrow"
-                      disabled={!canBack}
-                      onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                      aria-label="Föregående vecka"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                    </button>
-                    <span className="gr-rk-week-label">{fmtWeekShort(selectedWeek)}</span>
-                    <button
-                      className="gr-wk-arrow"
-                      disabled={!canForward}
-                      onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                      aria-label="Nästa vecka"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Boost filter — organic vs boosted */}
-                  <div className="gr-rk-boost-toggle">
-                    <span className="gr-rk-boost-label">Visa</span>
+                  <div className="gr-rk-toolbar">
+                    <div className="gr-rk-week-nav">
+                      <button
+                        className="gr-wk-arrow"
+                        disabled={!canBack}
+                        onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
+                        aria-label="Föregående vecka"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                      </button>
+                      <span className="gr-rk-week-tag">{fmtWeekShort(selectedWeek)}</span>
+                      <button
+                        className="gr-wk-arrow"
+                        disabled={!canForward}
+                        onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
+                        aria-label="Nästa vecka"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    </div>
                     <div className="gr-rk-boost-pills">
                       {([
                         { key: "all",     label: "Alla"     },
@@ -992,7 +960,11 @@ function HomeInner() {
                       ))}
                     </div>
                   </div>
+                )}
+              </div>
 
+              {selectedWeek && (
+                <>
                   <div className="gr-rk-nav-wrap">
                     <div className="gr-rk-grid">
           {loading

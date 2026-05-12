@@ -4103,35 +4103,67 @@ body {
   max-width: 640px;
   margin: 0 auto;
   padding: var(--space-5) 0 var(--space-3);
-}
-
-.gr-week-subtitle {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(14px, 2.5vw, 18px);
-  color: rgba(237, 248, 251, 0.45);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin: 4px 0 0;
-}
-
-/* Mobile compact week row — hidden on desktop */
-.gr-rk-week-row {
-  display: none;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  max-width: 640px;
-  margin: 0 auto var(--space-1);
+  gap: 18px;
 }
 
-.gr-rk-week-label {
+/* Unified toolbar — week navigator + boost filter on one line */
+.gr-rk-toolbar {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(28,27,25,0.06);
+  border-radius: 999px;
+  padding: 5px;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.gr-rk-week-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.gr-rk-week-tag {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 15px;
-  color: rgba(237, 248, 251, 0.7);
-  letter-spacing: 0.06em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  min-width: 72px;
+  color: var(--gr-dark);
+  min-width: 76px;
   text-align: center;
+}
+
+/* Vertical separator between week nav and boost pills (desktop) */
+.gr-rk-toolbar .gr-rk-week-nav + .gr-rk-boost-pills {
+  border-left: 1px solid rgba(28,27,25,0.12);
+  margin-left: 4px;
+  padding-left: 4px;
+}
+
+@media (max-width: 559px) {
+  .gr-rk-toolbar {
+    flex-direction: column;
+    gap: 6px;
+    border-radius: 24px;
+    padding: 8px 8px;
+  }
+  .gr-rk-toolbar .gr-rk-week-nav + .gr-rk-boost-pills {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
+    border-top: 1px solid rgba(28,27,25,0.1);
+    padding-top: 6px;
+    width: 100%;
+    justify-content: center;
+  }
+  .gr-rk-week-tag { font-size: 13px; min-width: 64px; }
 }
 
 /* Nav wrap with margin arrows — desktop only */
@@ -4168,49 +4200,18 @@ body {
   cursor: default;
 }
 
-/* Desktop: arrows inline with week label in the header */
-.gr-rk-week-hdr-nav {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-@media (min-width: 760px) {
-  .gr-rk-week-hdr-nav { display: flex; }
-  .gr-week-subtitle { display: block; }
-}
-
-/* Boost filter pill row under the week navigator */
-.gr-rk-boost-toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 48px 4px;
-  flex-wrap: wrap;
-}
-.gr-rk-boost-label {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: rgba(28,27,25,0.5);
-}
 .gr-rk-boost-pills {
   display: inline-flex;
-  background: rgba(28,27,25,0.06);
-  border-radius: 999px;
-  padding: 4px;
+  gap: 0;
 }
 .gr-rk-boost-pill {
   font-family: 'Barlow', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: rgba(28,27,25,0.6);
   background: transparent;
   border: none;
-  padding: 7px 18px;
+  padding: 6px 14px;
   border-radius: 999px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
@@ -4223,11 +4224,6 @@ body {
   background: #fff;
   color: var(--gr-dark);
   box-shadow: 0 1px 3px rgba(28,27,25,0.12);
-}
-
-@media (max-width: 759px) {
-  .gr-rk-boost-toggle { padding: 12px 20px 4px; gap: 10px; }
-  .gr-rk-boost-pill { padding: 6px 14px; font-size: 13px; }
 }
 
 /* Boost badge on topplistan cards — paired with the rank badge */
@@ -4249,9 +4245,6 @@ body {
 }
 
 @media (max-width: 759px) {
-  .gr-rk-week-row { display: flex; }
-  .gr-rk-week-hdr-nav { display: none; }
-  .gr-week-subtitle { display: none; }
   .gr-list-section .gr-page-title { font-size: 1.5rem; }
   .gr-list-section-hdr { padding-top: var(--space-3); }
 }
@@ -4271,14 +4264,6 @@ body {
   text-transform: uppercase;
   letter-spacing: -0.01em;
   line-height: 1;
-}
-
-.gr-list-section .gr-week-subtitle {
-  color: rgba(28, 27, 25, 0.5);
-}
-
-.gr-list-section .gr-rk-week-label {
-  color: rgba(28, 27, 25, 0.6);
 }
 
 .gr-list-section .gr-page-hdr {
