@@ -360,6 +360,21 @@ export default function AdminPage() {
     setBackfilling(false);
   }
 
+  const [followerSnapping, setFollowerSnapping] = useState(false);
+  const [followerSnapMsg, setFollowerSnapMsg] = useState("");
+  async function handleFollowerSnapshot() {
+    setFollowerSnapping(true);
+    setFollowerSnapMsg("Kör Apify — kan ta upp till 4 min…");
+    const res = await fetch("/api/cron/follower-snapshot", { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      setFollowerSnapMsg(`Klar · ${data.captured ?? 0} konton snapshottade`);
+    } else {
+      setFollowerSnapMsg(`Fel: ${data.error}`);
+    }
+    setFollowerSnapping(false);
+  }
+
   async function handleBackfillAvatars() {
     setBackfillingAvatars(true);
     setBackfillAvatarsMsg("Kör Apify — kan ta upp till 2 min…");
@@ -754,6 +769,14 @@ export default function AdminPage() {
                     {backfillingAvatars ? "Hämtar…" : "Hämta avatarer"}
                   </button>
                   {backfillAvatarsMsg && <p className="scrape-msg">{backfillAvatarsMsg}</p>}
+                </div>
+                <div className="admin-tool">
+                  <p className="admin-tool-label">Följarsnapshot</p>
+                  <p className="admin-tool-desc">Kör daglig följar-snapshot manuellt för dashboard-kopplade konton. Skriver till follower_history. Kör annars automatiskt kl 03:00 UTC varje dag.</p>
+                  <button className="scrape-btn" onClick={handleFollowerSnapshot} disabled={followerSnapping}>
+                    {followerSnapping ? "Hämtar…" : "Hämta följarantal nu"}
+                  </button>
+                  {followerSnapMsg && <p className="scrape-msg">{followerSnapMsg}</p>}
                 </div>
               </div>
             )}
