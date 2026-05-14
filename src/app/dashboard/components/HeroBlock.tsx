@@ -100,38 +100,35 @@ export default function HeroBlock({ handle }: { handle: string }) {
     <>
       <style>{css}</style>
       <div className="hero-block">
-        <div className="hero-identity">
-          {data.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.avatar_url} alt="" className="hero-avatar" />
-          ) : (
-            <div className="hero-avatar hero-avatar--placeholder" />
-          )}
-          <div className="hero-identity-info">
-            <h1 className="hero-name">{name}</h1>
-            <p className="hero-handle">@{data.handle}</p>
-            <p className="hero-since">Inhämtade videor sedan {formatDate(data.tracked_since)}</p>
-          </div>
-        </div>
-
-        <div className="hero-followers">
-          <div className="hero-followers-row">
-            <div>
-              <p className="hero-stat-label">Följare</p>
-              <p className="hero-stat-big">{fmt(f.current)}</p>
+        <div className="hero-top">
+          <div className="hero-identity">
+            {data.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={data.avatar_url} alt="" className="hero-avatar" />
+            ) : (
+              <div className="hero-avatar hero-avatar--placeholder" />
+            )}
+            <div className="hero-identity-info">
+              <h1 className="hero-name">{name}</h1>
+              <p className="hero-handle">@{data.handle}</p>
             </div>
-            <Sparkline points={f.history} />
           </div>
-          {deltaText && (
-            <p className="hero-followers-delta">
-              <span className={`hero-delta-val${(f.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
-              <span className="hero-delta-period">  {deltaLabel}</span>
-            </p>
-          )}
+
+          <div className="hero-followers-block">
+            <p className="hero-stat-label">Följare</p>
+            <p className="hero-stat-big">{fmt(f.current)}</p>
+            <Sparkline points={f.history} />
+            {deltaText && (
+              <p className="hero-followers-delta">
+                <span className={`hero-delta-val${(f.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
+                <span className="hero-delta-period">  {deltaLabel}</span>
+              </p>
+            )}
+          </div>
         </div>
 
-        <div>
-          <p className="hero-stat-label">Benchmarks</p>
+        <div className="hero-benchmarks-wrap">
+          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(genomsnittliga resultat)</span></p>
           <div className="hero-benchmarks">
             <Benchmark icon={<Eye size={14} />} label="Visningar" value={b.avg_views} />
             <Benchmark icon={<ThumbsUp size={14} />} label="Likes" value={b.avg_likes} />
@@ -144,7 +141,7 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <p className="hero-meta-line">
-          {b.videos} {b.videos === 1 ? "video" : "videor"} inhämtade
+          {b.videos} {b.videos === 1 ? "video" : "videor"} inhämtade sedan {formatDate(data.tracked_since)}
           {b.posts_per_week >= 1
             ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
             : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
@@ -177,7 +174,7 @@ const css = `
   .hero-block {
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.5rem;
     background: #fff;
     border: 1px solid rgba(28,27,25,0.1);
     border-radius: 14px;
@@ -186,10 +183,21 @@ const css = `
     margin-bottom: 2rem;
   }
 
+  /* Top row: identity (left) + followers (right) */
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
   .hero-identity {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex: 1;
+    min-width: 0;
   }
 
   .hero-avatar {
@@ -207,36 +215,30 @@ const css = `
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
   .hero-name {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.85rem;
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
     margin: 0;
     color: #1C1B19;
   }
   .hero-handle {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(28,27,25,0.55);
     margin: 0;
   }
-  .hero-since {
-    font-size: 12px;
-    color: rgba(28,27,25,0.45);
-    margin: 2px 0 0;
+
+  .hero-followers-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    flex-shrink: 0;
   }
 
-  .hero-followers {
-    border-top: 1px solid rgba(28,27,25,0.08);
-    padding-top: 1.25rem;
-  }
-  .hero-followers-row {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
-  }
   .hero-stat-label {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 12px;
@@ -245,6 +247,12 @@ const css = `
     text-transform: uppercase;
     color: rgba(28,27,25,0.55);
     margin: 0 0 4px;
+  }
+  .hero-stat-sublabel {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: rgba(28,27,25,0.5);
   }
   .hero-stat-big {
     font-family: 'Barlow Condensed', sans-serif;
@@ -256,35 +264,40 @@ const css = `
   }
   .hero-sparkline {
     color: rgba(28,27,25,0.55);
+    margin-top: 6px;
   }
 
   .hero-followers-delta {
-    margin: 8px 0 0;
-    font-size: 14px;
+    margin: 6px 0 0;
+    font-size: 13px;
     color: rgba(28,27,25,0.75);
   }
-  .hero-followers-delta--quiet { color: rgba(28,27,25,0.45); font-style: italic; font-size: 13px; }
   .hero-delta-val { font-weight: 600; }
   .hero-delta-val.up { color: #2d7a3d; }
   .hero-delta-val.down { color: #9c2828; }
   .hero-delta-period { color: rgba(28,27,25,0.5); }
 
+  /* Benchmarks: inline-flex with wrap, content-driven width */
+  .hero-benchmarks-wrap {
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(28,27,25,0.08);
+  }
   .hero-benchmarks {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
   .hero-bench {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
-    padding: 0.7rem 0.85rem;
+    padding: 0.55rem 0.85rem 0.55rem 0.6rem;
   }
   .hero-bench-icon {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: #fff;
     display: flex;
@@ -295,7 +308,7 @@ const css = `
   }
   .hero-bench-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     font-weight: 700;
     line-height: 1;
     margin: 0;
@@ -305,19 +318,22 @@ const css = `
     font-size: 12px;
     color: rgba(28,27,25,0.55);
     margin: 2px 0 0;
+    line-height: 1;
   }
 
   .hero-meta-line {
     margin: 0;
     font-size: 13px;
-    color: rgba(28,27,25,0.55);
-    padding-top: 1rem;
+    color: rgba(28,27,25,0.5);
+    padding-top: 0.85rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
 
   @media (max-width: 559px) {
     .hero-block { padding: 1.25rem 1rem; }
+    .hero-top { align-items: flex-start; }
+    .hero-followers-block { align-items: flex-start; text-align: left; }
     .hero-stat-big { font-size: 2rem; }
-    .hero-name { font-size: 1.5rem; }
+    .hero-name { font-size: 1.6rem; }
   }
 `;
