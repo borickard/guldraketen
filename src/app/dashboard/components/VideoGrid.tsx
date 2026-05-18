@@ -749,8 +749,8 @@ const css = `
   /* Per-group stats card — sits as the first card of each section, matches video card height */
   .vg-card--stats {
     padding: 1rem 1.1rem;
-    background: rgba(28,27,25,0.04);
-    border: 1.5px solid rgba(28,27,25,0.08);
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.1);
     gap: 0.85rem;
     align-self: stretch;
   }
