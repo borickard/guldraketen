@@ -26,16 +26,42 @@ type BoostFilter = "all" | "organic" | "boosted";
 
 type SortKey = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
 
+interface GroupStats {
+  count: number;
+  views: number; likes: number; comments: number; shares: number;
+  collects: number | null;
+  collectsTracked: number;
+  avgEr: number | null;
+}
+
 type GridItem =
   | { type: "group"; label: string; key: string; avgEr: number | null }
+  | { type: "stats"; key: string; stats: GroupStats; label: string }
   | { type: "video"; video: Video };
 
-function avgEngagement(videos: Video[]): number | null {
+function computeGroupStats(videos: Video[]): GroupStats {
+  const sum = (k: keyof Video) =>
+    videos.reduce((s, v) => s + Number(v[k] ?? 0), 0);
   const ers = videos
     .map((v) => (v.engagement_rate != null ? Number(v.engagement_rate) : null))
     .filter((n): n is number => n != null && !isNaN(n));
-  if (ers.length === 0) return null;
-  return ers.reduce((s, n) => s + n, 0) / ers.length;
+  const collectVids = videos.filter((v) => v.collect_count != null);
+  return {
+    count: videos.length,
+    views: sum("views"),
+    likes: sum("likes"),
+    comments: sum("comments"),
+    shares: sum("shares"),
+    collects: collectVids.length > 0
+      ? collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0)
+      : null,
+    collectsTracked: collectVids.length,
+    avgEr: ers.length > 0 ? ers.reduce((s, n) => s + n, 0) / ers.length : null,
+  };
+}
+
+function avgEngagement(videos: Video[]): number | null {
+  return computeGroupStats(videos).avgEr;
 }
 
 const MONTH_NAMES_SV = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
@@ -95,7 +121,10 @@ function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
 
   const items: GridItem[] = [];
   for (const key of sortedKeys) {
-    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: avgEngagement(groups.get(key)!) });
+    const groupVids = groups.get(key)!;
+    const stats = computeGroupStats(groupVids);
+    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: stats.avgEr });
+    items.push({ type: "stats", key: `s-${key}`, stats, label: key });
     for (const v of sorted(groups.get(key)!, sort)) {
       items.push({ type: "video", video: v });
     }
@@ -460,6 +489,44 @@ export default function VideoGrid({ handle }: { handle?: string }) {
               </div>
             );
 
+            if (item.type === "stats") {
+              const s = item.stats;
+              const fmtNum = (n: number) => n >= 1_000_000
+                ? (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M"
+                : n >= 10_000 ? Math.round(n / 1_000) + "k"
+                : n >= 1_000 ? (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k"
+                : Math.round(n).toString();
+              const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
+              const rows: { label: string; total: number; avg: number }[] = [
+                { label: "Visningar", total: s.views, avg: avg(s.views) },
+                { label: "Likes", total: s.likes, avg: avg(s.likes) },
+                { label: "Kommentarer", total: s.comments, avg: avg(s.comments) },
+                { label: "Delningar", total: s.shares, avg: avg(s.shares) },
+              ];
+              if (s.collects != null && s.collectsTracked > 0) {
+                rows.push({ label: "Favoriter", total: s.collects, avg: s.collects / s.collectsTracked });
+              }
+              return (
+                <div key={item.key} className="vg-card vg-card--stats">
+                  <p className="vg-stats-card-title">{s.count} {s.count === 1 ? "video" : "videor"}</p>
+                  <ul className="vg-stats-card-list">
+                    {rows.map((r) => (
+                      <li key={r.label}>
+                        <span className="vg-stats-card-lbl">{r.label}</span>
+                        <span className="vg-stats-card-nums">
+                          <strong>{fmtNum(r.total)}</strong>
+                          <span className="vg-stats-card-avg">⌀ {fmtNum(r.avg)}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {s.avgEr != null && (
+                    <p className="vg-stats-card-er">⌀ ER {s.avgEr.toFixed(2)}%</p>
+                  )}
+                </div>
+              );
+            }
+
             const v = item.video;
             const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
 
@@ -677,6 +744,70 @@ const css = `
     border: 1.5px solid rgba(28,27,25,0.1);
     border-radius: 12px;
     overflow: hidden;
+  }
+
+  /* Per-group stats card — sits as the first item of each section */
+  .vg-card--stats {
+    padding: 0.85rem 0.95rem;
+    background: rgba(28,27,25,0.04);
+    border: 1.5px solid rgba(28,27,25,0.08);
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .vg-stats-card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.6);
+    margin: 0;
+  }
+  .vg-stats-card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .vg-stats-card-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .vg-stats-card-lbl {
+    font-size: 11px;
+    color: rgba(28,27,25,0.55);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .vg-stats-card-nums {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .vg-stats-card-nums strong {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1C1B19;
+  }
+  .vg-stats-card-avg {
+    font-size: 11px;
+    color: rgba(28,27,25,0.5);
+  }
+  .vg-stats-card-er {
+    margin: 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(28,27,25,0.08);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1C1B19;
   }
 
   /* Thumbnail: 4:5 */

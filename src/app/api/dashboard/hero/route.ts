@@ -79,15 +79,16 @@ export async function GET(req: NextRequest) {
 
   const vids = videos ?? [];
   const count = vids.length;
-  const avg = (k: keyof (typeof vids)[number]) => {
-    if (count === 0) return 0;
+  const sumOf = (k: keyof (typeof vids)[number]) => {
     const nums = vids.map((v) => Number(v[k] ?? 0)).filter((n) => !isNaN(n));
-    return nums.reduce((s, n) => s + n, 0) / count;
+    return nums.reduce((s, n) => s + n, 0);
   };
-  const collectsTracked = vids.filter((v) => v.collect_count != null).length;
-  const avgCollects = collectsTracked > 0
-    ? vids.filter((v) => v.collect_count != null).reduce((s, v) => s + Number(v.collect_count ?? 0), 0) / collectsTracked
+  const avgOf = (k: keyof (typeof vids)[number]) => (count === 0 ? 0 : sumOf(k) / count);
+  const collectVids = vids.filter((v) => v.collect_count != null);
+  const totalCollects = collectVids.length > 0
+    ? collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0)
     : null;
+  const avgCollects = collectVids.length > 0 ? totalCollects! / collectVids.length : null;
 
   // Posts-per-week computed from actual span (matches existing dashboard logic)
   const timestamps = vids
@@ -111,12 +112,17 @@ export async function GET(req: NextRequest) {
     benchmarks: {
       videos: count,
       posts_per_week: postsPerWeek,
-      avg_views: avg("views"),
-      avg_likes: avg("likes"),
-      avg_comments: avg("comments"),
-      avg_shares: avg("shares"),
+      total_views: sumOf("views"),
+      total_likes: sumOf("likes"),
+      total_comments: sumOf("comments"),
+      total_shares: sumOf("shares"),
+      total_collects: totalCollects,
+      avg_views: avgOf("views"),
+      avg_likes: avgOf("likes"),
+      avg_comments: avgOf("comments"),
+      avg_shares: avgOf("shares"),
       avg_collects: avgCollects,
-      avg_er: avg("engagement_rate"),
+      avg_er: avgOf("engagement_rate"),
     },
   });
 }

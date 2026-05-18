@@ -17,6 +17,11 @@ interface HeroData {
   benchmarks: {
     videos: number;
     posts_per_week: number;
+    total_views: number;
+    total_likes: number;
+    total_comments: number;
+    total_shares: number;
+    total_collects: number | null;
     avg_views: number;
     avg_likes: number;
     avg_comments: number;
@@ -128,14 +133,14 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <div className="hero-benchmarks-wrap">
-          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(genomsnittliga resultat)</span></p>
+          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och i snitt per video)</span></p>
           <div className="hero-benchmarks">
-            <Benchmark icon={<Eye size={14} />} label="Visningar" value={b.avg_views} />
-            <Benchmark icon={<ThumbsUp size={14} />} label="Likes" value={b.avg_likes} />
-            <Benchmark icon={<MessageCircle size={14} />} label="Kommentarer" value={b.avg_comments} />
-            <Benchmark icon={<Share2 size={14} />} label="Delningar" value={b.avg_shares} />
-            {b.avg_collects != null && (
-              <Benchmark icon={<Bookmark size={14} />} label="Favoriter" value={b.avg_collects} />
+            <Benchmark icon={<Eye size={14} />} label="Visningar" total={b.total_views} avg={b.avg_views} />
+            <Benchmark icon={<ThumbsUp size={14} />} label="Likes" total={b.total_likes} avg={b.avg_likes} />
+            <Benchmark icon={<MessageCircle size={14} />} label="Kommentarer" total={b.total_comments} avg={b.avg_comments} />
+            <Benchmark icon={<Share2 size={14} />} label="Delningar" total={b.total_shares} avg={b.avg_shares} />
+            {b.total_collects != null && b.avg_collects != null && (
+              <Benchmark icon={<Bookmark size={14} />} label="Favoriter" total={b.total_collects} avg={b.avg_collects} />
             )}
           </div>
         </div>
@@ -152,13 +157,22 @@ export default function HeroBlock({ handle }: { handle: string }) {
   );
 }
 
-function Benchmark({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function Benchmark({ icon, label, total, avg }: { icon: React.ReactNode; label: string; total: number; avg: number }) {
   return (
     <div className="hero-bench">
-      <span className="hero-bench-icon">{icon}</span>
-      <div>
-        <p className="hero-bench-val">{fmtCompact(value)}</p>
-        <p className="hero-bench-lbl">{label}</p>
+      <div className="hero-bench-header">
+        <span className="hero-bench-icon">{icon}</span>
+        <span className="hero-bench-lbl">{label}</span>
+      </div>
+      <div className="hero-bench-figures">
+        <div className="hero-bench-figure">
+          <span className="hero-bench-val">{fmtCompact(total)}</span>
+          <span className="hero-bench-sub">totalt</span>
+        </div>
+        <div className="hero-bench-figure">
+          <span className="hero-bench-val">{fmtCompact(avg)}</span>
+          <span className="hero-bench-sub">⌀ per video</span>
+        </div>
       </div>
     </div>
   );
@@ -289,15 +303,21 @@ const css = `
   }
   .hero-bench {
     display: inline-flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
-    padding: 0.55rem 0.85rem 0.55rem 0.6rem;
+    padding: 0.7rem 0.85rem;
+    min-width: 132px;
+  }
+  .hero-bench-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .hero-bench-icon {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: #fff;
     display: flex;
@@ -306,18 +326,33 @@ const css = `
     color: rgba(28,27,25,0.7);
     flex-shrink: 0;
   }
+  .hero-bench-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.85);
+  }
+  .hero-bench-figures {
+    display: flex;
+    gap: 14px;
+  }
+  .hero-bench-figure {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
   .hero-bench-val {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
     line-height: 1;
-    margin: 0;
     color: #1C1B19;
   }
-  .hero-bench-lbl {
-    font-size: 12px;
-    color: rgba(28,27,25,0.55);
-    margin: 2px 0 0;
+  .hero-bench-sub {
+    font-size: 11px;
+    color: rgba(28,27,25,0.5);
     line-height: 1;
   }
 

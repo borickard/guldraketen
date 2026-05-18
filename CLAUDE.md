@@ -473,6 +473,16 @@ Implementation: klient-komponent med `useState` per rad eller en gemensam `openI
   - Alternativ att utvärdera: Stripe (global, bra Next.js-integration), Billogram (svensk faktura), Swish (engångsbetalning), Paddle (VAT-hantering ingår)
   - Stripe Checkout med månads-/årsplan är troligen enklast att integrera med Supabase Auth + Row Level Security
 
+### Instagram-tracking (endast dashboard)
+Lägg till Apify-scraping av Instagram-konton parallellt med TikTok, men exponera ENDAST i dashboarden (inte i den publika topplistan / Hall of Fame). Tanken: dashboard-användare ska se sitt företags resultat på båda plattformarna sida vid sida.
+
+Implementationsskiss:
+- Ny tabell `instagram_videos` (samma form som `videos` men för Instagram-posts), eller utöka `videos` med en `platform`-kolumn
+- Ny Apify-actor (`apify/instagram-profile-scraper` eller liknande) — kör veckovis för dashboard-kopplade IG-handles
+- `user_handles` kan utökas med en `platform`-kolumn så ett konto kan ha TikTok-handle + IG-handle kopplade till samma user
+- Dashboarden får en plattformsväljare (TikTok/Instagram) eller visar båda i samma vy
+- Topplista och Hall of Fame förblir TikTok-only — politikinsikt om kanalrättvisa undviks
+
 ### LinkedIn-delning via admin
 - Manuell trigger av LinkedIn-post med veckans topp-video
 
