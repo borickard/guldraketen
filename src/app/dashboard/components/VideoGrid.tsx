@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
 import "react-day-picker/style.css";
 
 interface Video {
@@ -493,14 +494,14 @@ export default function VideoGrid({ handle }: { handle?: string }) {
               const s = item.stats;
               const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
               const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
-              const rows: { label: string; total: number; avg: number }[] = [
-                { label: "Visningar", total: s.views, avg: avg(s.views) },
-                { label: "Likes", total: s.likes, avg: avg(s.likes) },
-                { label: "Kommentarer", total: s.comments, avg: avg(s.comments) },
-                { label: "Delningar", total: s.shares, avg: avg(s.shares) },
+              const rows: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+                { label: "Visningar", icon: <Eye size={16} />, total: s.views, avg: avg(s.views) },
+                { label: "Likes", icon: <ThumbsUp size={16} />, total: s.likes, avg: avg(s.likes) },
+                { label: "Kommentarer", icon: <MessageCircle size={16} />, total: s.comments, avg: avg(s.comments) },
+                { label: "Delningar", icon: <Share2 size={16} />, total: s.shares, avg: avg(s.shares) },
               ];
               if (s.collects != null && s.collectsTracked > 0) {
-                rows.push({ label: "Favoriter", total: s.collects, avg: s.collects / s.collectsTracked });
+                rows.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: s.collects, avg: s.collects / s.collectsTracked });
               }
               return (
                 <div key={item.key} className="vg-card vg-card--stats">
@@ -512,8 +513,8 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                   </div>
                   <ul className="vg-stats-card-list">
                     {rows.map((r) => (
-                      <li key={r.label}>
-                        <span className="vg-stats-row-lbl">{r.label}</span>
+                      <li key={r.label} title={r.label}>
+                        <span className="vg-stats-row-icon" aria-label={r.label}>{r.icon}</span>
                         <span className="vg-stats-row-val">{fmtNum(r.total)}</span>
                         <span className="vg-stats-row-val">{fmtNum(r.avg)}</span>
                       </li>
@@ -751,6 +752,7 @@ const css = `
     background: rgba(28,27,25,0.04);
     border: 1.5px solid rgba(28,27,25,0.08);
     gap: 0.85rem;
+    align-self: stretch;
   }
   .vg-stats-card-title {
     font-family: 'Barlow Condensed', sans-serif;
@@ -763,8 +765,8 @@ const css = `
   }
   .vg-stats-card-header {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    column-gap: 12px;
+    grid-template-columns: 28px 1fr 1fr;
+    column-gap: 18px;
     padding-bottom: 4px;
     border-bottom: 1px solid rgba(28,27,25,0.08);
   }
@@ -781,26 +783,29 @@ const css = `
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
     flex: 1;
+    justify-content: space-around;
+    gap: 0.5rem;
   }
   .vg-stats-card-list li {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    column-gap: 12px;
-    align-items: baseline;
+    grid-template-columns: 28px 1fr 1fr;
+    column-gap: 18px;
+    align-items: center;
   }
-  .vg-stats-row-lbl {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(28,27,25,0.75);
+  .vg-stats-row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    color: rgba(28,27,25,0.7);
   }
   .vg-stats-row-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     color: #1C1B19;
     text-align: right;
