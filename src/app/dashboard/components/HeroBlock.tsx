@@ -35,13 +35,6 @@ function fmt(n: number): string {
   return Math.round(n).toLocaleString("sv-SE");
 }
 
-function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 10_000) return Math.round(n / 1_000) + "k";
-  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
-  return Math.round(n).toString();
-}
-
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -164,14 +157,14 @@ function Benchmark({ icon, label, total, avg }: { icon: React.ReactNode; label: 
         <span className="hero-bench-icon">{icon}</span>
         <span className="hero-bench-lbl">{label}</span>
       </div>
-      <div className="hero-bench-figures">
-        <div className="hero-bench-figure">
-          <span className="hero-bench-val">{fmtCompact(total)}</span>
-          <span className="hero-bench-sub">totalt</span>
+      <div className="hero-bench-rows">
+        <div className="hero-bench-row">
+          <span className="hero-bench-row-lbl">Totalt</span>
+          <span className="hero-bench-row-val">{fmt(total)}</span>
         </div>
-        <div className="hero-bench-figure">
-          <span className="hero-bench-val">{fmtCompact(avg)}</span>
-          <span className="hero-bench-sub">⌀ per video</span>
+        <div className="hero-bench-row">
+          <span className="hero-bench-row-lbl">Genomsnitt</span>
+          <span className="hero-bench-row-val">{fmt(avg)}</span>
         </div>
       </div>
     </div>
@@ -304,11 +297,10 @@ const css = `
   .hero-bench {
     display: inline-flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
-    padding: 0.7rem 0.85rem;
-    min-width: 132px;
+    padding: 0.7rem 0.95rem;
   }
   .hero-bench-header {
     display: flex;
@@ -334,26 +326,28 @@ const css = `
     text-transform: uppercase;
     color: rgba(28,27,25,0.85);
   }
-  .hero-bench-figures {
-    display: flex;
-    gap: 14px;
+  .hero-bench-rows {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 18px;
+    row-gap: 3px;
+    align-items: baseline;
   }
-  .hero-bench-figure {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
+  .hero-bench-row {
+    display: contents;
   }
-  .hero-bench-val {
+  .hero-bench-row-lbl {
+    font-size: 12px;
+    color: rgba(28,27,25,0.55);
+    font-weight: 500;
+  }
+  .hero-bench-row-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    line-height: 1;
     color: #1C1B19;
-  }
-  .hero-bench-sub {
-    font-size: 11px;
-    color: rgba(28,27,25,0.5);
-    line-height: 1;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 
   .hero-meta-line {

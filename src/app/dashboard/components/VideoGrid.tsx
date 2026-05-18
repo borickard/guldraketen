@@ -491,11 +491,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
 
             if (item.type === "stats") {
               const s = item.stats;
-              const fmtNum = (n: number) => n >= 1_000_000
-                ? (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M"
-                : n >= 10_000 ? Math.round(n / 1_000) + "k"
-                : n >= 1_000 ? (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k"
-                : Math.round(n).toString();
+              const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
               const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
               const rows: { label: string; total: number; avg: number }[] = [
                 { label: "Visningar", total: s.views, avg: avg(s.views) },
@@ -509,14 +505,17 @@ export default function VideoGrid({ handle }: { handle?: string }) {
               return (
                 <div key={item.key} className="vg-card vg-card--stats">
                   <p className="vg-stats-card-title">{s.count} {s.count === 1 ? "video" : "videor"}</p>
+                  <div className="vg-stats-card-header">
+                    <span></span>
+                    <span className="vg-stats-col-lbl">Totalt</span>
+                    <span className="vg-stats-col-lbl">Genomsnitt</span>
+                  </div>
                   <ul className="vg-stats-card-list">
                     {rows.map((r) => (
                       <li key={r.label}>
-                        <span className="vg-stats-card-lbl">{r.label}</span>
-                        <span className="vg-stats-card-nums">
-                          <strong>{fmtNum(r.total)}</strong>
-                          <span className="vg-stats-card-avg">⌀ {fmtNum(r.avg)}</span>
-                        </span>
+                        <span className="vg-stats-row-lbl">{r.label}</span>
+                        <span className="vg-stats-row-val">{fmtNum(r.total)}</span>
+                        <span className="vg-stats-row-val">{fmtNum(r.avg)}</span>
                       </li>
                     ))}
                   </ul>
@@ -746,22 +745,35 @@ const css = `
     overflow: hidden;
   }
 
-  /* Per-group stats card — sits as the first item of each section */
+  /* Per-group stats card — sits as the first card of each section, matches video card height */
   .vg-card--stats {
-    padding: 0.85rem 0.95rem;
+    padding: 1rem 1.1rem;
     background: rgba(28,27,25,0.04);
     border: 1.5px solid rgba(28,27,25,0.08);
-    justify-content: space-between;
-    gap: 0.6rem;
+    gap: 0.85rem;
   }
   .vg-stats-card-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(28,27,25,0.6);
     margin: 0;
+  }
+  .vg-stats-card-header {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+  }
+  .vg-stats-col-lbl {
+    font-size: 11px;
+    color: rgba(28,27,25,0.55);
+    text-align: right;
+    font-weight: 500;
+    letter-spacing: 0.04em;
   }
   .vg-stats-card-list {
     list-style: none;
@@ -769,41 +781,37 @@ const css = `
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.65rem;
+    flex: 1;
   }
   .vg-stats-card-list li {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .vg-stats-card-lbl {
-    font-size: 11px;
-    color: rgba(28,27,25,0.55);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .vg-stats-card-nums {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 12px;
     align-items: baseline;
-    gap: 6px;
   }
-  .vg-stats-card-nums strong {
+  .vg-stats-row-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.75);
+  }
+  .vg-stats-row-val {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 16px;
     font-weight: 700;
     color: #1C1B19;
-  }
-  .vg-stats-card-avg {
-    font-size: 11px;
-    color: rgba(28,27,25,0.5);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
   .vg-stats-card-er {
     margin: 0;
-    padding-top: 0.5rem;
+    padding-top: 0.65rem;
     border-top: 1px solid rgba(28,27,25,0.08);
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
