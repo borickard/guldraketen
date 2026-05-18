@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
 import "react-day-picker/style.css";
 
 interface Video {
@@ -26,9 +27,43 @@ type BoostFilter = "all" | "organic" | "boosted";
 
 type SortKey = "newest" | "oldest" | "er" | "views" | "likes" | "comments" | "shares";
 
+interface GroupStats {
+  count: number;
+  views: number; likes: number; comments: number; shares: number;
+  collects: number | null;
+  collectsTracked: number;
+  avgEr: number | null;
+}
+
 type GridItem =
-  | { type: "group"; label: string; key: string }
+  | { type: "group"; label: string; key: string; avgEr: number | null }
+  | { type: "stats"; key: string; stats: GroupStats; label: string }
   | { type: "video"; video: Video };
+
+function computeGroupStats(videos: Video[]): GroupStats {
+  const sum = (k: keyof Video) =>
+    videos.reduce((s, v) => s + Number(v[k] ?? 0), 0);
+  const ers = videos
+    .map((v) => (v.engagement_rate != null ? Number(v.engagement_rate) : null))
+    .filter((n): n is number => n != null && !isNaN(n));
+  const collectVids = videos.filter((v) => v.collect_count != null);
+  return {
+    count: videos.length,
+    views: sum("views"),
+    likes: sum("likes"),
+    comments: sum("comments"),
+    shares: sum("shares"),
+    collects: collectVids.length > 0
+      ? collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0)
+      : null,
+    collectsTracked: collectVids.length,
+    avgEr: ers.length > 0 ? ers.reduce((s, n) => s + n, 0) / ers.length : null,
+  };
+}
+
+function avgEngagement(videos: Video[]): number | null {
+  return computeGroupStats(videos).avgEr;
+}
 
 const MONTH_NAMES_SV = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
 
@@ -87,7 +122,10 @@ function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
 
   const items: GridItem[] = [];
   for (const key of sortedKeys) {
-    items.push({ type: "group", label: key, key: `g-${key}` });
+    const groupVids = groups.get(key)!;
+    const stats = computeGroupStats(groupVids);
+    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: stats.avgEr });
+    items.push({ type: "stats", key: `s-${key}`, stats, label: key });
     for (const v of sorted(groups.get(key)!, sort)) {
       items.push({ type: "video", video: v });
     }
@@ -444,8 +482,50 @@ export default function VideoGrid({ handle }: { handle?: string }) {
         <div className="vg-grid">
           {items.map((item) => {
             if (item.type === "group") return (
-              <div key={item.key} className="vg-week-label">{item.label}</div>
+              <div key={item.key} className="vg-week-label">
+                <span>{item.label}</span>
+                {item.avgEr != null && (
+                  <span className="vg-group-er">⌀ ER {item.avgEr.toFixed(2)}%</span>
+                )}
+              </div>
             );
+
+            if (item.type === "stats") {
+              const s = item.stats;
+              const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
+              const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
+              const rows: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+                { label: "Visningar", icon: <Eye size={16} />, total: s.views, avg: avg(s.views) },
+                { label: "Likes", icon: <ThumbsUp size={16} />, total: s.likes, avg: avg(s.likes) },
+                { label: "Kommentarer", icon: <MessageCircle size={16} />, total: s.comments, avg: avg(s.comments) },
+                { label: "Delningar", icon: <Share2 size={16} />, total: s.shares, avg: avg(s.shares) },
+              ];
+              if (s.collects != null && s.collectsTracked > 0) {
+                rows.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: s.collects, avg: s.collects / s.collectsTracked });
+              }
+              return (
+                <div key={item.key} className="vg-card vg-card--stats">
+                  <p className="vg-stats-card-title">{s.count} {s.count === 1 ? "video" : "videor"}</p>
+                  <div className="vg-stats-card-header">
+                    <span></span>
+                    <span className="vg-stats-col-lbl">Totalt</span>
+                    <span className="vg-stats-col-lbl">Genomsnitt</span>
+                  </div>
+                  <ul className="vg-stats-card-list">
+                    {rows.map((r) => (
+                      <li key={r.label} title={r.label}>
+                        <span className="vg-stats-row-icon" aria-label={r.label}>{r.icon}</span>
+                        <span className="vg-stats-row-val">{fmtNum(r.total)}</span>
+                        <span className="vg-stats-row-val">{fmtNum(r.avg)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {s.avgEr != null && (
+                    <p className="vg-stats-card-er">⌀ ER {s.avgEr.toFixed(2)}%</p>
+                  )}
+                </div>
+              );
+            }
 
             const v = item.video;
             const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
@@ -628,15 +708,26 @@ const css = `
   /* Week label spans full row */
   .vg-week-label {
     grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #888;
-    padding: 1rem 0 0.25rem;
+    padding: 1rem 0 0.35rem;
     border-top: 1px solid rgba(28,27,25,0.12);
     margin-top: 0.25rem;
+  }
+  .vg-group-er {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: rgba(28,27,25,0.7);
   }
 
   .vg-week-label:first-child {
@@ -653,6 +744,83 @@ const css = `
     border: 1.5px solid rgba(28,27,25,0.1);
     border-radius: 12px;
     overflow: hidden;
+  }
+
+  /* Per-group stats card — sits as the first card of each section, matches video card height */
+  .vg-card--stats {
+    padding: 1rem 1.1rem;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.1);
+    gap: 0.85rem;
+    align-self: stretch;
+  }
+  .vg-stats-card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.6);
+    margin: 0;
+  }
+  .vg-stats-card-header {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr;
+    column-gap: 18px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+  }
+  .vg-stats-col-lbl {
+    font-size: 11px;
+    color: rgba(28,27,25,0.55);
+    text-align: right;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .vg-stats-card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-around;
+    gap: 0.5rem;
+  }
+  .vg-stats-card-list li {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr;
+    column-gap: 18px;
+    align-items: center;
+  }
+  .vg-stats-row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    color: rgba(28,27,25,0.7);
+  }
+  .vg-stats-row-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1C1B19;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .vg-stats-card-er {
+    margin: 0;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(28,27,25,0.08);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1C1B19;
   }
 
   /* Thumbnail: 4:5 */

@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+
+// Returns hero data for a single handle: follower trend + per-video benchmarks.
+
+const TREND_DAYS = 30;
+
+function roundingStep(followers: number): number {
+  if (followers < 1000) return 1;
+  if (followers < 10000) return 10;
+  if (followers < 100000) return 100;
+  if (followers < 1000000) return 1000;
+  return 100000;
+}
+
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const session = token ? await verifySession(token) : null;
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const handle = req.nextUrl.searchParams.get("handle");
+  if (!handle || !session.handles.includes(handle)) {
+    return NextResponse.json({ error: "Forbidden handle" }, { status: 403 });
+  }
+
+  // Current followers + identity
+  const { data: account } = await supabaseAdmin
+    .from("accounts")
+    .select("handle, display_name, avatar_url, followers, created_at")
+    .eq("handle", handle)
+    .single();
+
+  if (!account) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Follower history — last TREND_DAYS days
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - TREND_DAYS);
+  const sinceDate = since.toISOString().slice(0, 10);
+
+  const { data: history } = await supabaseAdmin
+    .from("follower_history")
+    .select("captured_date, followers")
+    .eq("handle", handle)
+    .gte("captured_date", sinceDate)
+    .order("captured_date", { ascending: true });
+
+  const points = (history ?? []).map((h) => ({
+    date: h.captured_date as string,
+    followers: h.followers as number,
+  }));
+
+  // Delta: compare oldest in window vs current followers
+  const current = account.followers ?? (points.length > 0 ? points[points.length - 1].followers : 0);
+  const earliest = points.length > 0 ? points[0].followers : null;
+  const step = roundingStep(current);
+  let delta: { abs: number; pct: number; meaningful: boolean; days: number } | null = null;
+  if (earliest != null && current != null && points.length > 0) {
+    const days = Math.max(
+      1,
+      Math.round(
+        (new Date(points[points.length - 1].date).getTime() - new Date(points[0].date).getTime()) /
+          86400000
+      )
+    );
+    const abs = current - earliest;
+    const pct = earliest > 0 ? (abs / earliest) * 100 : 0;
+    const meaningful = Math.abs(abs) >= step * 2; // larger than 2× rounding floor
+    delta = { abs, pct, meaningful, days };
+  }
+
+  // Per-video averages (all-time, for hero benchmarks).
+  // Filtered to exclude contest-flagged videos so the numbers reflect normal posts.
+  const { data: videos } = await supabaseAdmin
+    .from("videos")
+    .select("views, likes, comments, shares, collect_count, engagement_rate, published_at")
+    .eq("handle", handle)
+    .or("is_contest.eq.false,contest_approved.eq.true");
+
+  const vids = videos ?? [];
+  const count = vids.length;
+  const sumOf = (k: keyof (typeof vids)[number]) => {
+    const nums = vids.map((v) => Number(v[k] ?? 0)).filter((n) => !isNaN(n));
+    return nums.reduce((s, n) => s + n, 0);
+  };
+  const avgOf = (k: keyof (typeof vids)[number]) => (count === 0 ? 0 : sumOf(k) / count);
+  const collectVids = vids.filter((v) => v.collect_count != null);
+  const totalCollects = collectVids.length > 0
+    ? collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0)
+    : null;
+  const avgCollects = collectVids.length > 0 ? totalCollects! / collectVids.length : null;
+
+  // Posts-per-week computed from actual span (matches existing dashboard logic)
+  const timestamps = vids
+    .filter((v) => v.published_at)
+    .map((v) => new Date(v.published_at!).getTime());
+  const spanMs = timestamps.length >= 2 ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
+  const weeksSpan = Math.max(spanMs / (7 * 24 * 3600 * 1000), 1);
+  const postsPerWeek = count / weeksSpan;
+
+  return NextResponse.json({
+    handle: account.handle,
+    display_name: account.display_name,
+    avatar_url: account.avatar_url,
+    tracked_since: account.created_at,
+    followers: {
+      current,
+      history: points,
+      delta,
+      rounding_step: step,
+    },
+    benchmarks: {
+      videos: count,
+      posts_per_week: postsPerWeek,
+      total_views: sumOf("views"),
+      total_likes: sumOf("likes"),
+      total_comments: sumOf("comments"),
+      total_shares: sumOf("shares"),
+      total_collects: totalCollects,
+      avg_views: avgOf("views"),
+      avg_likes: avgOf("likes"),
+      avg_comments: avgOf("comments"),
+      avg_shares: avgOf("shares"),
+      avg_collects: avgCollects,
+      avg_er: avgOf("engagement_rate"),
+    },
+  });
+}
