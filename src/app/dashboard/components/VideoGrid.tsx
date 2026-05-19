@@ -528,6 +528,17 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                       ))}
                     </div>
                   </div>
+                  <div className="vg-section-chips">
+                    {cols.map((c) => (
+                      <div key={c.label} className="vg-section-chip" title={c.label}>
+                        <span className="vg-section-chip-icon">{c.icon}</span>
+                        <div className="vg-section-chip-nums">
+                          <span className="vg-section-chip-total">{fmtNum(c.total)}</span>
+                          <span className="vg-section-chip-avg">{fmtNum(c.avg)} snitt</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             }
@@ -769,7 +780,7 @@ const css = `
     margin-bottom: 4px;
   }
   .vg-section-col-head {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
@@ -800,16 +811,53 @@ const css = `
     font-variant-numeric: tabular-nums;
   }
 
+  /* Chip variant — used on mobile instead of the wide table */
+  .vg-section-chips {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .vg-section-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(28,27,25,0.04);
+    border-radius: 10px;
+    padding: 6px 10px;
+  }
+  .vg-section-chip-icon {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    align-items: center;
+    justify-content: center;
+    color: rgba(28,27,25,0.65);
+    flex-shrink: 0;
+  }
+  .vg-section-chip-nums {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .vg-section-chip-total {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1C1B19;
+    font-variant-numeric: tabular-nums;
+  }
+  .vg-section-chip-avg {
+    font-size: 11px;
+    color: rgba(28,27,25,0.55);
+    font-variant-numeric: tabular-nums;
+  }
+
   @media (max-width: 559px) {
     .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
-    .vg-section-row {
-      grid-template-columns: 56px repeat(5, minmax(54px, 1fr));
-      column-gap: 8px;
-      min-width: 0;
-    }
-    .vg-section-row-lbl { font-size: 12px; }
-    .vg-section-row-val { font-size: 14px; }
-    .vg-section-col-head { justify-content: flex-end; }
+    .vg-section-table { display: none; }
+    .vg-section-chips { display: flex; }
     .vg-section-er { font-size: 13px; }
   }
 

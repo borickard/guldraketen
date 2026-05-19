@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import LogoutButton from "./components/LogoutButton";
+import DashboardHeader from "./components/DashboardHeader";
 import DashboardClient from "./components/DashboardClient";
 
 interface ProfileData {
@@ -82,14 +82,7 @@ export default async function DashboardPage() {
       <style>{styles}</style>
       <div className="db-root">
 
-        <header className="db-header">
-          <a href="/" className="db-wordmark">Sociala Raketer</a>
-          <nav className="db-nav">
-            <a href="/dashboard" className="db-nav-link">Dashboard</a>
-            <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
-          </nav>
-          <LogoutButton />
-        </header>
+        <DashboardHeader />
 
         <main className="db-main">
           {profiles.length === 0 ? (
