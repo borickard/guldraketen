@@ -708,19 +708,27 @@ const css = `
   /* Section head — full-width strip above each week/month grouping */
   .vg-section-head {
     grid-column: 1 / -1;
-    margin-top: 1rem;
-    margin-bottom: 0.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: -0.25rem;
+    background: #fff;
+    border: 1px solid rgba(28,27,25,0.1);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem 1rem;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+  }
+  .vg-grid > .vg-section-head:first-child {
+    margin-top: 0;
   }
   .vg-section-head-top {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.55rem;
   }
   .vg-section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -738,9 +746,8 @@ const css = `
     gap: 4px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-top: 1px solid rgba(28,27,25,0.12);
-    border-bottom: 1px solid rgba(28,27,25,0.12);
-    padding: 0.5rem 0;
+    border-top: 1px solid rgba(28,27,25,0.1);
+    padding-top: 0.6rem;
   }
   .vg-section-row {
     display: grid;
