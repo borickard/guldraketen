@@ -580,6 +580,9 @@ const css = `
 
   .vg-toolbar {
     margin-bottom: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .vg-toolbar-row {
@@ -651,12 +654,13 @@ const css = `
   }
   .vg-segment-btn {
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.05em;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
     color: rgba(28,27,25,0.6);
     background: transparent;
     border: none;
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 999px;
     cursor: pointer;
     transition: background 0.12s, color 0.12s;

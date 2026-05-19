@@ -82,13 +82,23 @@ export default function HeroBlock({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    // Don't blank out existing data while fetching — just swap it in when ready.
+    // Only show the initial loading state on first load (when data is still null).
+    const isInitial = data === null;
+    if (isInitial) setLoading(true);
     const params = new URLSearchParams({ handle });
     if (boost !== "all") params.set("boost", boost);
+    let cancelled = false;
     fetch(`/api/dashboard/hero?${params}`)
       .then((r) => r.json())
-      .then((d) => { setData(d?.error ? null : d); setLoading(false); })
-      .catch(() => { setData(null); setLoading(false); });
+      .then((d) => {
+        if (cancelled) return;
+        if (!d?.error) setData(d);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, boost]);
 
   if (loading || !data) {
@@ -142,9 +152,9 @@ export default function HeroBlock({
             <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
             <div className="hero-boost-pills">
               {([
-                { key: "all",     label: "Alla"     },
-                { key: "organic", label: "Organisk" },
-                { key: "boosted", label: "Boostad"  },
+                { key: "all",     label: "Allt"      },
+                { key: "organic", label: "Organiskt" },
+                { key: "boosted", label: "Boostat"   },
               ] as { key: BoostFilter; label: string }[]).map((b) => (
                 <button
                   key={b.key}

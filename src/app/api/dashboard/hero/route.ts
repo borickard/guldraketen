@@ -6,6 +6,23 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 
 const TREND_DAYS = 30;
 
+// Temporary toggle for previewing the follower-trend UI with synthetic data
+// before we have enough real history accumulated. Flip back to false before
+// any user-facing release.
+const USE_FAKE_FOLLOWER_HISTORY = true;
+
+function fakeFollowerHistory(): { date: string; followers: number }[] {
+  // 14 datapoints spread across the last 30 days, mid-low growth on a
+  // small-account profile so rounding noise doesn't kick in.
+  const seed = [1500, 1510, 1530, 1545, 1555, 1570, 1620, 1680, 1720, 1740, 1760, 1790, 1830, 1890];
+  const daysAgo = [30, 28, 25, 22, 20, 18, 15, 12, 10, 8, 6, 4, 2, 0];
+  return seed.map((followers, i) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - daysAgo[i]);
+    return { date: d.toISOString().slice(0, 10), followers };
+  });
+}
+
 function roundingStep(followers: number): number {
   if (followers < 1000) return 1;
   if (followers < 10000) return 10;
@@ -45,13 +62,22 @@ export async function GET(req: NextRequest) {
     .gte("captured_date", sinceDate)
     .order("captured_date", { ascending: true });
 
-  const points = (history ?? []).map((h) => ({
+  let points = (history ?? []).map((h) => ({
     date: h.captured_date as string,
     followers: h.followers as number,
   }));
 
+  // Synthetic data overlay for previewing the trend UI before we've
+  // accumulated enough real history. Disable before deploying live.
+  if (USE_FAKE_FOLLOWER_HISTORY) {
+    points = fakeFollowerHistory();
+  }
+
   // Delta: compare oldest in window vs current followers
-  const current = account.followers ?? (points.length > 0 ? points[points.length - 1].followers : 0);
+  const currentRealOrFake = USE_FAKE_FOLLOWER_HISTORY
+    ? points[points.length - 1]?.followers ?? 0
+    : account.followers ?? (points.length > 0 ? points[points.length - 1].followers : 0);
+  const current = currentRealOrFake;
   const earliest = points.length > 0 ? points[0].followers : null;
   const step = roundingStep(current);
   let delta: { abs: number; pct: number; meaningful: boolean; days: number } | null = null;
