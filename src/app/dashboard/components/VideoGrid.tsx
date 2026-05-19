@@ -348,7 +348,9 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
               <span className="vg-section-chip-icon"><Flame size={14} /></span>
               <div className="vg-section-chip-nums">
                 <span className="vg-section-chip-total">{s.avgEr.toFixed(2)}%</span>
-                <span className="vg-section-chip-avg">viktad</span>
+                <span className="vg-section-chip-avg">
+                  <span className="vg-section-chip-avg-suffix">viktad</span>
+                </span>
               </div>
             </div>
           )}
@@ -357,7 +359,10 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
               <span className="vg-section-chip-icon">{c.icon}</span>
               <div className="vg-section-chip-nums">
                 <span className="vg-section-chip-total">{fmtNum(c.total)}</span>
-                <span className="vg-section-chip-avg">{fmtNum(c.avg)} snitt</span>
+                <span className="vg-section-chip-avg">
+                  <span className="vg-section-chip-avg-val">{fmtNum(c.avg)}</span>
+                  <span className="vg-section-chip-avg-suffix"> snitt</span>
+                </span>
               </div>
             </div>
           ))}
@@ -825,23 +830,39 @@ const css = `
   .vg-section-chip-nums {
     display: flex;
     flex-direction: column;
+    gap: 2px;
     line-height: 1.1;
   }
+  /* Desktop sizing matches the hero benchmark chips */
   .vg-section-chip-total {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 15px;
+    font-size: 1.45rem;
     font-weight: 700;
+    line-height: 1;
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
   }
   .vg-section-chip-avg {
-    font-size: 11px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
     color: rgba(28,27,25,0.55);
     font-variant-numeric: tabular-nums;
+  }
+  .vg-section-chip-avg-val { font-weight: 600; }
+  .vg-section-chip-avg-suffix {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(28,27,25,0.45);
+    letter-spacing: 0.02em;
   }
 
   @media (max-width: 559px) {
     .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
+    .vg-section-chip-total { font-size: 18px; }
+    .vg-section-chip-avg { font-size: 15px; }
     .vg-section-er { font-size: 13px; }
   }
 
