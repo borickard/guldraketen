@@ -127,25 +127,17 @@ export default function HeroBlock({ handle }: { handle: string }) {
 
         <div className="hero-benchmarks-wrap">
           <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
-          <div className="hero-bench-table">
-            <div className="hero-bench-row hero-bench-row--head">
-              <span />
-              {benchCols(b).map((c) => (
-                <span key={c.label} className="hero-bench-col-head" title={c.label}>{c.icon}</span>
-              ))}
-            </div>
-            <div className="hero-bench-row">
-              <span className="hero-bench-row-lbl">Totalt</span>
-              {benchCols(b).map((c) => (
-                <span key={c.label} className="hero-bench-row-val">{fmt(c.total)}</span>
-              ))}
-            </div>
-            <div className="hero-bench-row">
-              <span className="hero-bench-row-lbl">Snitt</span>
-              {benchCols(b).map((c) => (
-                <span key={c.label} className="hero-bench-row-val">{fmt(c.avg)}</span>
-              ))}
-            </div>
+          <div className="hero-benchmarks">
+            {benchCols(b).map((c) => (
+              <div key={c.label} className="hero-bench">
+                <div className="hero-bench-header">
+                  <span className="hero-bench-icon">{c.icon}</span>
+                  <span className="hero-bench-lbl">{c.label}</span>
+                </div>
+                <p className="hero-bench-total">{fmt(c.total)}</p>
+                <p className="hero-bench-avg">{fmt(c.avg)} <span className="hero-bench-avg-suffix">snitt</span></p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -287,46 +279,72 @@ const css = `
   .hero-delta-val.down { color: #9c2828; }
   .hero-delta-period { color: rgba(28,27,25,0.5); }
 
-  /* Benchmarks table: icon at top of each column, two value rows below */
+  /* Benchmarks: rounded chip per metric */
   .hero-benchmarks-wrap {
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
-  .hero-bench-table {
+  .hero-benchmarks {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
-  .hero-bench-row {
-    display: grid;
-    grid-template-columns: 110px repeat(5, 1fr);
-    column-gap: 14px;
-    align-items: center;
-  }
-  .hero-bench-row--head {
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(28,27,25,0.08);
-    margin-bottom: 4px;
-  }
-  .hero-bench-col-head {
+  .hero-bench {
     display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(28,27,25,0.04);
+    border-radius: 10px;
+    padding: 0.7rem 0.95rem;
+    min-width: 130px;
+  }
+  .hero-bench-header {
+    display: flex;
     align-items: center;
-    justify-content: flex-end;
-    color: rgba(28,27,25,0.6);
+    gap: 6px;
   }
-  .hero-bench-row-lbl {
-    font-size: 13px;
-    color: rgba(28,27,25,0.6);
-    font-weight: 600;
+  .hero-bench-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(28,27,25,0.7);
+    flex-shrink: 0;
   }
-  .hero-bench-row-val {
+  .hero-bench-lbl {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.05rem;
+    font-size: 13px;
     font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.85);
+  }
+  .hero-bench-total {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1;
     color: #1C1B19;
-    text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  .hero-bench-avg {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(28,27,25,0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-bench-avg-suffix {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(28,27,25,0.45);
+    letter-spacing: 0.02em;
   }
 
   .hero-meta-line {

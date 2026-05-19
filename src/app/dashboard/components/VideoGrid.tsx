@@ -481,7 +481,12 @@ export default function VideoGrid({ handle }: { handle?: string }) {
           {items.map((item) => {
             if (item.type === "group") {
               const s = item.stats;
-              const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
+              const fmtNum = (n: number) => {
+                const abs = Math.abs(n);
+                if (abs >= 1_000_000) return (n / 1_000_000).toFixed(3).replace(".", ",") + " M";
+                if (abs >= 1_000) return (n / 1_000).toFixed(1).replace(".", ",") + " K";
+                return Math.round(n).toLocaleString("sv-SE");
+              };
               const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
               const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
                 { label: "Visningar", icon: <Eye size={14} />, total: s.views, avg: avg(s.views) },
@@ -511,19 +516,13 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                       ))}
                     </div>
                     <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">
-                        <span className="vg-lbl-long">Totalt</span>
-                        <span className="vg-lbl-short">Tot.</span>
-                      </span>
+                      <span className="vg-section-row-lbl">TOTALT</span>
                       {cols.map((c) => (
                         <span key={c.label} className="vg-section-row-val">{fmtNum(c.total)}</span>
                       ))}
                     </div>
                     <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">
-                        <span className="vg-lbl-long">Genomsnittligt</span>
-                        <span className="vg-lbl-short">Snitt</span>
-                      </span>
+                      <span className="vg-section-row-lbl">SNITT</span>
                       {cols.map((c) => (
                         <span key={c.label} className="vg-section-row-val">{fmtNum(c.avg)}</span>
                       ))}
@@ -747,8 +746,6 @@ const css = `
     color: rgba(28,27,25,0.65);
   }
 
-  /* Long/short label swap for mobile */
-  .vg-lbl-short { display: none; }
   .vg-section-col-label { display: none; }
   .vg-section-table {
     display: flex;
@@ -812,10 +809,7 @@ const css = `
     }
     .vg-section-row-lbl { font-size: 12px; }
     .vg-section-row-val { font-size: 14px; }
-    .vg-section-col-label { display: none; }
     .vg-section-col-head { justify-content: flex-end; }
-    .vg-lbl-long { display: none; }
-    .vg-lbl-short { display: inline; }
     .vg-section-er { font-size: 13px; }
   }
 
