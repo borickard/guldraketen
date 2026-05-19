@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
-import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
 import "react-day-picker/style.css";
 
 interface Video {
@@ -322,11 +322,17 @@ export default function VideoGrid({ handle }: { handle?: string }) {
       <div className="vg-section-head">
         <p className="vg-section-head-top">
           <span className="vg-section-title">{sec.label}</span>
-          {s.avgEr != null && (
-            <span className="vg-section-er">— Engagement rate: {s.avgEr.toFixed(2)}%</span>
-          )}
         </p>
         <div className="vg-section-chips">
+          {s.avgEr != null && (
+            <div className="vg-section-chip vg-section-chip--er" title="Eng.rate">
+              <span className="vg-section-chip-icon"><Flame size={14} /></span>
+              <div className="vg-section-chip-nums">
+                <span className="vg-section-chip-total">{s.avgEr.toFixed(2)}%</span>
+                <span className="vg-section-chip-avg">viktad</span>
+              </div>
+            </div>
+          )}
           {cols.map((c) => (
             <div key={c.label} className="vg-section-chip" title={c.label}>
               <span className="vg-section-chip-icon">{c.icon}</span>
@@ -761,6 +767,12 @@ const css = `
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+  .vg-section-chip--er {
+    background: rgba(232, 17, 106, 0.06);
+  }
+  .vg-section-chip--er .vg-section-chip-icon {
+    color: #C8962A;
   }
   .vg-section-chip {
     display: inline-flex;

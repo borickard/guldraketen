@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
 
 interface HeroData {
   handle: string;
@@ -128,6 +128,16 @@ export default function HeroBlock({ handle }: { handle: string }) {
         <div className="hero-benchmarks-wrap">
           <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
           <div className="hero-benchmarks">
+            {b.avg_er > 0 && (
+              <div className="hero-bench hero-bench--er">
+                <div className="hero-bench-header">
+                  <span className="hero-bench-icon"><Flame size={14} /></span>
+                  <span className="hero-bench-lbl">Eng.rate*</span>
+                </div>
+                <p className="hero-bench-total">{b.avg_er.toFixed(2)}%</p>
+                <p className="hero-bench-avg"><span className="hero-bench-avg-suffix">viktad</span></p>
+              </div>
+            )}
             {benchCols(b).map((c) => (
               <div key={c.label} className="hero-bench">
                 <div className="hero-bench-header">
@@ -146,7 +156,9 @@ export default function HeroBlock({ handle }: { handle: string }) {
           {b.posts_per_week >= 1
             ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
             : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
-          {b.avg_er > 0 && `  ·  Snitt engagemang ${b.avg_er.toFixed(2)} %`}
+        </p>
+        <p className="hero-disclaimer">
+          *Viktad engagement rate, där interaktioner multipliceras enligt följande. Likes × 1, kommentarer × 5, delningar × 10, favoriter × 5. Detta för att bättre reflektera engagemang från publiken — alla interaktioner är inte värda lika mycket. En delning väger tyngre än en like.
         </p>
       </div>
     </>
@@ -353,6 +365,18 @@ const css = `
     color: rgba(28,27,25,0.5);
     padding-top: 0.85rem;
     border-top: 1px solid rgba(28,27,25,0.08);
+  }
+  .hero-disclaimer {
+    margin: 0.5rem 0 0;
+    font-size: 12px;
+    color: rgba(28,27,25,0.45);
+    line-height: 1.5;
+  }
+  .hero-bench--er {
+    background: rgba(232, 17, 106, 0.06);
+  }
+  .hero-bench--er .hero-bench-icon {
+    color: #C8962A;
   }
 
   @media (max-width: 559px) {
