@@ -67,17 +67,29 @@ function Sparkline({ points }: { points: { date: string; followers: number }[] }
   );
 }
 
-export default function HeroBlock({ handle }: { handle: string }) {
+type BoostFilter = "all" | "organic" | "boosted";
+
+export default function HeroBlock({
+  handle,
+  boost,
+  onBoostChange,
+}: {
+  handle: string;
+  boost: BoostFilter;
+  onBoostChange: (b: BoostFilter) => void;
+}) {
   const [data, setData] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/dashboard/hero?handle=${encodeURIComponent(handle)}`)
+    const params = new URLSearchParams({ handle });
+    if (boost !== "all") params.set("boost", boost);
+    fetch(`/api/dashboard/hero?${params}`)
       .then((r) => r.json())
       .then((d) => { setData(d?.error ? null : d); setLoading(false); })
       .catch(() => { setData(null); setLoading(false); });
-  }, [handle]);
+  }, [handle, boost]);
 
   if (loading || !data) {
     return <div className="hero-loading">Laddar…</div>;
@@ -126,7 +138,24 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <div className="hero-benchmarks-wrap">
-          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
+          <div className="hero-benchmarks-head">
+            <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
+            <div className="hero-boost-pills">
+              {([
+                { key: "all",     label: "Alla"     },
+                { key: "organic", label: "Organisk" },
+                { key: "boosted", label: "Boostad"  },
+              ] as { key: BoostFilter; label: string }[]).map((b) => (
+                <button
+                  key={b.key}
+                  className={"hero-boost-pill" + (boost === b.key ? " active" : "")}
+                  onClick={() => onBoostChange(b.key)}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="hero-benchmarks">
             {b.avg_er > 0 && (
               <div className="hero-bench hero-bench--er">
@@ -296,6 +325,39 @@ const css = `
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
+  .hero-benchmarks-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .hero-boost-pills {
+    display: inline-flex;
+    background: rgba(28,27,25,0.06);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .hero-boost-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(28,27,25,0.6);
+    background: transparent;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .hero-boost-pill:hover { color: #1C1B19; }
+  .hero-boost-pill.active {
+    background: #fff;
+    color: #1C1B19;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.08);
+  }
   .hero-benchmarks {
     display: flex;
     flex-wrap: wrap;
@@ -367,7 +429,7 @@ const css = `
     border-top: 1px solid rgba(28,27,25,0.08);
   }
   .hero-disclaimer {
-    margin: 0.5rem 0 0;
+    margin: 2px 0 0;
     font-size: 12px;
     color: rgba(28,27,25,0.45);
     line-height: 1.5;

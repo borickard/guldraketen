@@ -158,7 +158,6 @@ type Filters = {
   likes_min: string; likes_max: string;
   comments_min: string; comments_max: string;
   shares_min: string; shares_max: string;
-  boost: BoostFilter;
 };
 
 const EMPTY_FILTERS: Filters = {
@@ -167,10 +166,9 @@ const EMPTY_FILTERS: Filters = {
   likes_min: "", likes_max: "",
   comments_min: "", comments_max: "",
   shares_min: "", shares_max: "",
-  boost: "all",
 };
 
-function applyFilters(videos: Video[], f: Filters): Video[] {
+function applyFilters(videos: Video[], f: Filters, boost: BoostFilter): Video[] {
   return videos.filter((v) => {
     // Date range
     if (f.dateRange?.from && v.published_at) {
@@ -182,8 +180,8 @@ function applyFilters(videos: Video[], f: Filters): Video[] {
       if (new Date(v.published_at) > toEnd) return false;
     }
     // Boost — when filtering, exclude rows without tracked is_ad data
-    if (f.boost === "organic" && v.is_ad !== false) return false;
-    if (f.boost === "boosted" && v.is_ad !== true) return false;
+    if (boost === "organic" && v.is_ad !== false) return false;
+    if (boost === "boosted" && v.is_ad !== true) return false;
     // Numeric ranges
     const check = (val: number | null, min: string, max: string) => {
       const n = val ?? 0;
@@ -202,14 +200,13 @@ function applyFilters(videos: Video[], f: Filters): Video[] {
 
 function activeFilterCount(f: Filters): number {
   const numActive = (Object.keys(f) as (keyof Filters)[])
-    .filter((k) => k !== "dateRange" && k !== "boost")
+    .filter((k) => k !== "dateRange")
     .filter((k) => f[k as NumericFilterKey] !== "").length;
   const dateActive = f.dateRange?.from ? 1 : 0;
-  const boostActive = f.boost !== "all" ? 1 : 0;
-  return numActive + dateActive + boostActive;
+  return numActive + dateActive;
 }
 
-type NumericFilterKey = Exclude<keyof Filters, "dateRange" | "boost">;
+type NumericFilterKey = Exclude<keyof Filters, "dateRange">;
 
 const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey }[] = [
   { label: "Visningar", min: "views_min",    max: "views_max"    },
@@ -218,7 +215,7 @@ const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey
   { label: "Delningar", min: "shares_min",   max: "shares_max"   },
 ];
 
-export default function VideoGrid({ handle }: { handle?: string }) {
+export default function VideoGrid({ handle, boost = "all" }: { handle?: string; boost?: BoostFilter }) {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
@@ -246,10 +243,6 @@ export default function VideoGrid({ handle }: { handle?: string }) {
     if (s && SORTS.find((x) => x.key === s)) setSort(s as SortKey);
     const sc = p.get("scope");
     if (sc === "week" || sc === "month" || sc === "all") setScope(sc);
-    const b = p.get("boost");
-    if (b === "all" || b === "organic" || b === "boosted") {
-      setFilters((prev) => ({ ...prev, boost: b }));
-    }
     const df = p.get("date_from");
     const dt = p.get("date_to");
     if (df || dt) {
@@ -272,7 +265,6 @@ export default function VideoGrid({ handle }: { handle?: string }) {
     const p = new URLSearchParams();
     if (sort !== "newest") p.set("sort", sort);
     if (scope !== "week") p.set("scope", scope);
-    if (filters.boost !== "all") p.set("boost", filters.boost);
     if (filters.dateRange?.from) p.set("date_from", filters.dateRange.from.toISOString().split("T")[0]);
     if (filters.dateRange?.to)   p.set("date_to",   filters.dateRange.to.toISOString().split("T")[0]);
     const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
@@ -295,7 +287,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
   if (loading) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Laddar videor…</p>;
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
-  const filtered = applyFilters(videos, filters);
+  const filtered = applyFilters(videos, filters, boost);
   const structure = buildStructure(filtered, sort, scope);
   const nActive = activeFilterCount(filters);
 
@@ -555,25 +547,6 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                 </div>
               </div>
             ))}
-            {/* Boost filter */}
-            <div className="vg-filter-row">
-              <span className="vg-filter-label">Boost</span>
-              <div className="vg-segment vg-segment--inline">
-                {([
-                  { key: "all",     label: "Alla" },
-                  { key: "organic", label: "Organisk" },
-                  { key: "boosted", label: "Boostad" },
-                ] as { key: BoostFilter; label: string }[]).map((b) => (
-                  <button
-                    key={b.key}
-                    className={`vg-segment-btn${filters.boost === b.key ? " vg-segment-btn--on" : ""}`}
-                    onClick={() => setFilters((p) => ({ ...p, boost: b.key }))}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
