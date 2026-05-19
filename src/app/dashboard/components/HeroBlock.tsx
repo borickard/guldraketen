@@ -79,13 +79,10 @@ export default function HeroBlock({
   onBoostChange: (b: BoostFilter) => void;
 }) {
   const [data, setData] = useState<HeroData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    // Don't blank out existing data while fetching — just swap it in when ready.
-    // Only show the initial loading state on first load (when data is still null).
-    const isInitial = data === null;
-    if (isInitial) setLoading(true);
+    setIsFetching(true);
     const params = new URLSearchParams({ handle });
     if (boost !== "all") params.set("boost", boost);
     let cancelled = false;
@@ -94,27 +91,39 @@ export default function HeroBlock({
       .then((d) => {
         if (cancelled) return;
         if (!d?.error) setData(d);
-        setLoading(false);
+        setIsFetching(false);
       })
-      .catch(() => { if (!cancelled) setLoading(false); });
+      .catch(() => { if (!cancelled) setIsFetching(false); });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, boost]);
 
-  if (loading || !data) {
-    return <div className="hero-loading">Laddar…</div>;
-  }
-
-  const name = data.display_name ?? `@${data.handle}`;
-  const f = data.followers;
-  const b = data.benchmarks;
-  const showDelta = f.delta?.meaningful ?? false;
-  const deltaText = showDelta && f.delta
+  const ready = !!data && !isFetching;
+  const name = data?.display_name ?? (data ? `@${data.handle}` : "");
+  const f = data?.followers;
+  const b = data?.benchmarks;
+  const showDelta = (f?.delta?.meaningful ?? false) && !isFetching;
+  const deltaText = showDelta && f?.delta
     ? `${f.delta.abs > 0 ? "+" : ""}${fmt(f.delta.abs)}  ·  ${f.delta.pct > 0 ? "+" : ""}${f.delta.pct.toFixed(1)} %`
     : null;
-  const deltaLabel = showDelta && f.delta
+  const deltaLabel = showDelta && f?.delta
     ? `senaste ${f.delta.days} ${f.delta.days === 1 ? "dagen" : "dagarna"}`
     : null;
+
+  // Bench columns: when data is present, derive from it; otherwise show the
+  // canonical 5 metric skeleton chips so the layout stays the same.
+  const cols = b
+    ? benchCols(b)
+    : ([
+        { label: "Visningar", icon: <Eye size={14} />, total: 0, avg: 0 },
+        { label: "Likes", icon: <ThumbsUp size={14} />, total: 0, avg: 0 },
+        { label: "Kommentarer", icon: <MessageCircle size={14} />, total: 0, avg: 0 },
+        { label: "Delningar", icon: <Share2 size={14} />, total: 0, avg: 0 },
+        { label: "Favoriter", icon: <Bookmark size={14} />, total: 0, avg: 0 },
+      ] as { label: string; icon: React.ReactNode; total: number; avg: number }[]);
+
+  function Skel({ w, h }: { w: number | string; h?: number | string }) {
+    return <span className="hero-skel" style={{ width: w, height: h ?? "1em" }} aria-hidden />;
+  }
 
   return (
     <>
@@ -122,28 +131,40 @@ export default function HeroBlock({
       <div className="hero-block">
         <div className="hero-top">
           <div className="hero-identity">
-            {data.avatar_url ? (
+            {data?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={data.avatar_url} alt="" className="hero-avatar" />
             ) : (
               <div className="hero-avatar hero-avatar--placeholder" />
             )}
             <div className="hero-identity-info">
-              <h1 className="hero-name">{name}</h1>
-              <p className="hero-handle">@{data.handle}</p>
+              <h1 className="hero-name">
+                {data ? name : <Skel w={180} h={28} />}
+              </h1>
+              <p className="hero-handle">
+                {data ? `@${data.handle}` : <Skel w={120} h={14} />}
+              </p>
             </div>
           </div>
 
           <div className="hero-followers-block">
             <p className="hero-stat-label">Följare</p>
-            <p className="hero-stat-big">{fmt(f.current)}</p>
-            <Sparkline points={f.history} />
-            {deltaText && (
+            <p className="hero-stat-big">
+              {ready && f ? fmt(f.current) : <Skel w={110} h={32} />}
+            </p>
+            {ready && f && f.history.length >= 2 ? (
+              <Sparkline points={f.history} />
+            ) : (
+              <span className="hero-skel" style={{ width: 160, height: 36, display: "block", marginTop: 6 }} aria-hidden />
+            )}
+            {deltaText ? (
               <p className="hero-followers-delta">
-                <span className={`hero-delta-val${(f.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
+                <span className={`hero-delta-val${(f?.delta?.abs ?? 0) >= 0 ? " up" : " down"}`}>{deltaText}</span>
                 <span className="hero-delta-period">  {deltaLabel}</span>
               </p>
-            )}
+            ) : isFetching ? (
+              <p className="hero-followers-delta"><Skel w={180} h={14} /></p>
+            ) : null}
           </div>
         </div>
 
@@ -167,34 +188,44 @@ export default function HeroBlock({
             </div>
           </div>
           <div className="hero-benchmarks">
-            {b.avg_er > 0 && (
-              <div className="hero-bench hero-bench--er">
-                <div className="hero-bench-header">
-                  <span className="hero-bench-icon"><Flame size={14} /></span>
-                  <span className="hero-bench-lbl">Eng.rate*</span>
-                </div>
-                <p className="hero-bench-total">{b.avg_er.toFixed(2)}%</p>
-                <p className="hero-bench-avg"><span className="hero-bench-avg-suffix">viktad</span></p>
+            <div className="hero-bench hero-bench--er">
+              <div className="hero-bench-header">
+                <span className="hero-bench-icon"><Flame size={14} /></span>
+                <span className="hero-bench-lbl">Eng.rate*</span>
               </div>
-            )}
-            {benchCols(b).map((c) => (
+              <p className="hero-bench-total">
+                {ready && b ? `${b.avg_er.toFixed(2)}%` : <Skel w={70} h={20} />}
+              </p>
+              <p className="hero-bench-avg"><span className="hero-bench-avg-suffix">viktad</span></p>
+            </div>
+            {cols.map((c) => (
               <div key={c.label} className="hero-bench">
                 <div className="hero-bench-header">
                   <span className="hero-bench-icon">{c.icon}</span>
                   <span className="hero-bench-lbl">{c.label}</span>
                 </div>
-                <p className="hero-bench-total">{fmt(c.total)}</p>
-                <p className="hero-bench-avg">{fmt(c.avg)} <span className="hero-bench-avg-suffix">snitt</span></p>
+                <p className="hero-bench-total">
+                  {ready ? fmt(c.total) : <Skel w={80} h={20} />}
+                </p>
+                <p className="hero-bench-avg">
+                  {ready ? <>{fmt(c.avg)} <span className="hero-bench-avg-suffix">snitt</span></> : <Skel w={70} h={14} />}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         <p className="hero-meta-line">
-          {b.videos} {b.videos === 1 ? "video" : "videor"} inhämtade sedan {formatDate(data.tracked_since)}
-          {b.posts_per_week >= 1
-            ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
-            : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
+          {ready && b && data ? (
+            <>
+              {b.videos} {b.videos === 1 ? "video" : "videor"} inhämtade sedan {formatDate(data.tracked_since)}
+              {b.posts_per_week >= 1
+                ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
+                : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
+            </>
+          ) : (
+            <Skel w={320} h={13} />
+          )}
         </p>
         <p className="hero-disclaimer">
           *Viktad engagement rate, där interaktioner multipliceras enligt följande. Likes × 1, kommentarer × 5, delningar × 10, favoriter × 5. Detta för att bättre reflektera engagemang från publiken — alla interaktioner är inte värda lika mycket. En delning väger tyngre än en like.
@@ -218,6 +249,27 @@ function benchCols(b: HeroData["benchmarks"]) {
 }
 
 const css = `
+  /* Skeleton placeholder bar */
+  .hero-skel {
+    display: inline-block;
+    vertical-align: middle;
+    background: rgba(28,27,25,0.06);
+    background-image: linear-gradient(90deg,
+      rgba(28,27,25,0) 0%,
+      rgba(28,27,25,0.08) 50%,
+      rgba(28,27,25,0) 100%);
+    background-repeat: no-repeat;
+    background-size: 200% 100%;
+    background-position: -100% 0;
+    border-radius: 6px;
+    color: transparent;
+    animation: hero-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes hero-shimmer {
+    0%   { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+  }
+
   .hero-loading {
     padding: 2rem 0;
     color: #888;
