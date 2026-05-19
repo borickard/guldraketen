@@ -35,10 +35,16 @@ interface GroupStats {
   avgEr: number | null;
 }
 
-type GridItem =
-  | { type: "group"; label: string; key: string; avgEr: number | null }
-  | { type: "stats"; key: string; stats: GroupStats; label: string }
-  | { type: "video"; video: Video };
+interface Section {
+  key: string;
+  label: string;
+  stats: GroupStats;
+  videos: Video[];
+}
+
+type GridStructure =
+  | { type: "flat"; videos: Video[] }
+  | { type: "grouped"; sections: Section[] };
 
 function computeGroupStats(videos: Video[]): GroupStats {
   const sum = (k: keyof Video) =>
@@ -98,9 +104,9 @@ function sorted(videos: Video[], sort: SortKey): Video[] {
   }
 }
 
-function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
+function buildStructure(videos: Video[], sort: SortKey, scope: Scope): GridStructure {
   if (scope === "all") {
-    return sorted(videos, sort).map((v) => ({ type: "video", video: v }));
+    return { type: "flat", videos: sorted(videos, sort) };
   }
 
   const labelFn = scope === "month" ? toMonthLabel : toWeekLabel;
@@ -120,17 +126,16 @@ function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
     return bDate - aDate;
   });
 
-  const items: GridItem[] = [];
-  for (const key of sortedKeys) {
+  const sections: Section[] = sortedKeys.map((key) => {
     const groupVids = groups.get(key)!;
-    const stats = computeGroupStats(groupVids);
-    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: stats.avgEr });
-    items.push({ type: "stats", key: `s-${key}`, stats, label: key });
-    for (const v of sorted(groups.get(key)!, sort)) {
-      items.push({ type: "video", video: v });
-    }
-  }
-  return items;
+    return {
+      key,
+      label: key,
+      stats: computeGroupStats(groupVids),
+      videos: sorted(groupVids, sort),
+    };
+  });
+  return { type: "grouped", sections };
 }
 
 const SORTS: { key: SortKey; label: string }[] = [
@@ -291,7 +296,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
   const filtered = applyFilters(videos, filters);
-  const items = buildItems(filtered, sort, scope);
+  const structure = buildStructure(filtered, sort, scope);
   const nActive = activeFilterCount(filters);
 
   function setFilter(key: NumericFilterKey, val: string) {
@@ -299,6 +304,93 @@ export default function VideoGrid({ handle }: { handle?: string }) {
   }
 
   const dateRange = filters.dateRange;
+
+  function renderSectionHeader(sec: Section) {
+    const s = sec.stats;
+    const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
+    const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
+    const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+      { label: "Visningar", icon: <Eye size={14} />, total: s.views, avg: avg(s.views) },
+      { label: "Likes", icon: <ThumbsUp size={14} />, total: s.likes, avg: avg(s.likes) },
+      { label: "Kommentarer", icon: <MessageCircle size={14} />, total: s.comments, avg: avg(s.comments) },
+      { label: "Delningar", icon: <Share2 size={14} />, total: s.shares, avg: avg(s.shares) },
+    ];
+    if (s.collects != null && s.collectsTracked > 0) {
+      cols.push({ label: "Favoriter", icon: <Bookmark size={14} />, total: s.collects, avg: s.collects / s.collectsTracked });
+    }
+    return (
+      <div className="vg-section-head">
+        <p className="vg-section-head-top">
+          <span className="vg-section-title">{sec.label}</span>
+          {s.avgEr != null && (
+            <span className="vg-section-er">— Engagement rate: {s.avgEr.toFixed(2)}%</span>
+          )}
+        </p>
+        <div className="vg-section-chips">
+          {cols.map((c) => (
+            <div key={c.label} className="vg-section-chip" title={c.label}>
+              <span className="vg-section-chip-icon">{c.icon}</span>
+              <div className="vg-section-chip-nums">
+                <span className="vg-section-chip-total">{fmtNum(c.total)}</span>
+                <span className="vg-section-chip-avg">{fmtNum(c.avg)} snitt</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderCard(v: Video) {
+    const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
+    return (
+      <div key={v.id} className="vg-card">
+        <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
+          {v.thumbnail_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
+            : <div className="vg-thumb vg-thumb--empty" />
+          }
+          {v.is_ad === true && (
+            <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
+          )}
+          {v.is_ad === false && (
+            <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
+          )}
+        </a>
+        <div className="vg-card-bar">
+          <span className="vg-card-er">{er != null ? `${er.toFixed(2)}%` : "—"}</span>
+          <a
+            href={v.video_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="vg-card-link"
+            title="Öppna video"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
+        </div>
+        <div className="vg-stats">
+          {([
+            ["Visningar", fmt(v.views)],
+            ["Likes",     fmt(v.likes)],
+            ["Komment.",  fmt(v.comments)],
+            ["Delningar", fmt(v.shares)],
+            ...(v.collect_count != null ? [["Favoriter", fmt(v.collect_count)]] : []),
+          ] as [string, string][]).map(([lbl, val]) => (
+            <div key={lbl} className="vg-stat-row">
+              <span className="vg-stat-lbl">{lbl}</span>
+              <span className="vg-stat-val">{val}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // While picking end date, show a hover preview range
   const selectedForDisplay: DateRange | undefined = (() => {
@@ -479,115 +571,22 @@ export default function VideoGrid({ handle }: { handle?: string }) {
           </div>
         )}
 
-        <div className="vg-grid">
-          {items.map((item) => {
-            if (item.type === "group") return (
-              <div key={item.key} className="vg-week-label">
-                <span>{item.label}</span>
-                {item.avgEr != null && (
-                  <span className="vg-group-er">⌀ ER {item.avgEr.toFixed(2)}%</span>
-                )}
-              </div>
-            );
-
-            if (item.type === "stats") {
-              const s = item.stats;
-              const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
-              const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
-              const rows: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
-                { label: "Visningar", icon: <Eye size={16} />, total: s.views, avg: avg(s.views) },
-                { label: "Likes", icon: <ThumbsUp size={16} />, total: s.likes, avg: avg(s.likes) },
-                { label: "Kommentarer", icon: <MessageCircle size={16} />, total: s.comments, avg: avg(s.comments) },
-                { label: "Delningar", icon: <Share2 size={16} />, total: s.shares, avg: avg(s.shares) },
-              ];
-              if (s.collects != null && s.collectsTracked > 0) {
-                rows.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: s.collects, avg: s.collects / s.collectsTracked });
-              }
-              return (
-                <div key={item.key} className="vg-card vg-card--stats">
-                  <p className="vg-stats-card-title">{s.count} {s.count === 1 ? "video" : "videor"}</p>
-                  <div className="vg-stats-card-header">
-                    <span></span>
-                    <span className="vg-stats-col-lbl">Totalt</span>
-                    <span className="vg-stats-col-lbl">Genomsnitt</span>
-                  </div>
-                  <ul className="vg-stats-card-list">
-                    {rows.map((r) => (
-                      <li key={r.label} title={r.label}>
-                        <span className="vg-stats-row-icon" aria-label={r.label}>{r.icon}</span>
-                        <span className="vg-stats-row-val">{fmtNum(r.total)}</span>
-                        <span className="vg-stats-row-val">{fmtNum(r.avg)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {s.avgEr != null && (
-                    <p className="vg-stats-card-er">⌀ ER {s.avgEr.toFixed(2)}%</p>
-                  )}
+        {structure.type === "flat" ? (
+          <div className="vg-grid">
+            {structure.videos.map((v) => renderCard(v))}
+          </div>
+        ) : (
+          <div className="vg-sections">
+            {structure.sections.map((sec) => (
+              <section key={sec.key} className="vg-section">
+                {renderSectionHeader(sec)}
+                <div className="vg-grid vg-grid--inside-section">
+                  {sec.videos.map((v) => renderCard(v))}
                 </div>
-              );
-            }
-
-            const v = item.video;
-            const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
-
-            return (
-              <div key={v.id} className="vg-card">
-
-                {/* Thumbnail */}
-                <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
-                  {v.thumbnail_url
-                    // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
-                    : <div className="vg-thumb vg-thumb--empty" />
-                  }
-                  {v.is_ad === true && (
-                    <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
-                  )}
-                  {v.is_ad === false && (
-                    <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
-                  )}
-                </a>
-
-                {/* ER + link bar */}
-                <div className="vg-card-bar">
-                  <span className="vg-card-er">
-                    {er != null ? `${er.toFixed(2)}%` : "—"}
-                  </span>
-                  <a
-                    href={v.video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="vg-card-link"
-                    title="Öppna video"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                  </a>
-                </div>
-
-                {/* Stats */}
-                <div className="vg-stats">
-                  {([
-                    ["Visningar", fmt(v.views)],
-                    ["Likes",     fmt(v.likes)],
-                    ["Komment.",  fmt(v.comments)],
-                    ["Delningar", fmt(v.shares)],
-                    ...(v.collect_count != null ? [["Favoriter", fmt(v.collect_count)]] : []),
-                  ] as [string, string][]).map(([lbl, val]) => (
-                    <div key={lbl} className="vg-stat-row">
-                      <span className="vg-stat-lbl">{lbl}</span>
-                      <span className="vg-stat-val">{val}</span>
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
+              </section>
+            ))}
+          </div>
+        )}
 
       </div>
     </>
@@ -705,29 +704,104 @@ const css = `
     }
   }
 
-  /* Week label spans full row */
-  .vg-week-label {
-    grid-column: 1 / -1;
+  /* Sections list — one wrapper per week/month group */
+  .vg-sections {
     display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .vg-section {
+    background: rgba(28,27,25,0.025);
+    border: 1px solid rgba(28,27,25,0.1);
+    border-radius: 14px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .vg-grid--inside-section { /* tighter inner grid within a section wrapper */
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  }
+  @media (max-width: 559px) {
+    .vg-section { padding: 0.5rem; }
+  }
+
+  /* Section head — the white card at the top of each section */
+  .vg-section-head {
+    background: #fff;
+    border: 1px solid rgba(28,27,25,0.08);
+    border-radius: 10px;
+    padding: 0.85rem 1rem 0.95rem;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.03);
+  }
+  .vg-section-head-top {
+    margin: 0 0 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.85rem;
+    gap: 8px;
+  }
+  .vg-section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 17px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #888;
-    padding: 1rem 0 0.35rem;
-    border-top: 1px solid rgba(28,27,25,0.12);
-    margin-top: 0.25rem;
+    color: #1C1B19;
   }
-  .vg-group-er {
+  .vg-section-er {
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: 0;
-    text-transform: none;
-    color: rgba(28,27,25,0.7);
+    color: rgba(28,27,25,0.65);
+  }
+
+  /* Chip strip with one chip per metric — used at all viewports */
+  .vg-section-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .vg-section-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(28,27,25,0.04);
+    border-radius: 10px;
+    padding: 6px 10px;
+  }
+  .vg-section-chip-icon {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    align-items: center;
+    justify-content: center;
+    color: rgba(28,27,25,0.65);
+    flex-shrink: 0;
+  }
+  .vg-section-chip-nums {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .vg-section-chip-total {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1C1B19;
+    font-variant-numeric: tabular-nums;
+  }
+  .vg-section-chip-avg {
+    font-size: 11px;
+    color: rgba(28,27,25,0.55);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 559px) {
+    .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
+    .vg-section-er { font-size: 13px; }
   }
 
   .vg-week-label:first-child {
@@ -746,82 +820,6 @@ const css = `
     overflow: hidden;
   }
 
-  /* Per-group stats card — sits as the first card of each section, matches video card height */
-  .vg-card--stats {
-    padding: 1rem 1.1rem;
-    background: #fff;
-    border: 1.5px solid rgba(28,27,25,0.1);
-    gap: 0.85rem;
-    align-self: stretch;
-  }
-  .vg-stats-card-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(28,27,25,0.6);
-    margin: 0;
-  }
-  .vg-stats-card-header {
-    display: grid;
-    grid-template-columns: 28px 1fr 1fr;
-    column-gap: 18px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(28,27,25,0.08);
-  }
-  .vg-stats-col-lbl {
-    font-size: 11px;
-    color: rgba(28,27,25,0.55);
-    text-align: right;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-  }
-  .vg-stats-card-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    justify-content: space-around;
-    gap: 0.5rem;
-  }
-  .vg-stats-card-list li {
-    display: grid;
-    grid-template-columns: 28px 1fr 1fr;
-    column-gap: 18px;
-    align-items: center;
-  }
-  .vg-stats-row-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #fff;
-    color: rgba(28,27,25,0.7);
-  }
-  .vg-stats-row-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: #1C1B19;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  .vg-stats-card-er {
-    margin: 0;
-    padding-top: 0.65rem;
-    border-top: 1px solid rgba(28,27,25,0.08);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #1C1B19;
-  }
 
   /* Thumbnail: 4:5 */
   .vg-thumb-wrap {

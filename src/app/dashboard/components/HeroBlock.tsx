@@ -126,15 +126,18 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <div className="hero-benchmarks-wrap">
-          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och i snitt per video)</span></p>
+          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
           <div className="hero-benchmarks">
-            <Benchmark icon={<Eye size={14} />} label="Visningar" total={b.total_views} avg={b.avg_views} />
-            <Benchmark icon={<ThumbsUp size={14} />} label="Likes" total={b.total_likes} avg={b.avg_likes} />
-            <Benchmark icon={<MessageCircle size={14} />} label="Kommentarer" total={b.total_comments} avg={b.avg_comments} />
-            <Benchmark icon={<Share2 size={14} />} label="Delningar" total={b.total_shares} avg={b.avg_shares} />
-            {b.total_collects != null && b.avg_collects != null && (
-              <Benchmark icon={<Bookmark size={14} />} label="Favoriter" total={b.total_collects} avg={b.avg_collects} />
-            )}
+            {benchCols(b).map((c) => (
+              <div key={c.label} className="hero-bench">
+                <div className="hero-bench-header">
+                  <span className="hero-bench-icon">{c.icon}</span>
+                  <span className="hero-bench-lbl">{c.label}</span>
+                </div>
+                <p className="hero-bench-total">{fmt(c.total)}</p>
+                <p className="hero-bench-avg">{fmt(c.avg)} <span className="hero-bench-avg-suffix">snitt</span></p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -143,32 +146,24 @@ export default function HeroBlock({ handle }: { handle: string }) {
           {b.posts_per_week >= 1
             ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
             : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
-          {b.avg_er > 0 && `  ·  ⌀ engagemang ${b.avg_er.toFixed(2)} %`}
+          {b.avg_er > 0 && `  ·  Snitt engagemang ${b.avg_er.toFixed(2)} %`}
         </p>
       </div>
     </>
   );
 }
 
-function Benchmark({ icon, label, total, avg }: { icon: React.ReactNode; label: string; total: number; avg: number }) {
-  return (
-    <div className="hero-bench">
-      <div className="hero-bench-header">
-        <span className="hero-bench-icon">{icon}</span>
-        <span className="hero-bench-lbl">{label}</span>
-      </div>
-      <div className="hero-bench-rows">
-        <div className="hero-bench-row">
-          <span className="hero-bench-row-lbl">Totalt</span>
-          <span className="hero-bench-row-val">{fmt(total)}</span>
-        </div>
-        <div className="hero-bench-row">
-          <span className="hero-bench-row-lbl">Genomsnitt</span>
-          <span className="hero-bench-row-val">{fmt(avg)}</span>
-        </div>
-      </div>
-    </div>
-  );
+function benchCols(b: HeroData["benchmarks"]) {
+  const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+    { label: "Visningar", icon: <Eye size={16} />, total: b.total_views, avg: b.avg_views },
+    { label: "Likes", icon: <ThumbsUp size={16} />, total: b.total_likes, avg: b.avg_likes },
+    { label: "Kommentarer", icon: <MessageCircle size={16} />, total: b.total_comments, avg: b.avg_comments },
+    { label: "Delningar", icon: <Share2 size={16} />, total: b.total_shares, avg: b.avg_shares },
+  ];
+  if (b.total_collects != null && b.avg_collects != null) {
+    cols.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: b.total_collects, avg: b.avg_collects });
+  }
+  return cols;
 }
 
 const css = `
@@ -284,7 +279,7 @@ const css = `
   .hero-delta-val.down { color: #9c2828; }
   .hero-delta-period { color: rgba(28,27,25,0.5); }
 
-  /* Benchmarks: inline-flex with wrap, content-driven width */
+  /* Benchmarks: rounded chip per metric */
   .hero-benchmarks-wrap {
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
@@ -297,10 +292,11 @@ const css = `
   .hero-bench {
     display: inline-flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
     padding: 0.7rem 0.95rem;
+    min-width: 130px;
   }
   .hero-bench-header {
     display: flex;
@@ -326,28 +322,29 @@ const css = `
     text-transform: uppercase;
     color: rgba(28,27,25,0.85);
   }
-  .hero-bench-rows {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 18px;
-    row-gap: 3px;
-    align-items: baseline;
-  }
-  .hero-bench-row {
-    display: contents;
-  }
-  .hero-bench-row-lbl {
-    font-size: 12px;
-    color: rgba(28,27,25,0.55);
-    font-weight: 500;
-  }
-  .hero-bench-row-val {
+  .hero-bench-total {
+    margin: 0;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.45rem;
     font-weight: 700;
+    line-height: 1;
     color: #1C1B19;
-    text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  .hero-bench-avg {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(28,27,25,0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-bench-avg-suffix {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(28,27,25,0.45);
+    letter-spacing: 0.02em;
   }
 
   .hero-meta-line {
@@ -360,8 +357,18 @@ const css = `
 
   @media (max-width: 559px) {
     .hero-block { padding: 1.25rem 1rem; }
-    .hero-top { align-items: flex-start; }
-    .hero-followers-block { align-items: flex-start; text-align: left; }
+    .hero-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+    .hero-followers-block {
+      align-items: flex-start;
+      text-align: left;
+      width: 100%;
+      padding-top: 0.9rem;
+      border-top: 1px solid rgba(28,27,25,0.08);
+    }
     .hero-stat-big { font-size: 2rem; }
     .hero-name { font-size: 1.6rem; }
   }
