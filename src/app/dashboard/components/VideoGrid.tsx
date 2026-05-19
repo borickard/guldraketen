@@ -798,9 +798,9 @@ const css = `
 
   /* Chip strip with one chip per metric — used at all viewports */
   .vg-section-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 10px;
   }
   .vg-section-chip--er {
     background: rgba(232, 17, 106, 0.06);
@@ -811,15 +811,15 @@ const css = `
   .vg-section-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
-    padding: 6px 10px;
+    padding: 11px 16px;
   }
   .vg-section-chip-icon {
     display: inline-flex;
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #fff;
     align-items: center;
@@ -830,13 +830,13 @@ const css = `
   .vg-section-chip-nums {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     line-height: 1.1;
   }
-  /* Desktop sizing matches the hero benchmark chips */
+  /* Desktop sizing matches the hero benchmark chips (25% larger than mobile) */
   .vg-section-chip-total {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.45rem;
+    font-size: 1.85rem;
     font-weight: 700;
     line-height: 1;
     color: #1C1B19;
@@ -844,7 +844,7 @@ const css = `
   }
   .vg-section-chip-avg {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     line-height: 1;
     color: rgba(28,27,25,0.55);
@@ -853,14 +853,20 @@ const css = `
   .vg-section-chip-avg-val { font-weight: 600; }
   .vg-section-chip-avg-suffix {
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
     color: rgba(28,27,25,0.45);
     letter-spacing: 0.02em;
   }
 
   @media (max-width: 559px) {
-    .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
+    .vg-section-head { padding: 0.85rem 1rem 1rem; }
+    .vg-section-chips {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .vg-section-chip { padding: 10px 12px; gap: 8px; }
+    .vg-section-chip-icon { width: 24px; height: 24px; }
     .vg-section-chip-total { font-size: 18px; }
     .vg-section-chip-avg { font-size: 15px; }
     .vg-section-er { font-size: 13px; }

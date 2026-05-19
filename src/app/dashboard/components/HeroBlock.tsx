@@ -387,6 +387,9 @@ const css = `
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
+  /* Scoped: Benchmarks label inside the benchmarks block is +25% vs other stat labels */
+  .hero-benchmarks-wrap .hero-stat-label { font-size: 15px; }
+  .hero-benchmarks-wrap .hero-stat-sublabel { font-size: 13px; }
   .hero-benchmarks-head {
     display: flex;
     align-items: center;
@@ -421,27 +424,26 @@ const css = `
     box-shadow: 0 1px 2px rgba(28,27,25,0.08);
   }
   .hero-benchmarks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 10px;
   }
   .hero-bench {
     display: inline-flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
-    padding: 0.7rem 0.95rem;
-    min-width: 130px;
+    padding: 14px 18px;
   }
   .hero-bench-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
   .hero-bench-icon {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #fff;
     display: flex;
@@ -452,7 +454,7 @@ const css = `
   }
   .hero-bench-lbl {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -461,7 +463,7 @@ const css = `
   .hero-bench-total {
     margin: 0;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.45rem;
+    font-size: 1.85rem;
     font-weight: 700;
     line-height: 1;
     color: #1C1B19;
@@ -470,14 +472,15 @@ const css = `
   .hero-bench-avg {
     margin: 0;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
+    line-height: 1;
     color: rgba(28,27,25,0.55);
     font-variant-numeric: tabular-nums;
   }
   .hero-bench-avg-suffix {
     font-family: 'Barlow', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
     color: rgba(28,27,25,0.45);
     letter-spacing: 0.02em;
@@ -519,5 +522,18 @@ const css = `
     }
     .hero-stat-big { font-size: 2rem; }
     .hero-name { font-size: 1.6rem; }
+
+    /* Mobile chip sizing — total 18px / snitt 15px per spec */
+    .hero-benchmarks {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .hero-bench { padding: 10px 12px; gap: 6px; }
+    .hero-bench-icon { width: 24px; height: 24px; }
+    .hero-bench-lbl { font-size: 13px; }
+    .hero-bench-total { font-size: 18px; }
+    .hero-bench-avg { font-size: 15px; }
+    .hero-benchmarks-wrap .hero-stat-label { font-size: 12px; }
+    .hero-benchmarks-wrap .hero-stat-sublabel { font-size: 11px; }
   }
 `;
