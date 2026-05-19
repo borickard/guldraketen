@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
 async function runSnapshot(req: NextRequest) {
   // No auth — matches the existing pattern for /api/scrape/trigger.
   // Vercel cron still uses the GET path; admin button triggers via POST.
-  void req;
+  // Detect cron-vs-manual via the user-agent so the scrape-log records
+  // it as "cron-followers" or "manual-followers".
+  const ua = req.headers.get("user-agent") ?? "";
+  const triggeredBy = /vercel-cron/i.test(ua) ? "cron-followers" : "manual-followers";
 
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
@@ -42,6 +45,30 @@ async function runSnapshot(req: NextRequest) {
     return NextResponse.json({ ok: true, handles: 0, message: "No dashboard handles linked." });
   }
 
+  // Log run start in scrape_runs so it shows up in the admin scrape-log.
+  const { data: runRow } = await supabaseAdmin
+    .from("scrape_runs")
+    .insert({
+      triggered_by: triggeredBy,
+      handles: handles.length,
+      status: "started",
+    })
+    .select("id")
+    .single();
+  const scrapeRunId: string = runRow?.id ?? "";
+
+  async function markFailed(error: string) {
+    if (!scrapeRunId) return;
+    await supabaseAdmin
+      .from("scrape_runs")
+      .update({
+        status: "failed",
+        error,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", scrapeRunId);
+  }
+
   // 2. Kick off Apify run (resultsPerPage: 1 → 1 video per profile, enough to read authorMeta.fans).
   const runRes = await fetch(
     `${APIFY_API_BASE}/acts/${encodeURIComponent(APIFY_ACTOR_ID)}/runs`,
@@ -58,12 +85,19 @@ async function runSnapshot(req: NextRequest) {
     }
   );
   if (!runRes.ok) {
+    await markFailed(`Apify start ${runRes.status}`);
     return NextResponse.json({ error: `Apify start ${runRes.status}` }, { status: 502 });
   }
   const runJson = await runRes.json();
   const runId: string = runJson?.data?.id;
   if (!runId) {
+    await markFailed("Inget runId från Apify");
     return NextResponse.json({ error: "Inget runId från Apify" }, { status: 502 });
+  }
+
+  // Store Apify run ID on the scrape_runs row
+  if (scrapeRunId) {
+    await supabaseAdmin.from("scrape_runs").update({ run_id: runId }).eq("id", scrapeRunId);
   }
 
   // 3. Poll until SUCCEEDED.
@@ -87,10 +121,12 @@ async function runSnapshot(req: NextRequest) {
       break;
     }
     if (["FAILED", "TIMED_OUT", "TIMED-OUT", "ABORTED"].includes(status)) {
+      await markFailed(`Apify status ${status}`);
       return NextResponse.json({ error: `Apify status ${status}` }, { status: 502 });
     }
   }
   if (!datasetId) {
+    await markFailed("Apify-körningen tog för lång tid");
     return NextResponse.json({ error: "Apify-körningen tog för lång tid" }, { status: 504 });
   }
 
@@ -100,6 +136,7 @@ async function runSnapshot(req: NextRequest) {
     { headers: { Authorization: `Bearer ${apifyToken}` } }
   );
   if (!dataRes.ok) {
+    await markFailed("Kunde inte läsa dataset");
     return NextResponse.json({ error: "Kunde inte läsa dataset" }, { status: 502 });
   }
   const items = (await dataRes.json()) as Array<{
@@ -128,6 +165,7 @@ async function runSnapshot(req: NextRequest) {
       .from("follower_history")
       .upsert(rows, { onConflict: "handle,captured_date" });
     if (upErr) {
+      await markFailed(upErr.message);
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
 
@@ -138,6 +176,22 @@ async function runSnapshot(req: NextRequest) {
         .update({ followers, followers_updated_at: new Date().toISOString() })
         .eq("handle", handle);
     }
+  }
+
+  // Mark run completed. We re-use the existing scrape_runs columns: "followers"
+  // counts how many handles got a follower count; "upserted" mirrors that for
+  // the existing admin UI; "skipped" is handles that didn't return data.
+  if (scrapeRunId) {
+    await supabaseAdmin
+      .from("scrape_runs")
+      .update({
+        status: "completed",
+        followers: rows.length,
+        upserted: rows.length,
+        skipped: handles.length - rows.length,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", scrapeRunId);
   }
 
   return NextResponse.json({
