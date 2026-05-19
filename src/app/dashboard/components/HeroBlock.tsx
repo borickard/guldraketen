@@ -126,15 +126,26 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <div className="hero-benchmarks-wrap">
-          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och i snitt per video)</span></p>
-          <div className="hero-benchmarks">
-            <Benchmark icon={<Eye size={14} />} label="Visningar" total={b.total_views} avg={b.avg_views} />
-            <Benchmark icon={<ThumbsUp size={14} />} label="Likes" total={b.total_likes} avg={b.avg_likes} />
-            <Benchmark icon={<MessageCircle size={14} />} label="Kommentarer" total={b.total_comments} avg={b.avg_comments} />
-            <Benchmark icon={<Share2 size={14} />} label="Delningar" total={b.total_shares} avg={b.avg_shares} />
-            {b.total_collects != null && b.avg_collects != null && (
-              <Benchmark icon={<Bookmark size={14} />} label="Favoriter" total={b.total_collects} avg={b.avg_collects} />
-            )}
+          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
+          <div className="hero-bench-table">
+            <div className="hero-bench-row hero-bench-row--head">
+              <span />
+              {benchCols(b).map((c) => (
+                <span key={c.label} className="hero-bench-col-head" title={c.label}>{c.icon}</span>
+              ))}
+            </div>
+            <div className="hero-bench-row">
+              <span className="hero-bench-row-lbl">Totalt</span>
+              {benchCols(b).map((c) => (
+                <span key={c.label} className="hero-bench-row-val">{fmt(c.total)}</span>
+              ))}
+            </div>
+            <div className="hero-bench-row">
+              <span className="hero-bench-row-lbl">Snitt</span>
+              {benchCols(b).map((c) => (
+                <span key={c.label} className="hero-bench-row-val">{fmt(c.avg)}</span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -143,32 +154,24 @@ export default function HeroBlock({ handle }: { handle: string }) {
           {b.posts_per_week >= 1
             ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
             : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
-          {b.avg_er > 0 && `  ·  ⌀ engagemang ${b.avg_er.toFixed(2)} %`}
+          {b.avg_er > 0 && `  ·  Snitt engagemang ${b.avg_er.toFixed(2)} %`}
         </p>
       </div>
     </>
   );
 }
 
-function Benchmark({ icon, label, total, avg }: { icon: React.ReactNode; label: string; total: number; avg: number }) {
-  return (
-    <div className="hero-bench">
-      <div className="hero-bench-header">
-        <span className="hero-bench-icon">{icon}</span>
-        <span className="hero-bench-lbl">{label}</span>
-      </div>
-      <div className="hero-bench-rows">
-        <div className="hero-bench-row">
-          <span className="hero-bench-row-lbl">Totalt</span>
-          <span className="hero-bench-row-val">{fmt(total)}</span>
-        </div>
-        <div className="hero-bench-row">
-          <span className="hero-bench-row-lbl">Genomsnitt</span>
-          <span className="hero-bench-row-val">{fmt(avg)}</span>
-        </div>
-      </div>
-    </div>
-  );
+function benchCols(b: HeroData["benchmarks"]) {
+  const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+    { label: "Visningar", icon: <Eye size={16} />, total: b.total_views, avg: b.avg_views },
+    { label: "Likes", icon: <ThumbsUp size={16} />, total: b.total_likes, avg: b.avg_likes },
+    { label: "Kommentarer", icon: <MessageCircle size={16} />, total: b.total_comments, avg: b.avg_comments },
+    { label: "Delningar", icon: <Share2 size={16} />, total: b.total_shares, avg: b.avg_shares },
+  ];
+  if (b.total_collects != null && b.avg_collects != null) {
+    cols.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: b.total_collects, avg: b.avg_collects });
+  }
+  return cols;
 }
 
 const css = `
@@ -284,66 +287,42 @@ const css = `
   .hero-delta-val.down { color: #9c2828; }
   .hero-delta-period { color: rgba(28,27,25,0.5); }
 
-  /* Benchmarks: inline-flex with wrap, content-driven width */
+  /* Benchmarks table: icon at top of each column, two value rows below */
   .hero-benchmarks-wrap {
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
-  .hero-benchmarks {
+  .hero-bench-table {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-  .hero-bench {
-    display: inline-flex;
     flex-direction: column;
-    gap: 10px;
-    background: rgba(28,27,25,0.04);
-    border-radius: 10px;
-    padding: 0.7rem 0.95rem;
-  }
-  .hero-bench-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .hero-bench-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(28,27,25,0.7);
-    flex-shrink: 0;
-  }
-  .hero-bench-lbl {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(28,27,25,0.85);
-  }
-  .hero-bench-rows {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 18px;
-    row-gap: 3px;
-    align-items: baseline;
+    gap: 4px;
+    overflow-x: auto;
   }
   .hero-bench-row {
-    display: contents;
+    display: grid;
+    grid-template-columns: 110px repeat(5, 1fr);
+    column-gap: 14px;
+    align-items: center;
+  }
+  .hero-bench-row--head {
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+    margin-bottom: 4px;
+  }
+  .hero-bench-col-head {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    color: rgba(28,27,25,0.6);
   }
   .hero-bench-row-lbl {
-    font-size: 12px;
-    color: rgba(28,27,25,0.55);
-    font-weight: 500;
+    font-size: 13px;
+    color: rgba(28,27,25,0.6);
+    font-weight: 600;
   }
   .hero-bench-row-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #1C1B19;
     text-align: right;

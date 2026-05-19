@@ -494,30 +494,36 @@ export default function VideoGrid({ handle }: { handle?: string }) {
               }
               return (
                 <div key={item.key} className="vg-section-head">
-                  <div className="vg-section-head-top">
+                  <p className="vg-section-head-top">
                     <span className="vg-section-title">{item.label}</span>
                     {s.avgEr != null && (
-                      <span className="vg-section-er">Engagement rate: {s.avgEr.toFixed(2)}%</span>
+                      <span className="vg-section-er">— Engagement rate: {s.avgEr.toFixed(2)}%</span>
                     )}
-                  </div>
+                  </p>
                   <div className="vg-section-table">
                     <div className="vg-section-row vg-section-row--head">
                       <span />
                       {cols.map((c) => (
                         <span key={c.label} className="vg-section-col-head" title={c.label}>
                           <span className="vg-section-col-icon">{c.icon}</span>
-                          {c.label}
+                          <span className="vg-section-col-label">{c.label}</span>
                         </span>
                       ))}
                     </div>
                     <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">Totalt</span>
+                      <span className="vg-section-row-lbl">
+                        <span className="vg-lbl-long">Totalt</span>
+                        <span className="vg-lbl-short">Tot.</span>
+                      </span>
                       {cols.map((c) => (
                         <span key={c.label} className="vg-section-row-val">{fmtNum(c.total)}</span>
                       ))}
                     </div>
                     <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">Genomsnittligt</span>
+                      <span className="vg-section-row-lbl">
+                        <span className="vg-lbl-long">Genomsnittligt</span>
+                        <span className="vg-lbl-short">Snitt</span>
+                      </span>
                       {cols.map((c) => (
                         <span key={c.label} className="vg-section-row-val">{fmtNum(c.avg)}</span>
                       ))}
@@ -720,11 +726,11 @@ const css = `
     margin-top: 0;
   }
   .vg-section-head-top {
+    margin: 0 0 0.55rem;
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-bottom: 0.55rem;
+    gap: 8px;
   }
   .vg-section-title {
     font-family: 'Barlow Condensed', sans-serif;
@@ -736,10 +742,14 @@ const css = `
   }
   .vg-section-er {
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: rgba(28,27,25,0.65);
   }
+
+  /* Long/short label swap for mobile */
+  .vg-lbl-short { display: none; }
+  .vg-section-col-label { display: inline; }
   .vg-section-table {
     display: flex;
     flex-direction: column;
@@ -764,13 +774,13 @@ const css = `
   .vg-section-col-head {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
     font-size: 12px;
     color: rgba(28,27,25,0.65);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
-    text-align: left;
   }
   .vg-section-col-icon {
     display: inline-flex;
@@ -794,9 +804,19 @@ const css = `
   }
 
   @media (max-width: 559px) {
-    .vg-section-row { grid-template-columns: 110px repeat(5, minmax(80px, 1fr)); column-gap: 10px; }
+    .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
+    .vg-section-row {
+      grid-template-columns: 56px repeat(5, minmax(54px, 1fr));
+      column-gap: 8px;
+      min-width: 0;
+    }
     .vg-section-row-lbl { font-size: 12px; }
     .vg-section-row-val { font-size: 14px; }
+    .vg-section-col-label { display: none; }
+    .vg-section-col-head { justify-content: flex-end; }
+    .vg-lbl-long { display: none; }
+    .vg-lbl-short { display: inline; }
+    .vg-section-er { font-size: 13px; }
   }
 
   .vg-week-label:first-child {
