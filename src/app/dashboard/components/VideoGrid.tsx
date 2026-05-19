@@ -284,7 +284,34 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
     return () => document.removeEventListener("mousedown", handler);
   }, [showCal]);
 
-  if (loading) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Laddar videor…</p>;
+  if (loading) {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="vg-root">
+          <div className="vg-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="vg-card vg-card--skeleton">
+                <div className="vg-thumb-wrap vg-skel" />
+                <div className="vg-card-bar">
+                  <span className="vg-skel" style={{ width: 50, height: 16 }} />
+                  <span className="vg-skel" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                </div>
+                <div className="vg-stats">
+                  {[60, 50, 70, 45, 55].map((w, j) => (
+                    <div key={j} className="vg-stat-row">
+                      <span className="vg-skel" style={{ width: w, height: 12 }} />
+                      <span className="vg-skel" style={{ width: 36, height: 12 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
   const filtered = applyFilters(videos, filters, boost);
@@ -573,6 +600,31 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
 }
 
 const css = `
+  /* Skeleton placeholder bar */
+  .vg-skel {
+    display: inline-block;
+    background: rgba(28,27,25,0.06);
+    background-image: linear-gradient(90deg,
+      rgba(28,27,25,0) 0%,
+      rgba(28,27,25,0.08) 50%,
+      rgba(28,27,25,0) 100%);
+    background-repeat: no-repeat;
+    background-size: 200% 100%;
+    background-position: -100% 0;
+    border-radius: 6px;
+    color: transparent;
+    animation: vg-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes vg-shimmer {
+    0%   { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .vg-card--skeleton .vg-thumb-wrap.vg-skel {
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    border-radius: 0;
+  }
+
   .vg-root {
     margin-top: 2rem;
     font-family: 'Barlow', sans-serif;
