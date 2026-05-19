@@ -15,8 +15,11 @@ interface ProfileData {
   posts_per_week: number;
 }
 
+export type BoostFilter = "all" | "organic" | "boosted";
+
 export default function DashboardClient({ profiles }: { profiles: ProfileData[] }) {
   const [activeHandle, setActiveHandle] = useState(profiles[0]?.handle ?? "");
+  const [boost, setBoost] = useState<BoostFilter>("all");
   const profile = profiles.find((p) => p.handle === activeHandle) ?? profiles[0];
 
   if (!profile) return null;
@@ -41,9 +44,9 @@ export default function DashboardClient({ profiles }: { profiles: ProfileData[] 
         </div>
       )}
 
-      <HeroBlock handle={activeHandle} />
+      <HeroBlock handle={activeHandle} boost={boost} onBoostChange={setBoost} />
 
-      <VideoGrid handle={activeHandle} />
+      <VideoGrid handle={activeHandle} boost={boost} />
     </>
   );
 }

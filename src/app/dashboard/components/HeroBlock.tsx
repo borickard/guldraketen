@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
 
 interface HeroData {
   handle: string;
@@ -67,17 +67,39 @@ function Sparkline({ points }: { points: { date: string; followers: number }[] }
   );
 }
 
-export default function HeroBlock({ handle }: { handle: string }) {
+type BoostFilter = "all" | "organic" | "boosted";
+
+export default function HeroBlock({
+  handle,
+  boost,
+  onBoostChange,
+}: {
+  handle: string;
+  boost: BoostFilter;
+  onBoostChange: (b: BoostFilter) => void;
+}) {
   const [data, setData] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/dashboard/hero?handle=${encodeURIComponent(handle)}`)
+    // Don't blank out existing data while fetching — just swap it in when ready.
+    // Only show the initial loading state on first load (when data is still null).
+    const isInitial = data === null;
+    if (isInitial) setLoading(true);
+    const params = new URLSearchParams({ handle });
+    if (boost !== "all") params.set("boost", boost);
+    let cancelled = false;
+    fetch(`/api/dashboard/hero?${params}`)
       .then((r) => r.json())
-      .then((d) => { setData(d?.error ? null : d); setLoading(false); })
-      .catch(() => { setData(null); setLoading(false); });
-  }, [handle]);
+      .then((d) => {
+        if (cancelled) return;
+        if (!d?.error) setData(d);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handle, boost]);
 
   if (loading || !data) {
     return <div className="hero-loading">Laddar…</div>;
@@ -126,8 +148,35 @@ export default function HeroBlock({ handle }: { handle: string }) {
         </div>
 
         <div className="hero-benchmarks-wrap">
-          <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
+          <div className="hero-benchmarks-head">
+            <p className="hero-stat-label">Benchmarks <span className="hero-stat-sublabel">(totalt och snitt per video)</span></p>
+            <div className="hero-boost-pills">
+              {([
+                { key: "all",     label: "Allt"      },
+                { key: "organic", label: "Organiskt" },
+                { key: "boosted", label: "Boostat"   },
+              ] as { key: BoostFilter; label: string }[]).map((b) => (
+                <button
+                  key={b.key}
+                  className={"hero-boost-pill" + (boost === b.key ? " active" : "")}
+                  onClick={() => onBoostChange(b.key)}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="hero-benchmarks">
+            {b.avg_er > 0 && (
+              <div className="hero-bench hero-bench--er">
+                <div className="hero-bench-header">
+                  <span className="hero-bench-icon"><Flame size={14} /></span>
+                  <span className="hero-bench-lbl">Eng.rate*</span>
+                </div>
+                <p className="hero-bench-total">{b.avg_er.toFixed(2)}%</p>
+                <p className="hero-bench-avg"><span className="hero-bench-avg-suffix">viktad</span></p>
+              </div>
+            )}
             {benchCols(b).map((c) => (
               <div key={c.label} className="hero-bench">
                 <div className="hero-bench-header">
@@ -146,7 +195,9 @@ export default function HeroBlock({ handle }: { handle: string }) {
           {b.posts_per_week >= 1
             ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
             : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
-          {b.avg_er > 0 && `  ·  Snitt engagemang ${b.avg_er.toFixed(2)} %`}
+        </p>
+        <p className="hero-disclaimer">
+          *Viktad engagement rate, där interaktioner multipliceras enligt följande. Likes × 1, kommentarer × 5, delningar × 10, favoriter × 5. Detta för att bättre reflektera engagemang från publiken — alla interaktioner är inte värda lika mycket. En delning väger tyngre än en like.
         </p>
       </div>
     </>
@@ -284,6 +335,39 @@ const css = `
     padding-top: 1.25rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
+  .hero-benchmarks-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .hero-boost-pills {
+    display: inline-flex;
+    background: rgba(28,27,25,0.06);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .hero-boost-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(28,27,25,0.6);
+    background: transparent;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .hero-boost-pill:hover { color: #1C1B19; }
+  .hero-boost-pill.active {
+    background: #fff;
+    color: #1C1B19;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.08);
+  }
   .hero-benchmarks {
     display: flex;
     flex-wrap: wrap;
@@ -353,6 +437,18 @@ const css = `
     color: rgba(28,27,25,0.5);
     padding-top: 0.85rem;
     border-top: 1px solid rgba(28,27,25,0.08);
+  }
+  .hero-disclaimer {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: rgba(28,27,25,0.45);
+    line-height: 1.5;
+  }
+  .hero-bench--er {
+    background: rgba(232, 17, 106, 0.06);
+  }
+  .hero-bench--er .hero-bench-icon {
+    color: #C8962A;
   }
 
   @media (max-width: 559px) {
