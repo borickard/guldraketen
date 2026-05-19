@@ -35,39 +35,54 @@ export default function DashboardLogin() {
     <>
       <style>{styles}</style>
       <div className="dl-root">
-        <form className="dl-form" onSubmit={handleSubmit}>
-          <div className="dl-logo">Sociala Raketer</div>
-          <h1 className="dl-title">Dashboard</h1>
-          <p className="dl-sub">Logga in för att se din TikTok-statistik</p>
+        <div className="dl-card">
+          <a href="/" className="dl-wordmark">Sociala Raketer</a>
 
-          <div className="dl-fields">
-            <input
-              className="dl-input"
-              type="text"
-              placeholder="Användarnamn"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
-              autoComplete="username"
-              autoFocus
-            />
-            <input
-              className="dl-input"
-              type="password"
-              placeholder="Lösenord"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              autoComplete="current-password"
-            />
+          <div className="dl-intro">
+            <h1 className="dl-title">Välkommen</h1>
+            <p className="dl-lead">
+              Det här är beta-versionen av Sociala Raketer-dashboarden. Här
+              ser du dina TikTok-siffror — följare över tid, vanliga
+              benchmarks och varje publicerad video, vecka för vecka.
+            </p>
+            <p className="dl-lead dl-lead--soft">
+              Vi bygger fortfarande — har du synpunkter eller saknar du något?
+              Använd feedbackikonen längst ner till höger.
+            </p>
           </div>
 
-          {error && <p className="dl-error">{error}</p>}
+          <form className="dl-form" onSubmit={handleSubmit}>
+            <label className="dl-field">
+              <span className="dl-field-lbl">Användarnamn</span>
+              <input
+                className="dl-input"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+                autoComplete="username"
+                autoFocus
+              />
+            </label>
+            <label className="dl-field">
+              <span className="dl-field-lbl">Lösenord</span>
+              <input
+                className="dl-input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="current-password"
+              />
+            </label>
 
-          <button className="dl-btn" type="submit" disabled={loading || !username.trim() || !password.trim()}>
-            {loading ? "Loggar in…" : "Logga in"}
-          </button>
-        </form>
+            {error && <p className="dl-error">{error}</p>}
+
+            <button className="dl-btn" type="submit" disabled={loading || !username.trim() || !password.trim()}>
+              {loading ? "Loggar in…" : "Logga in"}
+            </button>
+          </form>
+        </div>
       </div>
     </>
   );
@@ -82,91 +97,115 @@ const styles = `
     align-items: center;
     justify-content: center;
     background: #EBE7E2;
-    padding: 1.5rem;
+    padding: 2rem 1.25rem;
     font-family: 'Barlow', sans-serif;
+    color: #1C1B19;
   }
 
-  .dl-form {
+  .dl-card {
     background: #fff;
-    border: 1px solid rgba(28,27,25,0.12);
-    box-shadow: 3px 3px 0 rgba(28,27,25,0.15);
-    padding: 2.5rem 2rem;
+    border: 1px solid rgba(28,27,25,0.1);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04), 0 6px 24px rgba(28,27,25,0.06);
+    padding: 2rem 1.75rem;
     width: 100%;
-    max-width: 360px;
+    max-width: 440px;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 1.5rem;
   }
 
-  .dl-logo {
-    font-family: 'VT323', monospace;
-    font-size: 22px;
-    letter-spacing: 0.06em;
+  .dl-wordmark {
+    align-self: flex-start;
+    font-family: 'Jersey 10', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     color: #C8962A;
-    margin-bottom: 1rem;
+    text-decoration: none;
   }
+  .dl-wordmark:hover { opacity: 0.85; }
 
+  .dl-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
   .dl-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 2rem;
     font-weight: 700;
-    color: #1C1B19;
     line-height: 1;
-    margin-bottom: 0.4rem;
+    color: #1C1B19;
   }
-
-  .dl-sub {
+  .dl-lead {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(28,27,25,0.75);
+  }
+  .dl-lead--soft {
     font-size: 13px;
-    color: #888;
-    margin-bottom: 1.75rem;
+    color: rgba(28,27,25,0.55);
   }
 
-  .dl-fields {
+  .dl-form {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    border: 1px solid #1C1B19;
-    box-shadow: 2px 2px 0 #1C1B19;
-    margin-bottom: 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .dl-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dl-field-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.55);
   }
 
   .dl-input {
     background: #fff;
-    border: none;
-    border-bottom: 1px solid rgba(28,27,25,0.15);
+    border: 1px solid rgba(28,27,25,0.18);
+    border-radius: 8px;
     outline: none;
     font-family: 'Barlow', sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     color: #1C1B19;
-    padding: 0.75rem 0.85rem;
+    padding: 0.7rem 0.85rem;
     width: 100%;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .dl-input:focus {
+    border-color: #1C1B19;
+    box-shadow: 0 0 0 3px rgba(28,27,25,0.08);
   }
 
-  .dl-input:last-child { border-bottom: none; }
-  .dl-input::placeholder { color: #aaa; }
-
   .dl-error {
-    font-size: 12px;
-    color: #a33;
-    margin-bottom: 0.75rem;
+    font-size: 13px;
+    color: #9c2828;
+    margin-top: -2px;
   }
 
   .dl-btn {
     background: #1C1B19;
-    border: 1px solid #1C1B19;
-    color: #fff;
-    font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    border: none;
+    color: #EBE7E2;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    padding: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: opacity 0.15s;
     margin-top: 0.25rem;
   }
-
-  .dl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .dl-btn:not(:disabled):hover { background: #333; }
+  .dl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dl-btn:not(:disabled):hover { opacity: 0.88; }
 `;
