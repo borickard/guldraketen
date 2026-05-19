@@ -749,7 +749,7 @@ const css = `
 
   /* Long/short label swap for mobile */
   .vg-lbl-short { display: none; }
-  .vg-section-col-label { display: inline; }
+  .vg-section-col-label { display: none; }
   .vg-section-table {
     display: flex;
     flex-direction: column;
