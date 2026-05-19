@@ -36,8 +36,7 @@ interface GroupStats {
 }
 
 type GridItem =
-  | { type: "group"; label: string; key: string; avgEr: number | null }
-  | { type: "stats"; key: string; stats: GroupStats; label: string }
+  | { type: "group"; label: string; key: string; stats: GroupStats }
   | { type: "video"; video: Video };
 
 function computeGroupStats(videos: Video[]): GroupStats {
@@ -124,8 +123,7 @@ function buildItems(videos: Video[], sort: SortKey, scope: Scope): GridItem[] {
   for (const key of sortedKeys) {
     const groupVids = groups.get(key)!;
     const stats = computeGroupStats(groupVids);
-    items.push({ type: "group", label: key, key: `g-${key}`, avgEr: stats.avgEr });
-    items.push({ type: "stats", key: `s-${key}`, stats, label: key });
+    items.push({ type: "group", label: key, key: `g-${key}`, stats });
     for (const v of sorted(groups.get(key)!, sort)) {
       items.push({ type: "video", video: v });
     }
@@ -481,48 +479,50 @@ export default function VideoGrid({ handle }: { handle?: string }) {
 
         <div className="vg-grid">
           {items.map((item) => {
-            if (item.type === "group") return (
-              <div key={item.key} className="vg-week-label">
-                <span>{item.label}</span>
-                {item.avgEr != null && (
-                  <span className="vg-group-er">⌀ ER {item.avgEr.toFixed(2)}%</span>
-                )}
-              </div>
-            );
-
-            if (item.type === "stats") {
+            if (item.type === "group") {
               const s = item.stats;
               const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
               const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
-              const rows: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
-                { label: "Visningar", icon: <Eye size={16} />, total: s.views, avg: avg(s.views) },
-                { label: "Likes", icon: <ThumbsUp size={16} />, total: s.likes, avg: avg(s.likes) },
-                { label: "Kommentarer", icon: <MessageCircle size={16} />, total: s.comments, avg: avg(s.comments) },
-                { label: "Delningar", icon: <Share2 size={16} />, total: s.shares, avg: avg(s.shares) },
+              const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
+                { label: "Visningar", icon: <Eye size={14} />, total: s.views, avg: avg(s.views) },
+                { label: "Likes", icon: <ThumbsUp size={14} />, total: s.likes, avg: avg(s.likes) },
+                { label: "Kommentarer", icon: <MessageCircle size={14} />, total: s.comments, avg: avg(s.comments) },
+                { label: "Delningar", icon: <Share2 size={14} />, total: s.shares, avg: avg(s.shares) },
               ];
               if (s.collects != null && s.collectsTracked > 0) {
-                rows.push({ label: "Favoriter", icon: <Bookmark size={16} />, total: s.collects, avg: s.collects / s.collectsTracked });
+                cols.push({ label: "Favoriter", icon: <Bookmark size={14} />, total: s.collects, avg: s.collects / s.collectsTracked });
               }
               return (
-                <div key={item.key} className="vg-card vg-card--stats">
-                  <p className="vg-stats-card-title">{s.count} {s.count === 1 ? "video" : "videor"}</p>
-                  <div className="vg-stats-card-header">
-                    <span></span>
-                    <span className="vg-stats-col-lbl">Totalt</span>
-                    <span className="vg-stats-col-lbl">Genomsnitt</span>
+                <div key={item.key} className="vg-section-head">
+                  <div className="vg-section-head-top">
+                    <span className="vg-section-title">{item.label}</span>
+                    {s.avgEr != null && (
+                      <span className="vg-section-er">Engagement rate: {s.avgEr.toFixed(2)}%</span>
+                    )}
                   </div>
-                  <ul className="vg-stats-card-list">
-                    {rows.map((r) => (
-                      <li key={r.label} title={r.label}>
-                        <span className="vg-stats-row-icon" aria-label={r.label}>{r.icon}</span>
-                        <span className="vg-stats-row-val">{fmtNum(r.total)}</span>
-                        <span className="vg-stats-row-val">{fmtNum(r.avg)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {s.avgEr != null && (
-                    <p className="vg-stats-card-er">⌀ ER {s.avgEr.toFixed(2)}%</p>
-                  )}
+                  <div className="vg-section-table">
+                    <div className="vg-section-row vg-section-row--head">
+                      <span />
+                      {cols.map((c) => (
+                        <span key={c.label} className="vg-section-col-head" title={c.label}>
+                          <span className="vg-section-col-icon">{c.icon}</span>
+                          {c.label}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="vg-section-row">
+                      <span className="vg-section-row-lbl">Totalt</span>
+                      {cols.map((c) => (
+                        <span key={c.label} className="vg-section-row-val">{fmtNum(c.total)}</span>
+                      ))}
+                    </div>
+                    <div className="vg-section-row">
+                      <span className="vg-section-row-lbl">Genomsnittligt</span>
+                      {cols.map((c) => (
+                        <span key={c.label} className="vg-section-row-val">{fmtNum(c.avg)}</span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               );
             }
@@ -705,29 +705,91 @@ const css = `
     }
   }
 
-  /* Week label spans full row */
-  .vg-week-label {
+  /* Section head — full-width strip above each week/month grouping */
+  .vg-section-head {
     grid-column: 1 / -1;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+  }
+  .vg-section-head-top {
     display: flex;
     align-items: baseline;
-    gap: 0.85rem;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+  }
+  .vg-section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #888;
-    padding: 1rem 0 0.35rem;
-    border-top: 1px solid rgba(28,27,25,0.12);
-    margin-top: 0.25rem;
+    color: #1C1B19;
   }
-  .vg-group-er {
+  .vg-section-er {
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0;
-    text-transform: none;
-    color: rgba(28,27,25,0.7);
+    color: rgba(28,27,25,0.65);
+  }
+  .vg-section-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid rgba(28,27,25,0.12);
+    border-bottom: 1px solid rgba(28,27,25,0.12);
+    padding: 0.5rem 0;
+  }
+  .vg-section-row {
+    display: grid;
+    grid-template-columns: 140px repeat(5, 1fr);
+    column-gap: 12px;
+    align-items: baseline;
+    min-width: 540px;
+  }
+  .vg-section-row--head {
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+    margin-bottom: 4px;
+  }
+  .vg-section-col-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(28,27,25,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    text-align: left;
+  }
+  .vg-section-col-icon {
+    display: inline-flex;
+    align-items: center;
+    color: rgba(28,27,25,0.55);
+  }
+  .vg-section-row-lbl {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    color: rgba(28,27,25,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .vg-section-row-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1C1B19;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 559px) {
+    .vg-section-row { grid-template-columns: 110px repeat(5, minmax(80px, 1fr)); column-gap: 10px; }
+    .vg-section-row-lbl { font-size: 12px; }
+    .vg-section-row-val { font-size: 14px; }
   }
 
   .vg-week-label:first-child {
@@ -746,82 +808,6 @@ const css = `
     overflow: hidden;
   }
 
-  /* Per-group stats card — sits as the first card of each section, matches video card height */
-  .vg-card--stats {
-    padding: 1rem 1.1rem;
-    background: #fff;
-    border: 1.5px solid rgba(28,27,25,0.1);
-    gap: 0.85rem;
-    align-self: stretch;
-  }
-  .vg-stats-card-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(28,27,25,0.6);
-    margin: 0;
-  }
-  .vg-stats-card-header {
-    display: grid;
-    grid-template-columns: 28px 1fr 1fr;
-    column-gap: 18px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(28,27,25,0.08);
-  }
-  .vg-stats-col-lbl {
-    font-size: 11px;
-    color: rgba(28,27,25,0.55);
-    text-align: right;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-  }
-  .vg-stats-card-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    justify-content: space-around;
-    gap: 0.5rem;
-  }
-  .vg-stats-card-list li {
-    display: grid;
-    grid-template-columns: 28px 1fr 1fr;
-    column-gap: 18px;
-    align-items: center;
-  }
-  .vg-stats-row-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #fff;
-    color: rgba(28,27,25,0.7);
-  }
-  .vg-stats-row-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: #1C1B19;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  .vg-stats-card-er {
-    margin: 0;
-    padding-top: 0.65rem;
-    border-top: 1px solid rgba(28,27,25,0.08);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #1C1B19;
-  }
 
   /* Thumbnail: 4:5 */
   .vg-thumb-wrap {
