@@ -9,7 +9,7 @@ const TREND_DAYS = 30;
 // Temporary toggle for previewing the follower-trend UI with synthetic data
 // before we have enough real history accumulated. Flip back to false before
 // any user-facing release.
-const USE_FAKE_FOLLOWER_HISTORY = true;
+const USE_FAKE_FOLLOWER_HISTORY = false;
 
 function fakeFollowerHistory(): { date: string; followers: number }[] {
   // 14 datapoints spread across the last 30 days, mid-low growth on a
