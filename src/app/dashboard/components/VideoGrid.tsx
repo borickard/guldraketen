@@ -307,12 +307,7 @@ export default function VideoGrid({ handle }: { handle?: string }) {
 
   function renderSectionHeader(sec: Section) {
     const s = sec.stats;
-    const fmtNum = (n: number) => {
-      const abs = Math.abs(n);
-      if (abs >= 1_000_000) return (n / 1_000_000).toFixed(3).replace(".", ",") + " M";
-      if (abs >= 1_000) return (n / 1_000).toFixed(1).replace(".", ",") + " K";
-      return Math.round(n).toLocaleString("sv-SE");
-    };
+    const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
     const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
     const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
       { label: "Visningar", icon: <Eye size={14} />, total: s.views, avg: avg(s.views) },
