@@ -357,8 +357,18 @@ const css = `
 
   @media (max-width: 559px) {
     .hero-block { padding: 1.25rem 1rem; }
-    .hero-top { align-items: flex-start; }
-    .hero-followers-block { align-items: flex-start; text-align: left; }
+    .hero-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+    .hero-followers-block {
+      align-items: flex-start;
+      text-align: left;
+      width: 100%;
+      padding-top: 0.9rem;
+      border-top: 1px solid rgba(28,27,25,0.08);
+    }
     .hero-stat-big { font-size: 2rem; }
     .hero-name { font-size: 1.6rem; }
   }

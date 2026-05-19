@@ -505,29 +505,6 @@ export default function VideoGrid({ handle }: { handle?: string }) {
                       <span className="vg-section-er">— Engagement rate: {s.avgEr.toFixed(2)}%</span>
                     )}
                   </p>
-                  <div className="vg-section-table">
-                    <div className="vg-section-row vg-section-row--head">
-                      <span />
-                      {cols.map((c) => (
-                        <span key={c.label} className="vg-section-col-head" title={c.label}>
-                          <span className="vg-section-col-icon">{c.icon}</span>
-                          <span className="vg-section-col-label">{c.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">TOTALT</span>
-                      {cols.map((c) => (
-                        <span key={c.label} className="vg-section-row-val">{fmtNum(c.total)}</span>
-                      ))}
-                    </div>
-                    <div className="vg-section-row">
-                      <span className="vg-section-row-lbl">SNITT</span>
-                      {cols.map((c) => (
-                        <span key={c.label} className="vg-section-row-val">{fmtNum(c.avg)}</span>
-                      ))}
-                    </div>
-                  </div>
                   <div className="vg-section-chips">
                     {cols.map((c) => (
                       <div key={c.label} className="vg-section-chip" title={c.label}>
@@ -757,63 +734,9 @@ const css = `
     color: rgba(28,27,25,0.65);
   }
 
-  .vg-section-col-label { display: none; }
-  .vg-section-table {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-top: 1px solid rgba(28,27,25,0.1);
-    padding-top: 0.6rem;
-  }
-  .vg-section-row {
-    display: grid;
-    grid-template-columns: 140px repeat(5, 1fr);
-    column-gap: 12px;
-    align-items: baseline;
-    min-width: 540px;
-  }
-  .vg-section-row--head {
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(28,27,25,0.08);
-    margin-bottom: 4px;
-  }
-  .vg-section-col-head {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 6px;
-    font-size: 12px;
-    color: rgba(28,27,25,0.65);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-  }
-  .vg-section-col-icon {
-    display: inline-flex;
-    align-items: center;
-    color: rgba(28,27,25,0.55);
-  }
-  .vg-section-row-lbl {
-    font-family: 'Barlow', sans-serif;
-    font-size: 13px;
-    color: rgba(28,27,25,0.65);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-  }
-  .vg-section-row-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: #1C1B19;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Chip variant — used on mobile instead of the wide table */
+  /* Chip strip with one chip per metric — used at all viewports */
   .vg-section-chips {
-    display: none;
+    display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
@@ -856,8 +779,6 @@ const css = `
 
   @media (max-width: 559px) {
     .vg-section-head { padding: 0.75rem 0.85rem 0.85rem; }
-    .vg-section-table { display: none; }
-    .vg-section-chips { display: flex; }
     .vg-section-er { font-size: 13px; }
   }
 
