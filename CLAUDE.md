@@ -473,6 +473,18 @@ Implementation: klient-komponent med `useState` per rad eller en gemensam `openI
   - Alternativ att utvärdera: Stripe (global, bra Next.js-integration), Billogram (svensk faktura), Swish (engångsbetalning), Paddle (VAT-hantering ingår)
   - Stripe Checkout med månads-/årsplan är troligen enklast att integrera med Supabase Auth + Row Level Security
 
+### Multi-handle dashboard-konton — designöversyn behövs
+När en dashboard-användare har flera handles kopplade (t.ex. `anna` → `@bregottfabriken` + `@maxburgers_se`) visas idag en tabb per handle och man växlar mellan dem en i taget. Det är inte uppenbart att det är det bästa.
+
+Frågor att ta ställning till:
+- Ska hero-sektionen visa alla handles samtidigt (aggregat: summerade följare/benchmarks) eller en i taget (nuvarande beteende)?
+- Om aggregat: hur hanteras följargraf när två handles har olika startvärde och växttakt? Stapla, summera, eller två kurvor?
+- Veckans/månadens stats-strip — räknar den per handle eller över alla?
+- Video-gridden — alla handles intermixade sorterat efter datum, eller fortfarande tab-växlad?
+- Boost-toggle: är "Allt/Organisk/Boostad" ett bra globalfilter när det är två konton?
+
+Behöver utvärderas med en riktig multi-handle-användare (anna har bregottfabriken + maxburgers_se i nuläget) innan vi designar om.
+
 ### Instagram-tracking (endast dashboard)
 Lägg till Apify-scraping av Instagram-konton parallellt med TikTok, men exponera ENDAST i dashboarden (inte i den publika topplistan / Hall of Fame). Tanken: dashboard-användare ska se sitt företags resultat på båda plattformarna sida vid sida.
 
