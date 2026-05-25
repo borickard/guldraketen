@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import VideoGrid from "./VideoGrid";
 import HeroBlock from "./HeroBlock";
 
@@ -20,6 +21,7 @@ export type BoostFilter = "all" | "organic" | "boosted";
 export default function DashboardClient({ profiles }: { profiles: ProfileData[] }) {
   const [activeHandle, setActiveHandle] = useState(profiles[0]?.handle ?? "");
   const [boost, setBoost] = useState<BoostFilter>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const profile = profiles.find((p) => p.handle === activeHandle) ?? profiles[0];
 
   if (!profile) return null;
@@ -44,9 +46,19 @@ export default function DashboardClient({ profiles }: { profiles: ProfileData[] 
         </div>
       )}
 
-      <HeroBlock handle={activeHandle} boost={boost} onBoostChange={setBoost} />
+      <HeroBlock
+        handle={activeHandle}
+        boost={boost}
+        onBoostChange={setBoost}
+        dateRange={dateRange}
+      />
 
-      <VideoGrid handle={activeHandle} boost={boost} />
+      <VideoGrid
+        handle={activeHandle}
+        boost={boost}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+      />
     </>
   );
 }

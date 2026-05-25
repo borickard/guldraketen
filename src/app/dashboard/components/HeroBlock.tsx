@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
 
 interface HeroData {
@@ -69,22 +70,37 @@ function Sparkline({ points }: { points: { date: string; followers: number }[] }
 
 type BoostFilter = "all" | "organic" | "boosted";
 
+function toDateParam(d: Date | undefined): string | null {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function HeroBlock({
   handle,
   boost,
   onBoostChange,
+  dateRange,
 }: {
   handle: string;
   boost: BoostFilter;
   onBoostChange: (b: BoostFilter) => void;
+  dateRange?: DateRange;
 }) {
   const [data, setData] = useState<HeroData | null>(null);
   const [isFetching, setIsFetching] = useState(true);
+
+  const dateFromKey = toDateParam(dateRange?.from);
+  const dateToKey = toDateParam(dateRange?.to);
 
   useEffect(() => {
     setIsFetching(true);
     const params = new URLSearchParams({ handle });
     if (boost !== "all") params.set("boost", boost);
+    if (dateFromKey) params.set("date_from", dateFromKey);
+    if (dateToKey) params.set("date_to", dateToKey);
     let cancelled = false;
     fetch(`/api/dashboard/hero?${params}`)
       .then((r) => r.json())
@@ -95,7 +111,7 @@ export default function HeroBlock({
       })
       .catch(() => { if (!cancelled) setIsFetching(false); });
     return () => { cancelled = true; };
-  }, [handle, boost]);
+  }, [handle, boost, dateFromKey, dateToKey]);
 
   const ready = !!data && !isFetching;
   const name = data?.display_name ?? (data ? `@${data.handle}` : "");
@@ -424,17 +440,19 @@ const css = `
     box-shadow: 0 1px 2px rgba(28,27,25,0.08);
   }
   .hero-benchmarks {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
   }
   .hero-bench {
     display: inline-flex;
+    flex: 0 0 auto;
     flex-direction: column;
     gap: 8px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
     padding: 14px 18px;
+    min-width: 165px;
   }
   .hero-bench-header {
     display: flex;
@@ -524,11 +542,8 @@ const css = `
     .hero-name { font-size: 1.6rem; }
 
     /* Mobile chip sizing — total 18px / snitt 15px per spec */
-    .hero-benchmarks {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-    }
-    .hero-bench { padding: 10px 12px; gap: 6px; }
+    .hero-benchmarks { gap: 8px; }
+    .hero-bench { padding: 10px 12px; gap: 6px; min-width: 140px; }
     .hero-bench-icon { width: 24px; height: 24px; }
     .hero-bench-lbl { font-size: 13px; }
     .hero-bench-total { font-size: 18px; }

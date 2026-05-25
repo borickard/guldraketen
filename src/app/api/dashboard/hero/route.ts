@@ -95,9 +95,11 @@ export async function GET(req: NextRequest) {
     delta = { abs, pct, meaningful, days };
   }
 
-  // Per-video averages (all-time, for hero benchmarks).
-  // Filtered to exclude contest-flagged videos so the numbers reflect normal posts.
+  // Per-video averages — scoped by the boost filter and optional date range
+  // so the hero numbers reflect whatever period the user has filtered to below.
   const boost = req.nextUrl.searchParams.get("boost") ?? "all";
+  const dateFrom = req.nextUrl.searchParams.get("date_from");
+  const dateTo = req.nextUrl.searchParams.get("date_to");
   let videosQuery = supabaseAdmin
     .from("videos")
     .select("views, likes, comments, shares, collect_count, engagement_rate, published_at")
@@ -105,6 +107,8 @@ export async function GET(req: NextRequest) {
     .or("is_contest.eq.false,contest_approved.eq.true");
   if (boost === "organic") videosQuery = videosQuery.eq("is_ad", false);
   else if (boost === "boosted") videosQuery = videosQuery.eq("is_ad", true);
+  if (dateFrom) videosQuery = videosQuery.gte("published_at", `${dateFrom}T00:00:00Z`);
+  if (dateTo)   videosQuery = videosQuery.lte("published_at", `${dateTo}T23:59:59Z`);
   const { data: videos } = await videosQuery;
 
   const vids = videos ?? [];

@@ -153,7 +153,6 @@ function fmt(n: number | null): string {
 }
 
 type Filters = {
-  dateRange: DateRange | undefined;
   views_min: string; views_max: string;
   likes_min: string; likes_max: string;
   comments_min: string; comments_max: string;
@@ -161,21 +160,20 @@ type Filters = {
 };
 
 const EMPTY_FILTERS: Filters = {
-  dateRange: undefined,
   views_min: "", views_max: "",
   likes_min: "", likes_max: "",
   comments_min: "", comments_max: "",
   shares_min: "", shares_max: "",
 };
 
-function applyFilters(videos: Video[], f: Filters, boost: BoostFilter): Video[] {
+function applyFilters(videos: Video[], f: Filters, dateRange: DateRange | undefined, boost: BoostFilter): Video[] {
   return videos.filter((v) => {
     // Date range
-    if (f.dateRange?.from && v.published_at) {
-      if (new Date(v.published_at) < f.dateRange.from) return false;
+    if (dateRange?.from && v.published_at) {
+      if (new Date(v.published_at) < dateRange.from) return false;
     }
-    if (f.dateRange?.to && v.published_at) {
-      const toEnd = new Date(f.dateRange.to);
+    if (dateRange?.to && v.published_at) {
+      const toEnd = new Date(dateRange.to);
       toEnd.setHours(23, 59, 59, 999);
       if (new Date(v.published_at) > toEnd) return false;
     }
@@ -198,15 +196,14 @@ function applyFilters(videos: Video[], f: Filters, boost: BoostFilter): Video[] 
   });
 }
 
-function activeFilterCount(f: Filters): number {
-  const numActive = (Object.keys(f) as (keyof Filters)[])
-    .filter((k) => k !== "dateRange")
-    .filter((k) => f[k as NumericFilterKey] !== "").length;
-  const dateActive = f.dateRange?.from ? 1 : 0;
+function activeFilterCount(f: Filters, dateRange: DateRange | undefined): number {
+  const numActive = (Object.keys(f) as NumericFilterKey[])
+    .filter((k) => f[k] !== "").length;
+  const dateActive = dateRange?.from ? 1 : 0;
   return numActive + dateActive;
 }
 
-type NumericFilterKey = Exclude<keyof Filters, "dateRange">;
+type NumericFilterKey = keyof Filters;
 
 const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey }[] = [
   { label: "Visningar", min: "views_min",    max: "views_max"    },
@@ -215,7 +212,17 @@ const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey
   { label: "Delningar", min: "shares_min",   max: "shares_max"   },
 ];
 
-export default function VideoGrid({ handle, boost = "all" }: { handle?: string; boost?: BoostFilter }) {
+export default function VideoGrid({
+  handle,
+  boost = "all",
+  dateRange,
+  onDateRangeChange,
+}: {
+  handle?: string;
+  boost?: BoostFilter;
+  dateRange?: DateRange;
+  onDateRangeChange?: (r: DateRange | undefined) => void;
+}) {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
@@ -227,6 +234,8 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
   const [hoverDay, setHoverDay] = useState<Date | undefined>();
   const [urlReady, setUrlReady] = useState(false);
   const calRef = useRef<HTMLDivElement>(null);
+
+  const setDateRange = (r: DateRange | undefined) => onDateRangeChange?.(r);
 
   useEffect(() => {
     setLoading(true);
@@ -246,10 +255,7 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
     const df = p.get("date_from");
     const dt = p.get("date_to");
     if (df || dt) {
-      setFilters((prev) => ({
-        ...prev,
-        dateRange: { from: df ? new Date(df) : undefined, to: dt ? new Date(dt) : undefined },
-      }));
+      onDateRangeChange?.({ from: df ? new Date(df) : undefined, to: dt ? new Date(dt) : undefined });
     }
     const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
     const numUpdates: Partial<Filters> = {};
@@ -265,14 +271,14 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
     const p = new URLSearchParams();
     if (sort !== "newest") p.set("sort", sort);
     if (scope !== "week") p.set("scope", scope);
-    if (filters.dateRange?.from) p.set("date_from", filters.dateRange.from.toISOString().split("T")[0]);
-    if (filters.dateRange?.to)   p.set("date_to",   filters.dateRange.to.toISOString().split("T")[0]);
+    if (dateRange?.from) p.set("date_from", dateRange.from.toISOString().split("T")[0]);
+    if (dateRange?.to)   p.set("date_to",   dateRange.to.toISOString().split("T")[0]);
     const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
     for (const k of numKeys) { if (filters[k]) p.set(k, filters[k] as string); }
     if (showFilters) p.set("filters", "1");
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [sort, scope, filters, showFilters, urlReady]);
+  }, [sort, scope, filters, dateRange, showFilters, urlReady]);
 
   // Close calendar on outside click
   useEffect(() => {
@@ -314,15 +320,13 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
   }
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
-  const filtered = applyFilters(videos, filters, boost);
+  const filtered = applyFilters(videos, filters, dateRange, boost);
   const structure = buildStructure(filtered, sort, scope);
-  const nActive = activeFilterCount(filters);
+  const nActive = activeFilterCount(filters, dateRange);
 
   function setFilter(key: NumericFilterKey, val: string) {
     setFilters((prev) => ({ ...prev, [key]: val }));
   }
-
-  const dateRange = filters.dateRange;
 
   function renderSectionHeader(sec: Section) {
     const s = sec.stats;
@@ -484,7 +488,7 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
               {nActive > 0 ? `${nActive} aktiva` : "Filter"}
             </button>
             {nActive > 0 && (
-              <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
+              <button className="vg-filter-clear" onClick={() => { setFilters(EMPTY_FILTERS); setDateRange(undefined); }}>
                 Rensa
               </button>
             )}
@@ -508,7 +512,7 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
                   <span
                     className="vg-date-clear"
                     role="button"
-                    onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setCalPhase(0); setShowCal(false); }}
+                    onClick={(e) => { e.stopPropagation(); setDateRange(undefined); setCalPhase(0); setShowCal(false); }}
                     aria-label="Rensa datum"
                   >×</span>
                 )}
@@ -530,12 +534,12 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
                     selected={selectedForDisplay}
                     onSelect={(_range, selectedDay) => {
                       if (calPhase === 0) {
-                        setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
+                        setDateRange({ from: selectedDay, to: undefined });
                         setCalPhase(1);
                       } else {
-                        const from = filters.dateRange?.from ?? selectedDay;
+                        const from = dateRange?.from ?? selectedDay;
                         const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
-                        setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
+                        setDateRange({ from: start, to: end });
                         setCalPhase(0);
                         setHoverDay(undefined);
                       }
@@ -798,8 +802,8 @@ const css = `
 
   /* Chip strip with one chip per metric — used at all viewports */
   .vg-section-chips {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
   }
   .vg-section-chip--er {
@@ -810,11 +814,13 @@ const css = `
   }
   .vg-section-chip {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 10px;
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
     padding: 11px 16px;
+    min-width: 165px;
   }
   .vg-section-chip-icon {
     display: inline-flex;
@@ -861,11 +867,8 @@ const css = `
 
   @media (max-width: 559px) {
     .vg-section-head { padding: 0.85rem 1rem 1rem; }
-    .vg-section-chips {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-    }
-    .vg-section-chip { padding: 10px 12px; gap: 8px; }
+    .vg-section-chips { gap: 8px; }
+    .vg-section-chip { padding: 10px 12px; gap: 8px; min-width: 140px; }
     .vg-section-chip-icon { width: 24px; height: 24px; }
     .vg-section-chip-total { font-size: 18px; }
     .vg-section-chip-avg { font-size: 15px; }
