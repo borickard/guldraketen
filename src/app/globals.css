@@ -1159,6 +1159,23 @@ body {
   background: #EBE7E2;
   color: var(--gr-dark);
 }
+.gr-hof-week-arrow--left {
+  left: 12px;
+  right: auto;
+}
+
+/* Left-fade — mirrors the right ::after, only when scrolled away from start */
+.gr-hof-week-scroll-wrap--scrolled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 20px;
+  width: 80px;
+  background: linear-gradient(to left, transparent, #EBE7E2 80%);
+  pointer-events: none;
+  z-index: 2;
+}
 
 .gr-hof-week-row {
   display: flex;

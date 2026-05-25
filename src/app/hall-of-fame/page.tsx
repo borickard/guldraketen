@@ -150,18 +150,21 @@ function HofCard({ entry }: { entry: HofVideo }) {
 function GroupRow({ videos, groupKey }: { videos: HofVideo[]; groupKey: string }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
+  const [atStart, setAtStart] = useState(true);
 
   useEffect(() => {
     const el = rowRef.current;
     if (!el) return;
     el.scrollLeft = 0;
     setAtEnd(el.scrollWidth <= el.clientWidth + 24);
+    setAtStart(true);
   }, [videos]);
 
   function onScroll() {
     const el = rowRef.current;
     if (!el) return;
     setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 24);
+    setAtStart(el.scrollLeft <= 24);
   }
 
   function scrollRight() {
@@ -170,13 +173,26 @@ function GroupRow({ videos, groupKey }: { videos: HofVideo[]; groupKey: string }
     el.scrollBy({ left: el.clientWidth * 0.7, behavior: "smooth" });
   }
 
+  function scrollLeft() {
+    const el = rowRef.current;
+    if (!el) return;
+    el.scrollBy({ left: -el.clientWidth * 0.7, behavior: "smooth" });
+  }
+
   return (
-    <div className="gr-hof-week-scroll-wrap">
+    <div className={`gr-hof-week-scroll-wrap${atStart ? "" : " gr-hof-week-scroll-wrap--scrolled"}`}>
       <div className="gr-hof-week-row" ref={rowRef} onScroll={onScroll}>
         {videos.map((entry) => (
           <HofCard key={`${groupKey}-${entry.rank}-${entry.handle}`} entry={entry} />
         ))}
       </div>
+      {!atStart && (
+        <button className="gr-hof-week-arrow gr-hof-week-arrow--left" onClick={scrollLeft} aria-label="Scrolla vänster">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
       {!atEnd && (
         <button className="gr-hof-week-arrow" onClick={scrollRight} aria-label="Scrolla höger">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
