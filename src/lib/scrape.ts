@@ -197,81 +197,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
 
     const items: ApifyItem[] = await res.json();
 
-    const videoRows: VideoRow[] = [];
-    const followerMap: Record<string, number> = {};
-    const avatarMap: Record<string, string> = {};
-    let skipped = 0;
-
-    for (const it of items) {
-        const handle = it?.authorMeta?.name || it?.author?.uniqueId || it?.authorUniqueId || "";
-        const videoUrl = it?.webVideoUrl || it?.videoUrl || it?.url || "";
-        if (!handle || !videoUrl) { skipped++; continue; }
-
-        const publishedAt = parseCreateTime(it?.createTime ?? it?.create_time ?? null);
-        if (!publishedAt) { skipped++; continue; }
-
-        const stats = it?.stats || it?.statistics || {};
-        const views = firstNumber(stats.playCount, stats.viewCount, it.playCount, it.viewCount);
-        const likes = firstNumber(stats.diggCount, stats.likeCount, it.diggCount, it.likeCount);
-        const comments = firstNumber(stats.commentCount, it.commentCount);
-        const shares = firstNumber(stats.shareCount, it.shareCount);
-        const collectCount = firstNumber(
-            stats.collectCount,
-            stats.bookmarkCount,
-            stats.collect_count,
-            it.collectCount,
-            it.bookmarkCount
-        );
-        const isAd = firstBoolean(it.isAd, it.is_ad);
-        const isSponsored = firstBoolean(it.isSponsored, it.is_sponsored);
-
-        const thumbnailUrl =
-            it?.videoMeta?.coverUrl ||
-            it?.covers?.default ||
-            it?.cover ||
-            it?.thumbnail ||
-            null;
-
-        const caption =
-            it?.text ||
-            it?.description ||
-            it?.caption ||
-            null;
-
-        const captionTrimmed = caption ? caption.slice(0, 500) : null;
-
-        videoRows.push({
-            handle,
-            video_url: videoUrl,
-            published_at: publishedAt.toISOString(),
-            views: views ?? 0,
-            likes: likes ?? 0,
-            comments: comments ?? 0,
-            shares: shares ?? 0,
-            collect_count: collectCount,
-            thumbnail_url: thumbnailUrl,
-            caption: captionTrimmed,
-            is_contest: detectContest(captionTrimmed),
-            is_ad: isAd,
-            is_sponsored: isSponsored,
-            last_updated: new Date().toISOString(),
-        });
-
-        const fans = it?.authorMeta?.fans ?? it?.authorStats?.followerCount ?? null;
-        if (fans !== null && !(handle in followerMap)) {
-            followerMap[handle] = fans;
-        }
-
-        const avatarUrl =
-            it?.authorMeta?.avatar ||
-            it?.authorMeta?.avatarLarger ||
-            it?.authorMeta?.avatarMedium ||
-            it?.authorMeta?.avatarThumb ||
-            null;
-        if (avatarUrl && !(handle in avatarMap)) {
-            avatarMap[handle] = avatarUrl;
-        }
-    }
+    const { videoRows, followerMap, avatarMap, skipped } = parseApifyItems(items);
 
     // ── Critical path: upsert videos first (with original thumbnail URLs) ────────
     // Thumbnail uploads are slow and can exhaust Vercel's function timeout.
@@ -390,6 +316,97 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
     return result;
 }
 
+// ─── Parse Apify dataset items into typed rows ────────────────────────────────
+// Shared by the weekly cron (writes to `videos`) and the daily dashboard cron
+// (writes to `dashboard_videos`).
+
+export interface ParsedApify {
+    videoRows: VideoRow[];
+    followerMap: Record<string, number>;
+    avatarMap: Record<string, string>;
+    skipped: number;
+}
+
+export function parseApifyItems(items: ApifyItem[]): ParsedApify {
+    const videoRows: VideoRow[] = [];
+    const followerMap: Record<string, number> = {};
+    const avatarMap: Record<string, string> = {};
+    let skipped = 0;
+
+    for (const it of items) {
+        const handle = it?.authorMeta?.name || it?.author?.uniqueId || it?.authorUniqueId || "";
+        const videoUrl = it?.webVideoUrl || it?.videoUrl || it?.url || "";
+        if (!handle || !videoUrl) { skipped++; continue; }
+
+        const publishedAt = parseCreateTime(it?.createTime ?? it?.create_time ?? null);
+        if (!publishedAt) { skipped++; continue; }
+
+        const stats = it?.stats || it?.statistics || {};
+        const views = firstNumber(stats.playCount, stats.viewCount, it.playCount, it.viewCount);
+        const likes = firstNumber(stats.diggCount, stats.likeCount, it.diggCount, it.likeCount);
+        const comments = firstNumber(stats.commentCount, it.commentCount);
+        const shares = firstNumber(stats.shareCount, it.shareCount);
+        const collectCount = firstNumber(
+            stats.collectCount,
+            stats.bookmarkCount,
+            stats.collect_count,
+            it.collectCount,
+            it.bookmarkCount
+        );
+        const isAd = firstBoolean(it.isAd, it.is_ad);
+        const isSponsored = firstBoolean(it.isSponsored, it.is_sponsored);
+
+        const thumbnailUrl =
+            it?.videoMeta?.coverUrl ||
+            it?.covers?.default ||
+            it?.cover ||
+            it?.thumbnail ||
+            null;
+
+        const caption =
+            it?.text ||
+            it?.description ||
+            it?.caption ||
+            null;
+
+        const captionTrimmed = caption ? caption.slice(0, 500) : null;
+
+        videoRows.push({
+            handle,
+            video_url: videoUrl,
+            published_at: publishedAt.toISOString(),
+            views: views ?? 0,
+            likes: likes ?? 0,
+            comments: comments ?? 0,
+            shares: shares ?? 0,
+            collect_count: collectCount,
+            thumbnail_url: thumbnailUrl,
+            caption: captionTrimmed,
+            is_contest: detectContest(captionTrimmed),
+            is_ad: isAd,
+            is_sponsored: isSponsored,
+            last_updated: new Date().toISOString(),
+        });
+
+        const fans = it?.authorMeta?.fans ?? it?.authorStats?.followerCount ?? null;
+        if (fans !== null && !(handle in followerMap)) {
+            followerMap[handle] = fans;
+        }
+
+        const avatarUrl =
+            it?.authorMeta?.avatar ||
+            it?.authorMeta?.avatarLarger ||
+            it?.authorMeta?.avatarMedium ||
+            it?.authorMeta?.avatarThumb ||
+            null;
+        if (avatarUrl && !(handle in avatarMap)) {
+            avatarMap[handle] = avatarUrl;
+        }
+    }
+
+    return { videoRows, followerMap, avatarMap, skipped };
+}
+
 // ─── Contest detection ────────────────────────────────────────────────────────
 
 const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare", "giveaway"];
@@ -409,7 +426,7 @@ export interface ScrapeResult {
     followers: number;
 }
 
-interface VideoRow {
+export interface VideoRow {
     handle: string;
     video_url: string;
     published_at: string;
@@ -426,7 +443,7 @@ interface VideoRow {
     last_updated: string;
 }
 
-interface ApifyItem {
+export interface ApifyItem {
     authorMeta?: { name?: string; fans?: number; avatar?: string; avatarLarger?: string; avatarMedium?: string; avatarThumb?: string };
     author?: { uniqueId?: string };
     authorUniqueId?: string;

@@ -96,13 +96,14 @@ export async function GET(req: NextRequest) {
   }
 
   // Per-video averages (all-time, for hero benchmarks).
-  // Filtered to exclude contest-flagged videos so the numbers reflect normal posts.
+  // Reads from dashboard_videos so freshness matches what the user sees in
+  // the grid below; no contest filter — those flags only matter for the
+  // public ranking and aren't tracked here.
   const boost = req.nextUrl.searchParams.get("boost") ?? "all";
   let videosQuery = supabaseAdmin
-    .from("videos")
+    .from("dashboard_videos")
     .select("views, likes, comments, shares, collect_count, engagement_rate, published_at")
-    .eq("handle", handle)
-    .or("is_contest.eq.false,contest_approved.eq.true");
+    .eq("handle", handle);
   if (boost === "organic") videosQuery = videosQuery.eq("is_ad", false);
   else if (boost === "boosted") videosQuery = videosQuery.eq("is_ad", true);
   const { data: videos } = await videosQuery;

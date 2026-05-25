@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     : session.handles;
 
   const { data, error } = await supabaseAdmin
-    .from("videos")
+    .from("dashboard_videos")
     .select("id, handle, video_url, thumbnail_url, published_at, views, likes, comments, shares, collect_count, is_ad, engagement_rate, caption")
     .in("handle", handles)
     .order("published_at", { ascending: false });
