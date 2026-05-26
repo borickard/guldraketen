@@ -564,15 +564,37 @@ export default function AdminPage() {
   }
 
   async function handleImpersonate(userId: string) {
-    const res = await fetch("/api/admin/impersonate", {
+    let res = await fetch("/api/admin/impersonate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     });
+
+    // 403 = no admin_session cookie yet (admin logged in before that cookie
+    // existed). Ask for the password once to set the cookie, then retry.
+    if (res.status === 403) {
+      const pw = window.prompt("Bekräfta admin-lösenordet för att öppna dashboarden:");
+      if (!pw) return;
+      const authRes = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (!authRes.ok) {
+        alert("Fel lösenord.");
+        return;
+      }
+      res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+    }
+
     if (res.ok) {
       window.open("/dashboard", "_blank");
     } else {
-      alert("Kunde inte öppna dashboarden — kolla att du är inloggad som admin.");
+      alert("Kunde inte öppna dashboarden.");
     }
   }
 
