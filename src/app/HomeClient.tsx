@@ -970,9 +970,17 @@ function HomeInner() {
           {loading
             ? [0, 1, 2].map((i) => (
                 <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
-                  <div className="gr-thumb" />
+                  <div className="gr-thumb">
+                    <span className="gr-thumb-best gr-rk-skel-badge" />
+                    <span className="gr-thumb-er gr-rk-skel-er" />
+                    <div className="gr-thumb-stats gr-rk-skel-stats">
+                      {[44, 38, 36, 40].map((w, j) => (
+                        <span key={j} className="gr-rk-skel-stat" style={{ width: w }} />
+                      ))}
+                    </div>
+                  </div>
                   <div className="gr-vid-info">
-                    <div className="gr-rk-skel-bar" style={{ width: "60%", background: "rgba(28,27,25,0.1)" }} />
+                    <div className="gr-rk-skel-bar" style={{ width: "60%" }} />
                   </div>
                 </div>
               ))
