@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function DashboardHeader() {
+export default function DashboardHeader({
+  impersonating,
+}: {
+  impersonating?: { username: string } | null;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -12,9 +16,32 @@ export default function DashboardHeader() {
     router.push("/dashboard/login");
   }
 
+  async function handleEndImpersonation() {
+    // Clears only the dashboard_session cookie — the admin_session stays so
+    // the admin lands back on the admin page authenticated.
+    await fetch("/api/dashboard/logout", { method: "POST" });
+    router.push("/admin?tab=users");
+  }
+
   return (
     <>
       <style>{css}</style>
+      {impersonating && (
+        <div className="db-impersonate-bar">
+          <span className="db-impersonate-eye" aria-hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </span>
+          <span className="db-impersonate-text">
+            Du tittar som <strong>{impersonating.username}</strong>
+          </span>
+          <button onClick={handleEndImpersonation} className="db-impersonate-back">
+            Tillbaka till admin
+          </button>
+        </div>
+      )}
       <header className="db-header">
         <a href="/" className="db-wordmark">Sociala Raketer</a>
 
@@ -50,6 +77,45 @@ export default function DashboardHeader() {
 }
 
 const css = `
+  .db-impersonate-bar {
+    position: sticky;
+    top: 0;
+    z-index: 101;
+    background: #C8962A;
+    color: #1C1B19;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 8px 1.5rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+  }
+  .db-impersonate-eye {
+    display: inline-flex;
+    align-items: center;
+  }
+  .db-impersonate-text strong {
+    font-weight: 700;
+  }
+  .db-impersonate-back {
+    margin-left: auto;
+    background: rgba(28,27,25,0.12);
+    border: 1px solid rgba(28,27,25,0.25);
+    color: #1C1B19;
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .db-impersonate-back:hover {
+    background: rgba(28,27,25,0.2);
+  }
+
   .db-burger {
     display: none;
     flex-direction: column;

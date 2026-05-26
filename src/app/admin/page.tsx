@@ -563,6 +563,19 @@ export default function AdminPage() {
     await fetchUsers();
   }
 
+  async function handleImpersonate(userId: string) {
+    const res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (res.ok) {
+      window.open("/dashboard", "_blank");
+    } else {
+      alert("Kunde inte öppna dashboarden — kolla att du är inloggad som admin.");
+    }
+  }
+
   const active = accounts.filter((a) => a.is_active);
   const inactive = accounts.filter((a) => !a.is_active);
   const videoCount = (a: Account) => a.videos?.[0]?.count ?? 0;
@@ -1194,6 +1207,13 @@ export default function AdminPage() {
                           <span className="user-login-meta">{loginSummary(u)}</span>
                         </div>
                         <span className="account-meta" title="Skapad">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
+                        <button
+                          className="user-link-btn"
+                          onClick={() => handleImpersonate(u.id)}
+                          title="Öppna användarens dashboard i en ny flik"
+                        >
+                          Visa dashboard
+                        </button>
                         <button
                           className="user-link-btn"
                           onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
