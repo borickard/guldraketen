@@ -8,6 +8,7 @@ interface HeroData {
   display_name: string | null;
   avatar_url: string | null;
   tracked_since: string;
+  last_fetched_at: string | null;
   followers: {
     current: number;
     history: { date: string; followers: number }[];
@@ -37,6 +38,19 @@ function fmt(n: number): string {
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatFreshness(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return "just nu";
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just nu";
+  if (mins < 60) return `${mins} ${mins === 1 ? "minut" : "minuter"} sedan`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "timme" : "timmar"} sedan`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ${days === 1 ? "dag" : "dagar"} sedan`;
+  return new Date(iso).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
 }
 
 function Sparkline({ points }: { points: { date: string; followers: number }[] }) {
@@ -222,6 +236,9 @@ export default function HeroBlock({
               {b.posts_per_week >= 1
                 ? `  ·  ${b.posts_per_week.toFixed(1)} per vecka`
                 : `  ·  ${(b.posts_per_week * 4.33).toFixed(1)} per månad`}
+              {data.last_fetched_at && (
+                <>  ·  Senast uppdaterad {formatFreshness(data.last_fetched_at)}</>
+              )}
             </>
           ) : (
             <Skel w={320} h={13} />

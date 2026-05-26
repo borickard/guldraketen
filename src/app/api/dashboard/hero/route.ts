@@ -129,11 +129,32 @@ export async function GET(req: NextRequest) {
   const weeksSpan = Math.max(spanMs / (7 * 24 * 3600 * 1000), 1);
   const postsPerWeek = count / weeksSpan;
 
+  // Latest cron timestamp for this handle — most recent dashboard_videos
+  // last_updated, with accounts.followers_updated_at as fallback for handles
+  // that haven't been scraped yet.
+  const { data: freshRow } = await supabaseAdmin
+    .from("dashboard_videos")
+    .select("last_updated")
+    .eq("handle", handle)
+    .order("last_updated", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: accountFresh } = await supabaseAdmin
+    .from("accounts")
+    .select("followers_updated_at")
+    .eq("handle", handle)
+    .maybeSingle();
+
+  const lastFetchedAt: string | null =
+    freshRow?.last_updated ?? accountFresh?.followers_updated_at ?? null;
+
   return NextResponse.json({
     handle: account.handle,
     display_name: account.display_name,
     avatar_url: account.avatar_url,
     tracked_since: account.created_at,
+    last_fetched_at: lastFetchedAt,
     followers: {
       current,
       history: points,
