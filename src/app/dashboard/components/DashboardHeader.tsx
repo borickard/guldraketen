@@ -81,6 +81,65 @@ export default function DashboardHeader({
 }
 
 const css = `
+  .db-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #1C1B19;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    height: 52px;
+  }
+
+  .db-wordmark {
+    font-family: 'Jersey 10', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #EDF8FB;
+    text-decoration: none;
+  }
+
+  .db-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-left: auto;
+    margin-right: 1.5rem;
+  }
+
+  .db-nav-link {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(237,248,251,0.55);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+
+  .db-nav-link:hover { color: #EDF8FB; }
+
+  .db-logout-btn {
+    background: none;
+    border: 1px solid rgba(237,248,251,0.2);
+    color: rgba(237,248,251,0.6);
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s;
+  }
+
+  .db-logout-btn:hover {
+    border-color: rgba(237,248,251,0.6);
+    color: #EDF8FB;
+  }
+
   .db-impersonate-bar {
     position: sticky;
     top: 0;
