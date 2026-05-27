@@ -1,18 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AccountPicker from "./AccountPicker";
 
 interface OwnHandle {
   handle: string;
   display_name: string | null;
   avatar_url: string | null;
-}
-
-interface SearchResult {
-  handle: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  category: string | null;
 }
 
 interface CompareRow {
@@ -92,12 +86,8 @@ export default function CompareClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchAbort = useRef<AbortController | null>(null);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
+  // Picker modal state
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Read URL state on first mount
   useEffect(() => {
@@ -168,37 +158,6 @@ export default function CompareClient({
     }).catch(() => {});
   }, []);
 
-  // Account search
-  useEffect(() => {
-    if (searchQuery.trim().length === 0) {
-      setSearchResults([]);
-      return;
-    }
-    searchAbort.current?.abort();
-    const ac = new AbortController();
-    searchAbort.current = ac;
-    const t = setTimeout(() => {
-      fetch(`/api/dashboard/accounts-search?q=${encodeURIComponent(searchQuery.trim())}`, {
-        signal: ac.signal,
-      })
-        .then((r) => r.json())
-        .then((data: SearchResult[]) => setSearchResults(data))
-        .catch(() => {});
-    }, 200);
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [searchQuery]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!searchBoxRef.current?.contains(e.target as Node)) setSearchOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
 
   const addHandle = useCallback(
     (handle: string) => {
@@ -211,8 +170,7 @@ export default function CompareClient({
         persistHandles(next);
         return next;
       });
-      setSearchQuery("");
-      setSearchOpen(false);
+      setPickerOpen(false);
     },
     [ownHandleSet, persistHandles]
   );
@@ -243,8 +201,7 @@ export default function CompareClient({
     return ordered;
   }, [rows, ownHandlesList, extraHandles]);
 
-  const addedSet = new Set(allHandles);
-  const visibleSearchResults = searchResults.filter((r) => !addedSet.has(r.handle));
+  const addedSet = useMemo(() => new Set(allHandles), [allHandles]);
 
   return (
     <>
@@ -269,49 +226,23 @@ export default function CompareClient({
         </div>
       </header>
 
-      <div className="cmp-search-row" ref={searchBoxRef}>
-        <input
-          type="text"
-          className="cmp-search-input"
-          placeholder="Lägg till konto…"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setSearchOpen(true);
-          }}
-          onFocus={() => setSearchOpen(true)}
-        />
-        {searchOpen && searchQuery.trim().length > 0 && (
-          <div className="cmp-search-dropdown">
-            {visibleSearchResults.length === 0 ? (
-              <div className="cmp-search-empty">Inga matchande konton.</div>
-            ) : (
-              visibleSearchResults.map((r) => (
-                <button
-                  key={r.handle}
-                  type="button"
-                  className="cmp-search-result"
-                  onClick={() => addHandle(r.handle)}
-                >
-                  {r.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.avatar_url} alt="" className="cmp-search-avatar" />
-                  ) : (
-                    <div className="cmp-search-avatar cmp-search-avatar--placeholder" />
-                  )}
-                  <div className="cmp-search-text">
-                    <div className="cmp-search-name">{r.display_name ?? `@${r.handle}`}</div>
-                    <div className="cmp-search-handle">
-                      @{r.handle}
-                      {r.category ? ` · ${r.category}` : ""}
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        )}
+      <div className="cmp-picker-row">
+        <button
+          type="button"
+          className="cmp-add-btn"
+          onClick={() => setPickerOpen(true)}
+        >
+          + Lägg till konto
+        </button>
       </div>
+
+      {pickerOpen && (
+        <AccountPicker
+          addedHandles={addedSet}
+          onSelect={addHandle}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
 
       {error && <div className="cmp-error">Kunde inte ladda jämförelsen: {error}</div>}
 
@@ -463,89 +394,26 @@ const css = `
     color: #EDF8FB;
   }
 
-  .cmp-search-row {
-    position: relative;
+  .cmp-picker-row {
     margin-bottom: 1.5rem;
-    max-width: 420px;
   }
 
-  .cmp-search-input {
-    width: 100%;
+  .cmp-add-btn {
     font-family: 'Barlow', sans-serif;
-    font-size: 14px;
-    padding: 0.65rem 0.9rem;
-    background: #fff;
-    border: 1.5px solid rgba(28,27,25,0.15);
-    border-radius: 6px;
-    color: #1C1B19;
-    outline: none;
-    transition: border-color 0.12s;
-  }
-
-  .cmp-search-input:focus {
-    border-color: #1C1B19;
-  }
-
-  .cmp-search-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 1px solid rgba(28,27,25,0.15);
-    border-radius: 6px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    max-height: 360px;
-    overflow-y: auto;
-    z-index: 50;
-  }
-
-  .cmp-search-result {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0.55rem 0.75rem;
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid rgba(28,27,25,0.06);
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-  }
-
-  .cmp-search-result:last-child { border-bottom: 0; }
-  .cmp-search-result:hover { background: rgba(28,27,25,0.04); }
-
-  .cmp-search-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-
-  .cmp-search-avatar--placeholder { background: rgba(28,27,25,0.1); }
-
-  .cmp-search-text { min-width: 0; }
-
-  .cmp-search-name {
     font-size: 13px;
     font-weight: 600;
-    color: #1C1B19;
-    line-height: 1.2;
+    letter-spacing: 0.04em;
+    padding: 0.6rem 1.1rem;
+    background: #1C1B19;
+    color: #EDF8FB;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
   }
 
-  .cmp-search-handle {
-    font-size: 11px;
-    color: #888;
-    margin-top: 2px;
-  }
-
-  .cmp-search-empty {
-    padding: 0.75rem;
-    font-size: 12px;
-    color: #888;
+  .cmp-add-btn:hover {
+    background: #2a2926;
   }
 
   .cmp-error {
