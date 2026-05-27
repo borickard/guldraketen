@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CATEGORIES } from "@/lib/categories";
 
 interface User {
   id: string;
@@ -29,23 +30,6 @@ function toWeekLabel(dateStr: string): string {
   const week = Math.ceil(((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000 + 1) / 7);
   return `V${week} ${year}`;
 }
-
-const CATEGORIES = [
-  "Mat & dryck",
-  "Handel & e-handel",
-  "Mode & skönhet",
-  "Hälsa & välmående",
-  "Media & underhållning",
-  "Bank & finans",
-  "Teknik & IT",
-  "Sport & fritid",
-  "Resor & upplevelser",
-  "Utbildning",
-  "Fordon",
-  "Offentlig sektor & ideellt",
-  "Politik & intresseorganisationer",
-];
-
 
 interface CalcTest {
   id: string;

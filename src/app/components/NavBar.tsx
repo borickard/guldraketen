@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 const homeLinks = [
   { href: "#topplistan",    label: "Veckans raketer" },
   { href: "/hall-of-fame",  label: "Hall of Fame" },
+  { href: "/kategorier",    label: "Kategorier" },
   { href: "#kalkylator",    label: "Räkna ut engagemang" },
   { href: "#om-engagemang", label: "Om Sociala Raketer" },
 ];
@@ -14,6 +15,7 @@ const homeLinks = [
 const otherLinks = [
   { href: "/#topplistan",   label: "Veckans raketer" },
   { href: "/hall-of-fame",  label: "Hall of Fame" },
+  { href: "/kategorier",    label: "Kategorier" },
   { href: "/#kalkylator",   label: "Räkna ut engagemang" },
   { href: "/om-engagemang", label: "Om Sociala Raketer" },
 ];
