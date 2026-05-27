@@ -47,6 +47,7 @@ export default function DashboardHeader({
 
         <nav className="db-nav db-nav--desktop">
           <a href="/dashboard" className="db-nav-link">Dashboard</a>
+          <a href="/dashboard/jamforelse" className="db-nav-link">Jämför</a>
           <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
         </nav>
         <button onClick={handleLogout} className="db-logout-btn db-logout-btn--desktop">
@@ -68,6 +69,7 @@ export default function DashboardHeader({
       {open && (
         <div className="db-mobile-menu">
           <a href="/dashboard" className="db-mobile-link" onClick={() => setOpen(false)}>Dashboard</a>
+          <a href="/dashboard/jamforelse" className="db-mobile-link" onClick={() => setOpen(false)}>Jämför</a>
           <a href="/hall-of-fame" className="db-mobile-link" onClick={() => setOpen(false)}>Hall of Fame</a>
           <button onClick={handleLogout} className="db-mobile-link db-mobile-link--btn">Logga ut</button>
         </div>
