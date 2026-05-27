@@ -1408,8 +1408,8 @@ export default function AdminPage() {
                                 onChange={(e) => { if (e.target.value) { handleAddHandleToUser(u.id, e.target.value); setNewHandleUserId(null); } }}
                               >
                                 <option value="">Välj konto…</option>
-                                {availableHandles.map((h) => (
-                                  <option key={h} value={h}>@{h}</option>
+                                {[...availableHandles].sort((a, b) => a.localeCompare(b, "sv")).map((h) => (
+                                  <option key={h} value={h}>{h}</option>
                                 ))}
                               </select>
                             </div>
