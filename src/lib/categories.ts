@@ -9,7 +9,7 @@ export const CATEGORIES = [
   "Sport & fritid",
   "Resor & upplevelser",
   "Utbildning",
-  "Fordon",
+  "Fordon & transport",
   "Offentlig sektor & ideellt",
   "Politik & intresseorganisationer",
 ] as const;

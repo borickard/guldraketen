@@ -83,7 +83,7 @@ interface Account {
   videos: [{ count: number }] | null;
 }
 
-const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback", "betatest"] as const;
+const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback", "betatest", "forslag", "kategorier"] as const;
 type TabKey = typeof VALID_TABS[number];
 
 export default function AdminPage() {
@@ -186,7 +186,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); fetchBetaSignups(); fetchCalcSettings(); fetchCalcUsage(); }
+    if (authed) { fetchAccounts(); fetchContestVideos(); fetchCalcTests(); fetchUsers(); fetchFeedback(); fetchBetaSignups(); fetchCalcSettings(); fetchCalcUsage(); fetchSuggestions(); }
   }, [authed]); // eslint-disable-line
 
   useEffect(() => {
@@ -390,6 +390,65 @@ export default function AdminPage() {
     setLoadingScrapeRuns(false);
   }
 
+  interface CategorySuggestion {
+    id: string;
+    handle: string;
+    display_name: string;
+    suggested_category: string;
+    email: string | null;
+    motivation: string | null;
+    created_at: string;
+    video_count: number;
+  }
+  const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionSort, setSuggestionSort] = useState<"name" | "date" | "videos">("name");
+  const [suggestionOrder, setSuggestionOrder] = useState<"asc" | "desc">("asc");
+
+  async function fetchSuggestions(sort = suggestionSort, order = suggestionOrder) {
+    setLoadingSuggestions(true);
+    const res = await fetch(`/api/admin/category-suggestions?sort=${sort}&order=${order}`);
+    const data = await res.json();
+    setSuggestions(Array.isArray(data) ? data : []);
+    setLoadingSuggestions(false);
+  }
+
+  async function deleteSuggestion(id: string) {
+    if (!confirm("Ta bort förslaget?")) return;
+    const res = await fetch(`/api/admin/category-suggestions?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (res.ok) fetchSuggestions();
+  }
+
+  interface AdminCategory {
+    name: string;
+    is_visible: boolean;
+    account_count: number;
+    is_orphan: boolean;
+  }
+  const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
+  const [loadingAdminCategories, setLoadingAdminCategories] = useState(false);
+
+  async function fetchAdminCategories() {
+    setLoadingAdminCategories(true);
+    const res = await fetch("/api/admin/categories");
+    const data = await res.json();
+    setAdminCategories(Array.isArray(data) ? data : []);
+    setLoadingAdminCategories(false);
+  }
+
+  async function toggleCategoryVisibility(name: string, is_visible: boolean) {
+    setAdminCategories((curr) =>
+      curr.map((c) => (c.name === name ? { ...c, is_visible } : c))
+    );
+    await fetch("/api/admin/categories", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, is_visible }),
+    });
+  }
+
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -560,6 +619,8 @@ export default function AdminPage() {
             { key: "users", label: "Användare", meta: `${users.length}` },
             { key: "feedback", label: "Feedback", meta: feedbackItems.length > 0 ? `${feedbackItems.length}` : "" },
             { key: "betatest", label: "Betatest", meta: betaSignups.length > 0 ? `${betaSignups.length}` : "" },
+            { key: "forslag", label: "Förslag", meta: suggestions.length > 0 ? `${suggestions.length}` : "" },
+            { key: "kategorier", label: "Kategorier", meta: "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -572,6 +633,8 @@ export default function AdminPage() {
                 if (tab.key === "feedback") fetchFeedback();
                 if (tab.key === "betatest") fetchBetaSignups();
                 if (tab.key === "kalkylator") { fetchCalcSettings(); fetchCalcUsage(); }
+                if (tab.key === "forslag") fetchSuggestions();
+                if (tab.key === "kategorier") fetchAdminCategories();
               }}
             >
               {tab.label}
@@ -1294,6 +1357,181 @@ export default function AdminPage() {
                         {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Section 8: Kategori-förslag ── */}
+        {activeSection === "forslag" && (
+          <div className="admin-section">
+            <div className="admin-section-hdr">
+              <h2 className="admin-section-title">Förslag på nya konton</h2>
+              <span className="admin-section-meta">{suggestions.length} förslag</span>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", marginBottom: "1rem", fontSize: 12 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: "#666" }}>Sortera:</span>
+                <select
+                  value={suggestionSort}
+                  onChange={(e) => {
+                    const sort = e.target.value as "name" | "date" | "videos";
+                    setSuggestionSort(sort);
+                    fetchSuggestions(sort, suggestionOrder);
+                  }}
+                  style={{ padding: "0.25rem 0.4rem", border: "1px solid rgba(28,27,25,0.2)", borderRadius: 3, background: "#fff" }}
+                >
+                  <option value="name">Namn</option>
+                  <option value="date">Inskickat</option>
+                  <option value="videos">Antal videor</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const order = suggestionOrder === "asc" ? "desc" : "asc";
+                  setSuggestionOrder(order);
+                  fetchSuggestions(suggestionSort, order);
+                }}
+                style={{ background: "none", border: "1px solid rgba(28,27,25,0.2)", padding: "0.25rem 0.55rem", cursor: "pointer", fontSize: 12, borderRadius: 3 }}
+              >
+                {suggestionSort === "name"
+                  ? suggestionOrder === "asc" ? "A → Ö" : "Ö → A"
+                  : suggestionSort === "date"
+                    ? suggestionOrder === "asc" ? "Äldst först" : "Senast först"
+                    : suggestionOrder === "asc" ? "Färst videor" : "Flest videor"}
+              </button>
+            </div>
+
+            {loadingSuggestions ? (
+              <p className="loading">Laddar…</p>
+            ) : suggestions.length === 0 ? (
+              <p className="empty">Inga förslag ännu.</p>
+            ) : (
+              <ul className="account-list">
+                {suggestions.map((s) => {
+                  const exists = s.video_count > 0;
+                  return (
+                    <li key={s.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.4rem" }}>
+                      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", width: "100%" }}>
+                        <span className="account-handle" style={{ fontWeight: 600, fontSize: 13 }}>
+                          {s.display_name}
+                        </span>
+                        <a
+                          className="account-meta"
+                          href={`https://www.tiktok.com/@${s.handle}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 12, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}
+                        >
+                          @{s.handle}
+                        </a>
+                        <span className="account-meta" style={{ fontSize: 11, color: "#666" }}>
+                          {s.suggested_category}
+                        </span>
+                        <span
+                          className="account-meta"
+                          style={{
+                            fontSize: 11,
+                            background: exists ? "rgba(40,120,60,0.12)" : "rgba(28,27,25,0.06)",
+                            color: exists ? "#2d6034" : "#666",
+                            padding: "1px 6px",
+                            borderRadius: 3,
+                          }}
+                        >
+                          {exists ? `${s.video_count} videor inhämtade` : "Inte trackat"}
+                        </span>
+                        <span className="account-meta" style={{ marginLeft: "auto", fontSize: 11 }}>
+                          {new Date(s.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => deleteSuggestion(s.id)}
+                          style={{ background: "none", border: 0, color: "#a02020", fontSize: 11, cursor: "pointer", padding: "0 0.3rem" }}
+                          title="Ta bort förslaget"
+                        >
+                          Ta bort
+                        </button>
+                      </div>
+                      {s.email && (
+                        <a href={`mailto:${s.email}`} style={{ fontSize: 12, color: "#666" }}>{s.email}</a>
+                      )}
+                      {s.motivation && (
+                        <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap" }}>{s.motivation}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Section 9: Kategorihantering ── */}
+        {activeSection === "kategorier" && (
+          <div className="admin-section">
+            <div className="admin-section-hdr">
+              <h2 className="admin-section-title">Kategorier</h2>
+              <span className="admin-section-meta">
+                {adminCategories.filter((c) => c.is_visible).length} synliga ·{" "}
+                {adminCategories.filter((c) => !c.is_visible).length} dolda
+              </span>
+            </div>
+
+            <p style={{ fontSize: 13, color: "#666", marginBottom: "1rem", lineHeight: 1.5 }}>
+              Dolda kategorier visas inte på den publika kategorisidan men finns kvar i admin
+              och påverkar inte vilka konton som redan är taggade.
+            </p>
+
+            {loadingAdminCategories ? (
+              <p className="loading">Laddar…</p>
+            ) : (
+              <ul className="account-list">
+                {adminCategories.map((c) => (
+                  <li key={c.name} className="account-row" style={{ alignItems: "center" }}>
+                    <span className="account-handle" style={{ fontSize: 13, fontWeight: 600 }}>
+                      {c.name}
+                      {c.is_orphan && (
+                        <span style={{ fontSize: 10, color: "#a02020", marginLeft: 8 }}>
+                          (utanför listan)
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className="account-meta"
+                      style={{
+                        fontSize: 11,
+                        background: c.account_count > 0 ? "rgba(28,27,25,0.06)" : "transparent",
+                        color: c.account_count > 0 ? "#333" : "#999",
+                        padding: "1px 6px",
+                        borderRadius: 3,
+                        marginLeft: "0.75rem",
+                      }}
+                    >
+                      {c.account_count} {c.account_count === 1 ? "konto" : "konton"}
+                    </span>
+                    <label
+                      style={{
+                        marginLeft: "auto",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={c.is_visible}
+                        onChange={(e) => toggleCategoryVisibility(c.name, e.target.checked)}
+                      />
+                      <span style={{ color: c.is_visible ? "#333" : "#888" }}>
+                        {c.is_visible ? "Synlig" : "Dold"}
+                      </span>
+                    </label>
                   </li>
                 ))}
               </ul>

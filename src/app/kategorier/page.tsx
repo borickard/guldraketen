@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { CATEGORIES, slugifyCategory } from "@/lib/categories";
+import { slugifyCategory } from "@/lib/categories";
+import { getVisibleCategoryNames } from "@/lib/categoryVisibility";
 import Link from "next/link";
 
 export const revalidate = 3600;
@@ -73,7 +74,8 @@ async function fetchSummaries(): Promise<CategorySummary[]> {
     byCategory.set(acc.category, list);
   }
 
-  return CATEGORIES.map((cat) => {
+  const visible = await getVisibleCategoryNames();
+  return visible.map((cat) => {
     const items = byCategory.get(cat) ?? [];
     const qualifying = items.filter(
       (s) => s.avg_er != null && s.video_count >= MIN_VIDEOS_FOR_AVG

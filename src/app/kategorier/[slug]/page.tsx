@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { unslugifyCategory, slugifyCategory, CATEGORIES } from "@/lib/categories";
+import { unslugifyCategory, slugifyCategory } from "@/lib/categories";
+import { getVisibleCategoryNames } from "@/lib/categoryVisibility";
 import SuggestForm from "./SuggestForm";
 
 export const revalidate = 3600;
@@ -121,7 +122,8 @@ async function fetchDetail(category: string): Promise<CategoryDetail | null> {
 }
 
 export async function generateStaticParams() {
-  return CATEGORIES.map((cat) => ({ slug: slugifyCategory(cat) }));
+  const visible = await getVisibleCategoryNames();
+  return visible.map((cat) => ({ slug: slugifyCategory(cat) }));
 }
 
 export async function generateMetadata({
@@ -146,6 +148,9 @@ export default async function CategoryDetailPage({
   const { slug } = await params;
   const category = unslugifyCategory(slug);
   if (!category) notFound();
+
+  const visible = await getVisibleCategoryNames();
+  if (!visible.includes(category)) notFound();
 
   const detail = await fetchDetail(category);
   if (!detail) notFound();
@@ -191,11 +196,7 @@ export default async function CategoryDetailPage({
                 <span className="cat-lb-num cat-lb-num--mob-hide">Frekvens</span>
               </div>
               {detail.entries.map((e, idx) => (
-                <Link
-                  key={e.handle}
-                  href={`/konto/${e.handle}`}
-                  className="cat-lb-row cat-lb-row--link"
-                >
+                <div key={e.handle} className="cat-lb-row">
                   <span className="cat-lb-rank">{idx + 1}</span>
                   <span className="cat-lb-name">
                     {e.avatar_url ? (
@@ -225,7 +226,7 @@ export default async function CategoryDetailPage({
                         : `${(e.posts_per_week * 4.33).toFixed(1)}/mån`
                       : "—"}
                   </span>
-                </Link>
+                </div>
               ))}
             </section>
           )}
@@ -354,10 +355,6 @@ const styles = `
     color: rgba(28,27,25,0.55);
     padding-top: 0.55rem;
     padding-bottom: 0.55rem;
-  }
-
-  .cat-lb-row--link:hover {
-    background: rgba(28,27,25,0.03);
   }
 
   .cat-lb-rank {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { CATEGORIES, slugifyCategory } from "@/lib/categories";
+import { slugifyCategory } from "@/lib/categories";
+import { getVisibleCategoryNames } from "@/lib/categoryVisibility";
 
 const PERIOD_DAYS = 90;
 const MIN_VIDEOS_FOR_AVG = 3;
@@ -76,7 +77,8 @@ export async function GET() {
     byCategory.set(acc.category, list);
   }
 
-  const result = CATEGORIES.map((cat) => {
+  const visible = await getVisibleCategoryNames();
+  const result = visible.map((cat) => {
     const summaries = byCategory.get(cat) ?? [];
     const qualifying = summaries.filter(
       (s) => s.avg_er != null && s.video_count >= MIN_VIDEOS_FOR_AVG
