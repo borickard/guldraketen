@@ -34,12 +34,34 @@ interface CompareRow {
 }
 
 type Period = "30d" | "90d" | "all";
+type SortKey = "er" | "views" | "likes" | "comments" | "shares" | "collects";
 
 const PERIODS: { value: Period; label: string }[] = [
   { value: "30d", label: "30 dagar" },
   { value: "90d", label: "90 dagar" },
   { value: "all", label: "Allt" },
 ];
+
+const SORTS: { value: SortKey; label: string }[] = [
+  { value: "er", label: "Eng.rate" },
+  { value: "likes", label: "Likes" },
+  { value: "comments", label: "Kommentarer" },
+  { value: "shares", label: "Delningar" },
+  { value: "collects", label: "Favoriter" },
+  { value: "views", label: "Visningar" },
+];
+
+function sortValue(row: CompareRow, key: SortKey): number {
+  const b = row.benchmarks;
+  switch (key) {
+    case "er": return b.avg_er ?? -1;
+    case "views": return b.avg_views ?? -1;
+    case "likes": return b.avg_likes ?? -1;
+    case "comments": return b.avg_comments ?? -1;
+    case "shares": return b.avg_shares ?? -1;
+    case "collects": return b.avg_collects ?? -1;
+  }
+}
 
 function fmt(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -70,6 +92,14 @@ function parseUrlPeriod(): Period | null {
   return null;
 }
 
+function parseUrlSort(): SortKey | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const s = params.get("sort");
+  if (s === "er" || s === "views" || s === "likes" || s === "comments" || s === "shares" || s === "collects") return s;
+  return null;
+}
+
 export default function CompareClient({
   ownHandles,
   initialSavedHandles,
@@ -82,6 +112,7 @@ export default function CompareClient({
 
   const [extraHandles, setExtraHandles] = useState<string[]>(initialSavedHandles);
   const [period, setPeriod] = useState<Period>("30d");
+  const [sort, setSort] = useState<SortKey>("er");
   const [rows, setRows] = useState<CompareRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,11 +124,13 @@ export default function CompareClient({
   useEffect(() => {
     const urlHandles = parseUrlHandles();
     const urlPeriod = parseUrlPeriod();
+    const urlSort = parseUrlSort();
     if (urlHandles) {
       const extras = urlHandles.filter((h) => !ownHandleSet.has(h));
       setExtraHandles(extras);
     }
     if (urlPeriod) setPeriod(urlPeriod);
+    if (urlSort) setSort(urlSort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,9 +149,10 @@ export default function CompareClient({
       params.delete("handles");
     }
     params.set("period", period);
+    params.set("sort", sort);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, "", newUrl);
-  }, [allHandles, period]);
+  }, [allHandles, period, sort]);
 
   // Fetch comparison data
   useEffect(() => {
@@ -186,7 +220,7 @@ export default function CompareClient({
     [persistHandles]
   );
 
-  // Order rows: own first, then extras in user-set order
+  // Order rows: own first (fixed order), then extras sorted by selected metric desc
   const orderedRows = useMemo(() => {
     const byHandle = new Map(rows.map((r) => [r.handle, r]));
     const ordered: CompareRow[] = [];
@@ -194,12 +228,14 @@ export default function CompareClient({
       const r = byHandle.get(h);
       if (r) ordered.push(r);
     }
+    const extras: CompareRow[] = [];
     for (const h of extraHandles) {
       const r = byHandle.get(h);
-      if (r) ordered.push(r);
+      if (r) extras.push(r);
     }
-    return ordered;
-  }, [rows, ownHandlesList, extraHandles]);
+    extras.sort((a, b) => sortValue(b, sort) - sortValue(a, sort));
+    return [...ordered, ...extras];
+  }, [rows, ownHandlesList, extraHandles, sort]);
 
   const addedSet = useMemo(() => new Set(allHandles), [allHandles]);
 
@@ -225,6 +261,22 @@ export default function CompareClient({
           ))}
         </div>
       </header>
+
+      <div className="cmp-sort-row">
+        <span className="cmp-sort-label">Sortera på</span>
+        <div className="cmp-sort-pills">
+          {SORTS.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              className={`cmp-pill cmp-pill--sort${sort === s.value ? " cmp-pill--on" : ""}`}
+              onClick={() => setSort(s.value)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="cmp-picker-row">
         <button
@@ -252,7 +304,7 @@ export default function CompareClient({
             Lägg till konton du vill jämföra mot via sökfältet ovan.
           </p>
         ) : (
-          orderedRows.map((row) => <CompareCard key={row.handle} row={row} onRemove={removeHandle} />)
+          orderedRows.map((row) => <CompareCard key={row.handle} row={row} onRemove={removeHandle} sort={sort} />)
         )}
       </div>
     </>
@@ -262,11 +314,15 @@ export default function CompareClient({
 function CompareCard({
   row,
   onRemove,
+  sort,
 }: {
   row: CompareRow;
   onRemove: (h: string) => void;
+  sort: SortKey;
 }) {
   const b = row.benchmarks;
+  const hl = (k: SortKey) => (sort === k ? " cmp-cell--hl" : "");
+  const hlHead = (k: SortKey) => (sort === k ? " cmp-headline-block--hl" : "");
   return (
     <article className="cmp-card">
       <header className="cmp-card-head">
@@ -299,23 +355,23 @@ function CompareCard({
       </header>
 
       <div className="cmp-headline">
-        <div className="cmp-headline-block">
+        <div className={`cmp-headline-block${hlHead("er")}`}>
           <span className="cmp-headline-value">
             {b.avg_er != null ? `${b.avg_er.toFixed(2)}%` : "—"}
           </span>
           <span className="cmp-headline-label">Snitt-engagemang</span>
         </div>
-        <div className="cmp-headline-block">
+        <div className={`cmp-headline-block${hlHead("views")}`}>
           <span className="cmp-headline-value">{fmtCompact(b.avg_views)}</span>
           <span className="cmp-headline-label">Snitt-visningar</span>
         </div>
       </div>
 
       <div className="cmp-detail-grid">
-        <Cell label="Snitt likes" value={fmtCompact(b.avg_likes)} />
-        <Cell label="Snitt komm." value={fmtCompact(b.avg_comments)} />
-        <Cell label="Snitt delning" value={fmtCompact(b.avg_shares)} />
-        <Cell label="Snitt favoriter" value={fmtCompact(b.avg_collects)} />
+        <Cell label="Snitt likes" value={fmtCompact(b.avg_likes)} highlightClass={hl("likes")} />
+        <Cell label="Snitt komm." value={fmtCompact(b.avg_comments)} highlightClass={hl("comments")} />
+        <Cell label="Snitt delning" value={fmtCompact(b.avg_shares)} highlightClass={hl("shares")} />
+        <Cell label="Snitt favoriter" value={fmtCompact(b.avg_collects)} highlightClass={hl("collects")} />
       </div>
 
       <footer className="cmp-card-foot">
@@ -330,9 +386,9 @@ function CompareCard({
   );
 }
 
-function Cell({ label, value }: { label: string; value: string }) {
+function Cell({ label, value, highlightClass = "" }: { label: string; value: string; highlightClass?: string }) {
   return (
-    <div className="cmp-cell">
+    <div className={`cmp-cell${highlightClass}`}>
       <span className="cmp-cell-value">{value}</span>
       <span className="cmp-cell-label">{label}</span>
     </div>
@@ -367,6 +423,33 @@ const css = `
     display: flex;
     gap: 0.4rem;
     flex-wrap: wrap;
+  }
+
+  .cmp-sort-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .cmp-sort-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.55);
+    font-weight: 600;
+  }
+
+  .cmp-sort-pills {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .cmp-pill--sort {
+    padding: 0.35rem 0.75rem;
+    font-size: 11.5px;
   }
 
   .cmp-pill {
@@ -541,6 +624,20 @@ const css = `
     display: flex;
     flex-direction: column;
     gap: 3px;
+    padding: 2px 8px;
+    margin: -2px -8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .cmp-headline-block--hl {
+    background: rgba(200,150,42,0.14);
+    box-shadow: inset 0 0 0 1.5px rgba(200,150,42,0.5);
+  }
+
+  .cmp-headline-block--hl .cmp-headline-label {
+    color: #8c6315;
+    font-weight: 700;
   }
 
   .cmp-headline-value {
@@ -570,6 +667,20 @@ const css = `
     display: flex;
     flex-direction: column;
     gap: 1px;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .cmp-cell--hl {
+    background: rgba(200,150,42,0.14);
+    box-shadow: inset 0 0 0 1.5px rgba(200,150,42,0.5);
+  }
+
+  .cmp-cell--hl .cmp-cell-label {
+    color: #8c6315;
+    font-weight: 700;
   }
 
   .cmp-cell-value {

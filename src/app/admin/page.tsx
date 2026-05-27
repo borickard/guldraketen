@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
+import FlodeTab from "./FlodeTab";
 
 interface User {
   id: string;
@@ -108,7 +109,7 @@ interface Account {
   videos: [{ count: number }] | null;
 }
 
-const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback", "betatest", "forslag", "kategorier"] as const;
+const VALID_TABS = ["konton", "tavlingar", "kalkylator", "scrape-log", "users", "feedback", "betatest", "forslag", "kategorier", "flode"] as const;
 type TabKey = typeof VALID_TABS[number];
 
 export default function AdminPage() {
@@ -719,6 +720,7 @@ export default function AdminPage() {
             { key: "betatest", label: "Betatest", meta: betaSignups.length > 0 ? `${betaSignups.length}` : "" },
             { key: "forslag", label: "Förslag", meta: suggestions.length > 0 ? `${suggestions.length}` : "" },
             { key: "kategorier", label: "Kategorier", meta: "" },
+            { key: "flode", label: "Flöde", meta: "" },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -1679,6 +1681,8 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {activeSection === "flode" && <FlodeTab />}
 
       </div>
     </>
