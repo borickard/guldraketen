@@ -82,6 +82,11 @@ export default function DashboardLogin() {
               {loading ? "Loggar in…" : "Logga in"}
             </button>
           </form>
+
+          <p className="dl-help">
+            Glömt lösenord? Kontakta{" "}
+            <a href="mailto:rickard.berggren@gmail.com">rickard.berggren@gmail.com</a>
+          </p>
         </div>
       </div>
     </>
@@ -208,4 +213,15 @@ const styles = `
   }
   .dl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .dl-btn:not(:disabled):hover { opacity: 0.88; }
+
+  .dl-help {
+    margin-top: 1.25rem;
+    font-size: 12.5px;
+    color: rgba(28,27,25,0.6);
+    text-align: center;
+  }
+  .dl-help a {
+    color: #1C1B19;
+    text-decoration: underline;
+  }
 `;
