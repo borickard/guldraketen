@@ -155,6 +155,11 @@ export default function FlodeTab() {
                   <div className="flode-thumb flode-thumb--empty" />
                 )}
                 {v.is_contest && <span className="flode-badge">Tävling</span>}
+                {v.engagement_rate != null && (
+                  <span className="flode-er-chip">
+                    {Number(v.engagement_rate).toFixed(2)}%
+                  </span>
+                )}
               </a>
               <div className="flode-body">
                 <div className="flode-caption">{v.caption || <em>(ingen caption)</em>}</div>
@@ -314,6 +319,22 @@ const css = `
     text-transform: uppercase;
     padding: 3px 7px;
     border-radius: 2px;
+  }
+
+  .flode-er-chip {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(28,27,25,0.85);
+    color: #EDF8FB;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    line-height: 1;
+    backdrop-filter: blur(4px);
   }
 
   .flode-body {
