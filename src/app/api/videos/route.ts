@@ -17,6 +17,7 @@ function weekBounds(weekStr: string): { start: Date; end: Date } {
 
 export async function GET(req: NextRequest) {
   const week = req.nextUrl.searchParams.get("week");
+  const boost = req.nextUrl.searchParams.get("boost") ?? "all";
 
   if (!week || !/^\d{4}-W\d{2}$/.test(week)) {
     return NextResponse.json(
@@ -27,9 +28,9 @@ export async function GET(req: NextRequest) {
 
   const { start, end } = weekBounds(week);
 
-  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption, last_updated, accounts ( followers, display_name, category )";
+  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, collect_count, is_ad, engagement_rate, thumbnail_url, caption, last_updated, accounts ( followers, display_name, category )";
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("videos")
     .select(fields)
     .gte("published_at", start.toISOString())
@@ -37,6 +38,11 @@ export async function GET(req: NextRequest) {
     .or("is_contest.eq.false,contest_approved.eq.true")
     .order("engagement_rate", { ascending: false })
     .limit(200);
+
+  if (boost === "organic") query = query.eq("is_ad", false);
+  else if (boost === "boosted") query = query.eq("is_ad", true);
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

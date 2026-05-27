@@ -44,6 +44,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (["FAILED", "TIMED-OUT", "ABORTED"].includes(runStatus)) {
+    // Clean up the pending row so the user can retry without waiting 5 min.
+    await supabaseAdmin
+      .from("calculator_tests")
+      .delete()
+      .eq("run_id", runId)
+      .eq("source", "pending");
     return NextResponse.json({ status: "error" });
   }
 
@@ -116,20 +122,39 @@ export async function GET(req: NextRequest) {
         collect_count: collectCount,
       })
     : null;
-  await supabaseAdmin.from("calculator_tests").insert({
-    video_url: handle
-      ? `https://www.tiktok.com/@${handle}/video/${videoId}`
-      : `https://www.tiktok.com/video/${videoId}`,
-    video_id: videoId,
-    handle: handle || null,
+
+  const completedFields = {
     views,
     likes,
     comments,
     shares,
     collect_count: collectCount,
     engagement_rate: er ? parseFloat(er.toFixed(4)) : null,
-    source: "apify",
-  });
+    source: "apify" as const,
+    tested_at: new Date().toISOString(),
+  };
+
+  // Finalize the pending row created by /start; fall back to INSERT for
+  // legacy runs that started before the pending-row mechanism existed.
+  const { data: updated } = await supabaseAdmin
+    .from("calculator_tests")
+    .update(completedFields)
+    .eq("run_id", runId)
+    .eq("source", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (!updated) {
+    await supabaseAdmin.from("calculator_tests").insert({
+      video_url: handle
+        ? `https://www.tiktok.com/@${handle}/video/${videoId}`
+        : `https://www.tiktok.com/video/${videoId}`,
+      video_id: videoId,
+      handle: handle || null,
+      run_id: runId,
+      ...completedFields,
+    });
+  }
 
   return NextResponse.json({ status: "ready", views, likes, comments, shares, collect_count: collectCount });
 }

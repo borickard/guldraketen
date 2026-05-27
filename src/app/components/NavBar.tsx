@@ -100,7 +100,14 @@ export default function NavBar() {
                 key={l.href}
                 href={l.href}
                 className="gr-nav-mobile-link"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  // Unlock body scroll synchronously so hash links (#topplistan)
+                  // can actually scroll the page. The useEffect cleanup that
+                  // resets overflow runs after the click resolves, which is
+                  // too late for the browser's hash-jump.
+                  document.body.style.overflow = "";
+                  setOpen(false);
+                }}
               >
                 {l.label}
               </Link>

@@ -8,7 +8,7 @@ Sociala Raketer identifierar och uppmärksammar svenska företag och organisatio
 
 ## Kärnidé
 
-Sociala Raketer fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar – i relation till räckvidd. Fokus är på svenska företagskonton på TikTok. Engagement rate-formeln: `(likes + comments×5 + shares×10) / views × 100` – delningar väger tyngst eftersom de kräver mest av tittaren.
+Sociala Raketer fokuserar på faktiskt publikengagemang – likes, kommentarer, delningar, favoriter – i relation till räckvidd. Fokus är på svenska företagskonton på TikTok. Engagement rate-formeln: `(likes + comments×5 + collect_count×5 + shares×10) / views × 100` – delningar väger tyngst eftersom de kräver mest av tittaren; favoriter (bookmarks) väger lika tungt som kommentarer.
 
 **Rankinglogik:** Topplistan rankar konton baserat på deras **bästa enskilda video** den veckan (högst engagement_rate). Det är ett medvetet designbeslut: ett konto vinner på sin starkaste prestation, inte på volym. Statistiken som visas i listan (visningar, eng.rate) tillhör just den bästa videon.
 
@@ -123,7 +123,31 @@ is_contest       boolean not null default false   -- auto-flaggad via caption-ny
 contest_approved boolean not null default false   -- manuellt godkänd i admin trots flagg
 engagement_rate  numeric generated always as (
                    case when views > 0
-                     then round(((likes + comments * 5 + shares * 10)::numeric / views) * 100, 4)
+                     then round(((likes + comments * 5 + coalesce(collect_count, 0) * 5 + shares * 10)::numeric / views) * 100, 4)
+                   else null end
+                 ) stored
+last_updated     timestamptz default now()
+```
+
+### `dashboard_videos`
+Same shape as `videos` minus the contest flags — dashboard data doesn't go through the public ranking pipeline so contest detection isn't relevant. Daily cron (`/api/cron/follower-snapshot`) scrapes the last 10 days for dashboard-linked handles and upserts here. Dashboard endpoints (`/api/dashboard/videos`, `/api/dashboard/hero`) read from this table. Public ranking is unaffected.
+```sql
+id               uuid primary key default gen_random_uuid()
+handle           text not null references accounts(handle) on delete cascade
+video_url        text not null unique
+published_at     timestamptz
+views            integer
+likes            integer
+comments         integer
+shares           integer
+collect_count    integer
+thumbnail_url    text
+caption          text
+is_ad            boolean
+is_sponsored     boolean
+engagement_rate  numeric generated always as (
+                   case when views > 0
+                     then round(((likes + comments * 5 + coalesce(collect_count, 0) * 5 + shares * 10)::numeric / views) * 100, 4)
                    else null end
                  ) stored
 last_updated     timestamptz default now()
@@ -472,6 +496,16 @@ Implementation: klient-komponent med `useState` per rad eller en gemensam `openI
 - Betalning/prenumeration: undersök lösning för svenska marknaden
   - Alternativ att utvärdera: Stripe (global, bra Next.js-integration), Billogram (svensk faktura), Swish (engångsbetalning), Paddle (VAT-hantering ingår)
   - Stripe Checkout med månads-/årsplan är troligen enklast att integrera med Supabase Auth + Row Level Security
+
+### Instagram-tracking (endast dashboard)
+Lägg till Apify-scraping av Instagram-konton parallellt med TikTok, men exponera ENDAST i dashboarden (inte i den publika topplistan / Hall of Fame). Tanken: dashboard-användare ska se sitt företags resultat på båda plattformarna sida vid sida.
+
+Implementationsskiss:
+- Ny tabell `instagram_videos` (samma form som `videos` men för Instagram-posts), eller utöka `videos` med en `platform`-kolumn
+- Ny Apify-actor (`apify/instagram-profile-scraper` eller liknande) — kör veckovis för dashboard-kopplade IG-handles
+- `user_handles` kan utökas med en `platform`-kolumn så ett konto kan ha TikTok-handle + IG-handle kopplade till samma user
+- Dashboarden får en plattformsväljare (TikTok/Instagram) eller visar båda i samma vy
+- Topplista och Hall of Fame förblir TikTok-only — politikinsikt om kanalrättvisa undviks
 
 ### LinkedIn-delning via admin
 - Manuell trigger av LinkedIn-post med veckans topp-video

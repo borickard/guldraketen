@@ -197,77 +197,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
 
     const items: ApifyItem[] = await res.json();
 
-    const videoRows: VideoRow[] = [];
-    const followerMap: Record<string, number> = {};
-    const avatarMap: Record<string, string> = {};
-    let skipped = 0;
-
-    for (const it of items) {
-        const handle = it?.authorMeta?.name || it?.author?.uniqueId || it?.authorUniqueId || "";
-        const videoUrl = it?.webVideoUrl || it?.videoUrl || it?.url || "";
-        if (!handle || !videoUrl) { skipped++; continue; }
-
-        const publishedAt = parseCreateTime(it?.createTime ?? it?.create_time ?? null);
-        if (!publishedAt) { skipped++; continue; }
-
-        const stats = it?.stats || it?.statistics || {};
-        const views = firstNumber(stats.playCount, stats.viewCount, it.playCount, it.viewCount);
-        const likes = firstNumber(stats.diggCount, stats.likeCount, it.diggCount, it.likeCount);
-        const comments = firstNumber(stats.commentCount, it.commentCount);
-        const shares = firstNumber(stats.shareCount, it.shareCount);
-        const collectCount = firstNumber(
-            stats.collectCount,
-            stats.bookmarkCount,
-            stats.collect_count,
-            it.collectCount,
-            it.bookmarkCount
-        );
-
-        const thumbnailUrl =
-            it?.videoMeta?.coverUrl ||
-            it?.covers?.default ||
-            it?.cover ||
-            it?.thumbnail ||
-            null;
-
-        const caption =
-            it?.text ||
-            it?.description ||
-            it?.caption ||
-            null;
-
-        const captionTrimmed = caption ? caption.slice(0, 500) : null;
-
-        videoRows.push({
-            handle,
-            video_url: videoUrl,
-            published_at: publishedAt.toISOString(),
-            views: views ?? 0,
-            likes: likes ?? 0,
-            comments: comments ?? 0,
-            shares: shares ?? 0,
-            collect_count: collectCount,
-            thumbnail_url: thumbnailUrl,
-            caption: captionTrimmed,
-            is_contest: detectContest(captionTrimmed),
-            last_updated: new Date().toISOString(),
-        });
-
-        const fans = it?.authorMeta?.fans ?? it?.authorStats?.followerCount ?? null;
-        if (fans !== null && !(handle in followerMap)) {
-            followerMap[handle] = fans;
-        }
-
-        const avatarUrl =
-            it?.authorMeta?.avatar ||
-            it?.authorMeta?.avatarLarger ||
-            it?.authorMeta?.avatarMedium ||
-            it?.authorMeta?.avatarThumb ||
-            null;
-        if (avatarUrl && !(handle in avatarMap)) {
-            avatarMap[handle] = avatarUrl;
-        }
-    }
+    const { videoRows, followerMap, avatarMap, skipped } = parseApifyItems(items);
 
     // ── Critical path: upsert videos first (with original thumbnail URLs) ────────
     // Thumbnail uploads are slow and can exhaust Vercel's function timeout.
@@ -290,6 +220,37 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
             .from("accounts")
             .update({ followers, followers_updated_at: now })
             .eq("handle", handle);
+    }
+
+    // Snapshot followers per ISO week — used by dashboard trend display.
+    // Repeated scrapes within the same week just overwrite the row.
+    const isoWeek = toISOWeek(new Date());
+    const snapshotRows = Object.entries(followerMap).map(([handle, followers]) => ({
+        handle,
+        iso_week: isoWeek,
+        followers,
+    }));
+    if (snapshotRows.length > 0) {
+        const { error: snapErr } = await supabaseAdmin
+            .from("follower_snapshots")
+            .upsert(snapshotRows, { onConflict: "handle,iso_week" });
+        if (snapErr) console.error("follower_snapshots upsert error:", snapErr.message);
+    }
+
+    // Daily follower history — captured_date is today; UPSERT keeps the
+    // latest count for any given handle+date. Used by the dashboard
+    // follower trend chart.
+    const today = new Date().toISOString().slice(0, 10);
+    const historyRows = Object.entries(followerMap).map(([handle, followers]) => ({
+        handle,
+        captured_date: today,
+        followers,
+    }));
+    if (historyRows.length > 0) {
+        const { error: histErr } = await supabaseAdmin
+            .from("follower_history")
+            .upsert(historyRows, { onConflict: "handle,captured_date" });
+        if (histErr) console.error("follower_history upsert error:", histErr.message);
     }
 
     // Ladda upp avatarer till Supabase Storage och spara URL
@@ -355,9 +316,100 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
     return result;
 }
 
+// ─── Parse Apify dataset items into typed rows ────────────────────────────────
+// Shared by the weekly cron (writes to `videos`) and the daily dashboard cron
+// (writes to `dashboard_videos`).
+
+export interface ParsedApify {
+    videoRows: VideoRow[];
+    followerMap: Record<string, number>;
+    avatarMap: Record<string, string>;
+    skipped: number;
+}
+
+export function parseApifyItems(items: ApifyItem[]): ParsedApify {
+    const videoRows: VideoRow[] = [];
+    const followerMap: Record<string, number> = {};
+    const avatarMap: Record<string, string> = {};
+    let skipped = 0;
+
+    for (const it of items) {
+        const handle = it?.authorMeta?.name || it?.author?.uniqueId || it?.authorUniqueId || "";
+        const videoUrl = it?.webVideoUrl || it?.videoUrl || it?.url || "";
+        if (!handle || !videoUrl) { skipped++; continue; }
+
+        const publishedAt = parseCreateTime(it?.createTime ?? it?.create_time ?? null);
+        if (!publishedAt) { skipped++; continue; }
+
+        const stats = it?.stats || it?.statistics || {};
+        const views = firstNumber(stats.playCount, stats.viewCount, it.playCount, it.viewCount);
+        const likes = firstNumber(stats.diggCount, stats.likeCount, it.diggCount, it.likeCount);
+        const comments = firstNumber(stats.commentCount, it.commentCount);
+        const shares = firstNumber(stats.shareCount, it.shareCount);
+        const collectCount = firstNumber(
+            stats.collectCount,
+            stats.bookmarkCount,
+            stats.collect_count,
+            it.collectCount,
+            it.bookmarkCount
+        );
+        const isAd = firstBoolean(it.isAd, it.is_ad);
+        const isSponsored = firstBoolean(it.isSponsored, it.is_sponsored);
+
+        const thumbnailUrl =
+            it?.videoMeta?.coverUrl ||
+            it?.covers?.default ||
+            it?.cover ||
+            it?.thumbnail ||
+            null;
+
+        const caption =
+            it?.text ||
+            it?.description ||
+            it?.caption ||
+            null;
+
+        const captionTrimmed = caption ? caption.slice(0, 500) : null;
+
+        videoRows.push({
+            handle,
+            video_url: videoUrl,
+            published_at: publishedAt.toISOString(),
+            views: views ?? 0,
+            likes: likes ?? 0,
+            comments: comments ?? 0,
+            shares: shares ?? 0,
+            collect_count: collectCount,
+            thumbnail_url: thumbnailUrl,
+            caption: captionTrimmed,
+            is_contest: detectContest(captionTrimmed),
+            is_ad: isAd,
+            is_sponsored: isSponsored,
+            last_updated: new Date().toISOString(),
+        });
+
+        const fans = it?.authorMeta?.fans ?? it?.authorStats?.followerCount ?? null;
+        if (fans !== null && !(handle in followerMap)) {
+            followerMap[handle] = fans;
+        }
+
+        const avatarUrl =
+            it?.authorMeta?.avatar ||
+            it?.authorMeta?.avatarLarger ||
+            it?.authorMeta?.avatarMedium ||
+            it?.authorMeta?.avatarThumb ||
+            null;
+        if (avatarUrl && !(handle in avatarMap)) {
+            avatarMap[handle] = avatarUrl;
+        }
+    }
+
+    return { videoRows, followerMap, avatarMap, skipped };
+}
+
 // ─── Contest detection ────────────────────────────────────────────────────────
 
-const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare"];
+const CONTEST_KEYWORDS = ["tävling", "tävla", "vinn", "vinnare", "giveaway"];
 
 function detectContest(caption: string | null): boolean {
     if (!caption) return false;
@@ -374,7 +426,7 @@ export interface ScrapeResult {
     followers: number;
 }
 
-interface VideoRow {
+export interface VideoRow {
     handle: string;
     video_url: string;
     published_at: string;
@@ -386,10 +438,12 @@ interface VideoRow {
     thumbnail_url: string | null;
     caption: string | null;
     is_contest: boolean;
+    is_ad: boolean | null;
+    is_sponsored: boolean | null;
     last_updated: string;
 }
 
-interface ApifyItem {
+export interface ApifyItem {
     authorMeta?: { name?: string; fans?: number; avatar?: string; avatarLarger?: string; avatarMedium?: string; avatarThumb?: string };
     author?: { uniqueId?: string };
     authorUniqueId?: string;
@@ -409,6 +463,10 @@ interface ApifyItem {
     shareCount?: number;
     collectCount?: number;
     bookmarkCount?: number;
+    isAd?: boolean;
+    is_ad?: boolean;
+    isSponsored?: boolean;
+    is_sponsored?: boolean;
     videoMeta?: { coverUrl?: string };
     covers?: { default?: string };
     cover?: string;
@@ -432,11 +490,28 @@ function parseCreateTime(v: unknown): Date | null {
     return isNaN(d.getTime()) ? null : d;
 }
 
+function toISOWeek(date: Date): string {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+    const week1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
 function firstNumber(...vals: unknown[]): number | null {
     for (const v of vals) {
         if (v === 0) return 0;
         const n = Number(v);
         if (!isNaN(n) && isFinite(n)) return n;
+    }
+    return null;
+}
+
+// Returns the first boolean present in the inputs. Null means "field absent in
+// payload" (not tracked yet) — distinct from explicit false.
+function firstBoolean(...vals: unknown[]): boolean | null {
+    for (const v of vals) {
+        if (typeof v === "boolean") return v;
     }
     return null;
 }

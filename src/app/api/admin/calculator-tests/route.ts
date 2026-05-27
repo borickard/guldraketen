@@ -23,5 +23,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data ?? []);
+  // Enrich each test with thumbnail_url by joining on video_url against
+  // the videos table (no FK exists, so we do this client-side).
+  const tests = data ?? [];
+  const urls = tests.map((t) => t.video_url).filter(Boolean) as string[];
+  let thumbMap = new Map<string, string | null>();
+  if (urls.length > 0) {
+    const { data: vids } = await supabaseAdmin
+      .from("videos")
+      .select("video_url, thumbnail_url")
+      .in("video_url", urls);
+    thumbMap = new Map((vids ?? []).map((v) => [v.video_url, v.thumbnail_url]));
+  }
+
+  const enriched = tests.map((t) => ({ ...t, thumbnail_url: thumbMap.get(t.video_url) ?? null }));
+  return NextResponse.json(enriched);
 }

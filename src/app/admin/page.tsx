@@ -10,6 +10,8 @@ interface User {
   is_active: boolean;
   created_at: string;
   notes: string | null;
+  last_seen_at: string | null;
+  active_days: number | null;
   handles: string[];
 }
 
@@ -19,6 +21,26 @@ const COST_USD_PER_RESULT = 4 / 1000;
 function costSEK(results: number): string {
   const sek = results * COST_USD_PER_RESULT * USD_TO_SEK;
   return sek.toLocaleString("sv-SE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " kr";
+}
+
+function relativeDate(iso: string | null): string {
+  if (!iso) return "aldrig";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const day = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diffMs / day);
+  if (days <= 0) return "idag";
+  if (days === 1) return "igår";
+  if (days < 7) return `${days} dagar sedan`;
+  if (days < 30) return `${Math.floor(days / 7)} v sedan`;
+  if (days < 365) return `${Math.floor(days / 30)} mån sedan`;
+  return `${Math.floor(days / 365)} år sedan`;
+}
+
+function loginSummary(u: { last_seen_at: string | null; active_days: number | null }): string {
+  const count = u.active_days ?? 0;
+  if (!u.last_seen_at) return "Aldrig aktiv";
+  const word = count === 1 ? "aktiv dag" : "aktiva dagar";
+  return `${count} ${word} · senast ${relativeDate(u.last_seen_at)}`;
 }
 
 function toWeekLabel(dateStr: string): string {
@@ -36,6 +58,7 @@ interface CalcTest {
   handle: string | null;
   video_url: string | null;
   video_id: string | null;
+  thumbnail_url: string | null;
   views: number | null;
   likes: number | null;
   comments: number | null;
@@ -49,11 +72,12 @@ interface ContestVideo {
   id: string;
   handle: string;
   video_url: string;
+  thumbnail_url: string | null;
   caption: string | null;
   views: number | null;
   published_at: string | null;
   contest_approved: boolean;
-  accounts: { display_name: string | null } | { display_name: string | null }[] | null;
+  accounts: { display_name: string | null; avatar_url: string | null } | { display_name: string | null; avatar_url: string | null }[] | null;
 }
 
 interface ScrapeRun {
@@ -79,6 +103,7 @@ interface Account {
   is_active: boolean;
   followers: number | null;
   followers_updated_at: string | null;
+  avatar_url: string | null;
   created_at: string;
   videos: [{ count: number }] | null;
 }
@@ -320,6 +345,21 @@ export default function AdminPage() {
         : `Fel: ${data.error}`
     );
     setBackfilling(false);
+  }
+
+  const [followerSnapping, setFollowerSnapping] = useState(false);
+  const [followerSnapMsg, setFollowerSnapMsg] = useState("");
+  async function handleFollowerSnapshot() {
+    setFollowerSnapping(true);
+    setFollowerSnapMsg("Kör Apify — kan ta upp till 4 min…");
+    const res = await fetch("/api/cron/follower-snapshot", { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      setFollowerSnapMsg(`Klar · ${data.captured ?? 0} konton snapshottade`);
+    } else {
+      setFollowerSnapMsg(`Fel: ${data.error}`);
+    }
+    setFollowerSnapping(false);
   }
 
   async function handleBackfillAvatars() {
@@ -566,6 +606,40 @@ export default function AdminPage() {
     await fetchUsers();
   }
 
+  async function handleImpersonate(userId: string) {
+    let res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+
+    // 403 = no admin_session cookie yet (admin logged in before that cookie
+    // existed). Ask for the password once to set the cookie, then retry.
+    if (res.status === 403) {
+      const pw = window.prompt("Bekräfta admin-lösenordet för att öppna dashboarden:");
+      if (!pw) return;
+      const authRes = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (!authRes.ok) {
+        alert("Fel lösenord.");
+        return;
+      }
+      res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+    }
+
+    if (res.ok) {
+      window.open("/dashboard", "_blank");
+    } else {
+      alert("Kunde inte öppna dashboarden.");
+    }
+  }
   const videoCount = (a: Account) => a.videos?.[0]?.count ?? 0;
   const sortAccounts = (list: Account[]) => {
     const c = [...list];
@@ -606,7 +680,7 @@ export default function AdminPage() {
           <h1 className="admin-title" style={{ margin: "0.75rem 0 1.5rem" }}>Logga in</h1>
           <input
             className="handle-input"
-            style={{ border: "1px solid var(--border)", padding: "0.65rem 0.85rem", width: "100%", marginBottom: "0.75rem", background: "var(--bg1)", fontSize: 13 }}
+            style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "0.7rem 0.85rem", width: "100%", marginBottom: "0.75rem", background: "var(--bg1)" }}
             type="password"
             placeholder="Lösenord"
             value={pwInput}
@@ -614,7 +688,7 @@ export default function AdminPage() {
             autoFocus
           />
           {pwError && <p className="form-error">Fel lösenord. Försök igen.</p>}
-          <button className="add-btn" type="submit" style={{ padding: "0.7rem", alignSelf: "auto" }}>
+          <button className="add-btn" type="submit" style={{ padding: "0.75rem", alignSelf: "auto", borderRadius: 8, borderLeft: "none" }}>
             Logga in
           </button>
         </form>
@@ -769,7 +843,7 @@ export default function AdminPage() {
               <div className="scrape-row">
                 <select
                   className="handle-input"
-                  style={{ flex: 2, height: 36 }}
+                  style={{ flex: 2, border: "1px solid var(--border)", borderRadius: 8, background: "var(--bg1)" }}
                   value={rescrapeHandle}
                   onChange={(e) => setRescrapeHandle(e.target.value)}
                 >
@@ -826,6 +900,14 @@ export default function AdminPage() {
                   </button>
                   {backfillAvatarsMsg && <p className="scrape-msg">{backfillAvatarsMsg}</p>}
                 </div>
+                <div className="admin-tool">
+                  <p className="admin-tool-label">Följarsnapshot</p>
+                  <p className="admin-tool-desc">Kör daglig följar-snapshot manuellt för dashboard-kopplade konton. Skriver till follower_history. Kör annars automatiskt kl 03:00 UTC varje dag.</p>
+                  <button className="scrape-btn" onClick={handleFollowerSnapshot} disabled={followerSnapping}>
+                    {followerSnapping ? "Hämtar…" : "Hämta följarantal nu"}
+                  </button>
+                  {followerSnapMsg && <p className="scrape-msg">{followerSnapMsg}</p>}
+                </div>
               </div>
             )}
           </div>
@@ -835,43 +917,79 @@ export default function AdminPage() {
 
         {/* ── Section 2: Tävlingsvideor ── */}
         {activeSection === "tavlingar" && (() => {
-          const pending  = contestVideos.filter(v => !v.contest_approved);
-          const approved = contestVideos.filter(v =>  v.contest_approved);
+          const pendingCount = contestVideos.filter(v => !v.contest_approved).length;
+          const approvedCount = contestVideos.filter(v => v.contest_approved).length;
+
+          function groupByWeek(videos: ContestVideo[]): [string, ContestVideo[]][] {
+            const buckets = new Map<string, ContestVideo[]>();
+            for (const v of videos) {
+              const key = v.published_at ? toWeekLabel(v.published_at) : "Okänt datum";
+              const list = buckets.get(key) ?? [];
+              list.push(v);
+              buckets.set(key, list);
+            }
+            return [...buckets.entries()];
+          }
 
           function ContestRow({ v }: { v: ContestVideo }) {
             const acct = Array.isArray(v.accounts) ? v.accounts[0] : v.accounts;
             const name = acct?.display_name ?? `@${v.handle}`;
-            const weekLabel = v.published_at ? toWeekLabel(v.published_at) : null;
+            const [expanded, setExpanded] = useState(false);
+            const captionLong = (v.caption?.length ?? 0) > 100;
             return (
-              <li key={v.id} className="account-row">
-                <div className="account-info">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <a className="account-handle" href={v.video_url} target="_blank" rel="noopener noreferrer">
-                      {name}
-                    </a>
-                    {weekLabel && <span className="week-badge">{weekLabel}</span>}
-                  </div>
-                  {v.caption && (
-                    <span className="account-meta" style={{ fontStyle: "italic" }}>
-                      {v.caption.slice(0, 120)}{v.caption.length > 120 ? "…" : ""}
-                    </span>
+              <li key={v.id} className={`contest-card${v.contest_approved ? " approved" : ""}`}>
+                <a className="contest-thumb" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                  <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
+                    {v.contest_approved ? "Inkluderad" : "Utesluten"}
+                  </span>
+                  {v.thumbnail_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.thumbnail_url} alt="" />
+                  ) : (
+                    <span className="contest-thumb-fallback">{name.charAt(0).toUpperCase()}</span>
                   )}
-                  <span className="account-meta">
-                    {v.published_at ? new Date(v.published_at).toLocaleDateString("sv-SE") : ""}
+                </a>
+                <div className="contest-body">
+                  <a className="contest-name" href={v.video_url} target="_blank" rel="noopener noreferrer">
+                    {name}
+                  </a>
+                  {v.caption && (
+                    <p className={`contest-caption${expanded ? " expanded" : ""}`}>{v.caption}</p>
+                  )}
+                  {captionLong && (
+                    <button
+                      type="button"
+                      className="contest-caption-toggle"
+                      onClick={() => setExpanded((x) => !x)}
+                    >
+                      {expanded ? "Visa mindre" : "Visa mer"}
+                    </button>
+                  )}
+                  <span className="contest-meta">
+                    {v.published_at && new Date(v.published_at).toLocaleDateString("sv-SE")}
                     {v.views ? ` · ${v.views.toLocaleString("sv-SE")} visningar` : ""}
                   </span>
                 </div>
-                <span className={`status-badge ${v.contest_approved ? "status-badge--included" : "status-badge--excluded"}`}>
-                  {v.contest_approved ? "Inkluderad" : "Utesluten"}
-                </span>
-                <button
-                  className="scrape-btn"
-                  style={{ fontSize: 10, padding: "0.3rem 0.75rem", boxShadow: "none", flexShrink: 0 }}
-                  onClick={() => handleContestToggle(v)}
-                >
-                  {v.contest_approved ? "Återflagga" : "Godkänn för rankning"}
-                </button>
+                <div className="contest-actions">
+                  <button
+                    className="scrape-btn contest-action-btn"
+                    onClick={() => handleContestToggle(v)}
+                  >
+                    {v.contest_approved ? "Återflagga" : "Godkänn för rankning"}
+                  </button>
+                </div>
               </li>
+            );
+          }
+
+          function WeekGroup({ label, videos }: { label: string; videos: ContestVideo[] }) {
+            return (
+              <div className="contest-week-group">
+                <p className="contest-week-label">{label} <span className="contest-week-count">{videos.length}</span></p>
+                <ul className="contest-list">
+                  {videos.map(v => <ContestRow key={v.id} v={v} />)}
+                </ul>
+              </div>
             );
           }
 
@@ -887,33 +1005,19 @@ export default function AdminPage() {
 
               {loadingContests ? (
                 <p className="loading">Laddar…</p>
+              ) : contestVideos.length === 0 ? (
+                <p className="loading">Inga flaggade videor.</p>
               ) : (
                 <>
-                  {/* Group 1: Needs review */}
-                  <p className="contest-group-label">
-                    Att granska
-                    <span className="contest-group-count">{pending.length}</span>
+                  <p className="contest-group-label" style={{ marginTop: "0.5rem" }}>
+                    {pendingCount} att granska
+                    {approvedCount > 0 && (
+                      <span className="contest-group-count">{approvedCount} godkända</span>
+                    )}
                   </p>
-                  {pending.length === 0 ? (
-                    <p className="loading" style={{ paddingTop: "0.75rem" }}>Inga videor att granska.</p>
-                  ) : (
-                    <ul className="account-list" style={{ marginBottom: "2rem" }}>
-                      {pending.map(v => <ContestRow key={v.id} v={v} />)}
-                    </ul>
-                  )}
-
-                  {/* Group 2: Approved for ranking */}
-                  {approved.length > 0 && (
-                    <>
-                      <p className="contest-group-label" style={{ marginTop: "1.5rem" }}>
-                        Godkända för rankning
-                        <span className="contest-group-count">{approved.length}</span>
-                      </p>
-                      <ul className="account-list">
-                        {approved.map(v => <ContestRow key={v.id} v={v} />)}
-                      </ul>
-                    </>
-                  )}
+                  {groupByWeek(contestVideos).map(([week, vids]) => (
+                    <WeekGroup key={week} label={week} videos={vids} />
+                  ))}
                 </>
               )}
             </div>
@@ -928,7 +1032,7 @@ export default function AdminPage() {
           </div>
 
           {/* Limit + usage panel */}
-          <div style={{ background: "var(--bg1)", border: "1px solid var(--border)", boxShadow: "2px 2px 0 var(--border)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+          <div style={{ background: "var(--bg1)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 1px 2px rgba(28,27,25,0.04)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
             <p className="admin-tool-label" style={{ marginBottom: "0.75rem" }}>Daglig Apify-gräns</p>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: calcUsage ? "1rem" : 0 }}>
               <div className="days-input-wrap">
@@ -946,25 +1050,25 @@ export default function AdminPage() {
               <button className="scrape-btn" onClick={handleSaveLimit} disabled={savingLimit}>
                 {limitSaved ? "Sparad!" : savingLimit ? "Sparar…" : "Spara"}
               </button>
-              <span style={{ fontSize: 10, color: "var(--muted)" }}>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>
                 Cachat innehåll räknas inte mot gränsen.
               </span>
             </div>
             {calcUsage && (
               <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", borderTop: "1px solid var(--border-light)", paddingTop: "0.75rem" }}>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Idag</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: calcUsage.today >= calcDailyLimit ? "#b30000" : "var(--ink)" }}>
                     {calcUsage.today}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
+                  <span style={{ fontSize: 14, color: "var(--muted)", marginLeft: 4 }}>/ {calcDailyLimit}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna vecka</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.week}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
+                  <span style={{ fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", display: "block", marginBottom: 3 }}>Denna månad</span>
                   <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--ink)" }}>{calcUsage.month}</span>
                 </div>
               </div>
@@ -982,7 +1086,7 @@ export default function AdminPage() {
               ) : null;
             })()}
           </p>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+          <div className="calc-sort-row">
             {[
               { key: "newest", label: "Senaste" },
               { key: "oldest", label: "Äldsta" },
@@ -991,13 +1095,7 @@ export default function AdminPage() {
             ].map((opt) => (
               <button
                 key={opt.key}
-                className="scrape-btn"
-                style={{
-                  fontSize: 9,
-                  padding: "0.3rem 0.75rem",
-                  boxShadow: calcSort === opt.key ? "none" : "2px 2px 0 var(--border)",
-                  opacity: calcSort === opt.key ? 1 : 0.5,
-                }}
+                className={`calc-sort-pill${calcSort === opt.key ? " active" : ""}`}
                 onClick={() => setCalcSort(opt.key)}
               >
                 {opt.label}
@@ -1010,64 +1108,78 @@ export default function AdminPage() {
             <p className="loading">Inga tester ännu.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <table className="calc-table">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Handle</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Visningar</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Eng.rate</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Testad</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Källa</th>
-                    <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 9 }}>Kostnad</th>
-                    <th style={{ padding: "6px 8px" }}></th>
-                    <th style={{ padding: "6px 8px" }}></th>
+                  <tr>
+                    <th></th>
+                    <th>Handle</th>
+                    <th className="right">Visningar</th>
+                    <th className="right">Eng.rate</th>
+                    <th>Testad</th>
+                    <th>Källa</th>
+                    <th></th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {calcTests.map((t) => {
                     const alreadyTracked = accounts.some((a) => a.handle === t.handle);
                     const feedback = t.handle ? addFeedback[t.handle] : undefined;
+                    const acct = accounts.find((a) => a.handle === t.handle);
+                    const fallbackChar = (t.handle ?? "?").charAt(0).toUpperCase();
                     return (
-                      <tr key={t.id} style={{ borderBottom: "1px solid var(--border-light)" }}>
-                        <td style={{ padding: "6px 8px", fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
-                          {t.views != null ? t.views.toLocaleString("sv-SE") : "—"}
-                        </td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
-                          {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
-                        </td>
-                        <td style={{ padding: "6px 8px", color: "var(--muted)" }}>
-                          {new Date(t.tested_at).toLocaleDateString("sv-SE")}
-                        </td>
-                        <td style={{ padding: "6px 8px" }}>
-                          {t.source === "db" ? (
-                            <span style={{ fontSize: 9, background: "#e8f4e8", color: "#2a7a2a", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DB</span>
-                          ) : t.source === "apify" ? (
-                            <span style={{ fontSize: 9, background: "#f0f0f0", color: "#666", padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Apify</span>
+                      <tr key={t.id}>
+                        <td className="calc-thumb-cell">
+                          {t.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <a className="calc-thumb" href={t.video_url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <img src={t.thumbnail_url} alt="" />
+                            </a>
+                          ) : acct?.avatar_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <a className="calc-thumb calc-thumb--round" href={t.video_url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <img src={acct.avatar_url} alt="" />
+                            </a>
                           ) : (
-                            <span style={{ fontSize: 9, color: "var(--muted)" }}>—</span>
+                            <span className="calc-thumb calc-thumb--round calc-thumb--fallback">{fallbackChar}</span>
                           )}
                         </td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--mid)" }}>
-                          {t.source === "apify" ? costSEK(1) : <span style={{ color: "var(--muted)" }}>—</span>}
+                        <td style={{ fontWeight: 600 }}>{t.handle ? `@${t.handle}` : "—"}</td>
+                        <td className="right" style={{ color: "var(--mid)" }}>
+                          {t.views != null ? t.views.toLocaleString("sv-SE") : "—"}
                         </td>
-                        <td style={{ padding: "6px 8px" }}>
+                        <td className="right" style={{ color: "var(--mid)" }}>
+                          {t.engagement_rate != null ? `${Number(t.engagement_rate).toFixed(2)}%` : "—"}
+                        </td>
+                        <td style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>
+                          {new Date(t.tested_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}
+                        </td>
+                        <td>
+                          {t.source === "db" ? (
+                            <span className="src-pill src-pill--db">DB</span>
+                          ) : t.source === "apify" ? (
+                            <span className="src-pill src-pill--apify" title={`Kostnad ${costSEK(1)}`}>Apify</span>
+                          ) : (
+                            <span style={{ color: "var(--muted)" }}>—</span>
+                          )}
+                        </td>
+                        <td>
                           {t.video_url && (
-                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--blue)", fontSize: 10, textDecoration: "underline" }}>
+                            <a href={t.video_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontSize: 13, textDecoration: "underline" }}>
                               Video
                             </a>
                           )}
                         </td>
-                        <td style={{ padding: "6px 8px" }}>
+                        <td>
                           {t.handle && (
                             feedback ? (
-                              <span style={{ fontSize: 9, color: feedback === "Tillagd!" ? "green" : "#a33" }}>{feedback}</span>
+                              <span style={{ fontSize: 14, color: feedback === "Tillagd!" ? "#3a7a3a" : "#9c2828" }}>{feedback}</span>
                             ) : alreadyTracked ? (
-                              <span style={{ fontSize: 9, color: "var(--muted)" }}>Trackas</span>
+                              <span style={{ fontSize: 14, color: "var(--muted)" }}>Trackas</span>
                             ) : (
                               <button
                                 className="scrape-btn"
-                                style={{ fontSize: 9, padding: "0.2rem 0.6rem", boxShadow: "none" }}
+                                style={{ fontSize: 14, padding: "0.3rem 0.7rem" }}
                                 disabled={addingHandle === t.handle}
                                 onClick={() => handleAddToTracking(t.handle!)}
                               >
@@ -1101,7 +1213,7 @@ export default function AdminPage() {
             <p className="empty">Inga körningar loggade ännu.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table className="calc-table" style={{ fontSize: 11 }}>
+              <table className="calc-table">
                 <thead>
                   <tr>
                     <th>Tid</th>
@@ -1120,7 +1232,7 @@ export default function AdminPage() {
                     const duration = r.completed_at
                       ? Math.round((new Date(r.completed_at).getTime() - new Date(r.started_at).getTime()) / 1000)
                       : null;
-                    const statusColor = r.status === "completed" ? "#2a7a2a" : r.status === "failed" ? "#b30000" : "#a06000";
+                    const statusColor = r.status === "completed" ? "#3a7a3a" : r.status === "failed" ? "#9c2828" : "#a07020";
                     return (
                       <tr key={r.id}>
                         <td style={{ whiteSpace: "nowrap" }}>{new Date(r.started_at).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}</td>
@@ -1207,11 +1319,20 @@ export default function AdminPage() {
                           <input type="checkbox" className="toggle-input" checked={u.is_active} onChange={() => handleToggleUser(u)} />
                           <span className="toggle-track"><span className="toggle-thumb" /></span>
                         </label>
-                        <span className="account-handle" style={{ flex: 1 }}>{u.username}</span>
-                        <span className="account-meta">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                          <span className="account-handle" style={{ fontSize: 15 }}>{u.username}</span>
+                          <span className="user-login-meta">{loginSummary(u)}</span>
+                        </div>
+                        <span className="account-meta" title="Skapad">{new Date(u.created_at).toLocaleDateString("sv-SE")}</span>
                         <button
-                          className="scrape-btn"
-                          style={{ fontSize: 9, padding: "0.25rem 0.6rem", boxShadow: "none" }}
+                          className="user-link-btn"
+                          onClick={() => handleImpersonate(u.id)}
+                          title="Öppna användarens dashboard i en ny flik"
+                        >
+                          Visa dashboard
+                        </button>
+                        <button
+                          className="user-link-btn"
                           onClick={() => { setPwChangeId(pwChangeId === u.id ? null : u.id); setPwChangeValue(""); }}
                         >
                           Byt lösenord
@@ -1228,12 +1349,12 @@ export default function AdminPage() {
                             value={pwChangeValue}
                             onChange={(e) => setPwChangeValue(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleChangePassword(u.id)}
-                            style={{ border: "1px solid var(--border)", padding: "0.4rem 0.6rem", fontSize: 12, width: 200 }}
+                            style={{ border: "1px solid var(--border)", padding: "0.4rem 0.6rem", fontSize: 13, width: 200 }}
                             autoFocus
                           />
                           <button
                             className="scrape-btn"
-                            style={{ fontSize: 9, padding: "0.25rem 0.75rem", boxShadow: "none" }}
+                            style={{ fontSize: 13, padding: "0.25rem 0.75rem", boxShadow: "none" }}
                             onClick={() => handleChangePassword(u.id)}
                             disabled={!pwChangeValue.trim()}
                           >
@@ -1242,28 +1363,26 @@ export default function AdminPage() {
                         </div>
                       )}
 
-                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", paddingLeft: "2.5rem", alignItems: "center" }}>
-                        {u.handles.map((h) => (
-                          <span key={h} className="handle-chip">
-                            @{h}
-                            <button onClick={() => handleRemoveHandleFromUser(u.id, h)} aria-label="Ta bort handle">×</button>
-                          </span>
-                        ))}
-                        {availableHandles.length > 0 && (
-                          <select
-                            className="category-select"
-                            value=""
-                            onChange={(e) => { if (e.target.value) handleAddHandleToUser(u.id, e.target.value); }}
-                          >
-                            <option value="">+ Befintligt konto</option>
-                            {availableHandles.map((h) => (
-                              <option key={h} value={h}>@{h}</option>
-                            ))}
-                          </select>
-                        )}
+                      <div className="user-handles">
+                        {u.handles.map((h) => {
+                          const acct = accounts.find((a) => a.handle === h);
+                          return (
+                            <span key={h} className="handle-chip">
+                              <span className="handle-chip-avatar">
+                                {acct?.avatar_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={acct.avatar_url} alt="" />
+                                ) : (
+                                  <span>{h.charAt(0).toUpperCase()}</span>
+                                )}
+                              </span>
+                              @{h}
+                              <button onClick={() => handleRemoveHandleFromUser(u.id, h)} aria-label="Ta bort handle">×</button>
+                            </span>
+                          );
+                        })}
                         <button
-                          className="scrape-btn"
-                          style={{ fontSize: 10, padding: "0.25rem 0.65rem", boxShadow: "none" }}
+                          className="add-handle-btn"
                           onClick={() => {
                             const opening = newHandleUserId !== u.id;
                             setNewHandleUserId(opening ? u.id : null);
@@ -1271,47 +1390,64 @@ export default function AdminPage() {
                             setNewHandleResult(null);
                           }}
                         >
-                          {newHandleUserId === u.id ? "Avbryt" : "+ Nytt konto"}
+                          {newHandleUserId === u.id ? "Avbryt" : "+ Lägg till konto"}
                         </button>
                       </div>
 
-                      {/* ── Inline new-handle + scrape form ── */}
+                      {/* Combined panel: pick existing OR create new */}
                       {newHandleUserId === u.id && (
-                        <div style={{ paddingLeft: "2.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                            <input
-                              className="handle-input"
-                              type="text"
-                              placeholder="@handle"
-                              value={newHandleInput}
-                              onChange={(e) => setNewHandleInput(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && !newHandleLoading && handleAddNewHandle(u.id)}
-                              disabled={newHandleLoading}
-                              autoFocus
-                              style={{ width: 160 }}
-                            />
-                            <select
-                              className="category-select"
-                              value={newHandlePosts}
-                              onChange={(e) => setNewHandlePosts(Number(e.target.value))}
-                              disabled={newHandleLoading}
-                              title="Antal inlägg att hämta"
-                            >
-                              <option value={20}>20 inlägg</option>
-                              <option value={50}>50 inlägg</option>
-                              <option value={100}>100 inlägg</option>
-                              <option value={200}>200 inlägg</option>
-                            </select>
-                            <button
-                              className="add-btn"
-                              onClick={() => handleAddNewHandle(u.id)}
-                              disabled={newHandleLoading || !newHandleInput.trim()}
-                            >
-                              {newHandleLoading ? "Skapar…" : "Lägg till & scrapa"}
-                            </button>
+                        <div className="user-add-panel">
+                          {availableHandles.length > 0 && (
+                            <div className="user-add-block">
+                              <p className="user-add-label">Välj befintligt</p>
+                              <select
+                                className="user-add-select"
+                                value=""
+                                onChange={(e) => { if (e.target.value) { handleAddHandleToUser(u.id, e.target.value); setNewHandleUserId(null); } }}
+                              >
+                                <option value="">Välj konto…</option>
+                                {availableHandles.map((h) => (
+                                  <option key={h} value={h}>@{h}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <div className="user-add-block">
+                            <p className="user-add-label">Lägg till nytt konto</p>
+                            <div className="user-add-row">
+                              <input
+                                className="handle-input user-add-input"
+                                type="text"
+                                placeholder="@handle"
+                                value={newHandleInput}
+                                onChange={(e) => setNewHandleInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && !newHandleLoading && handleAddNewHandle(u.id)}
+                                disabled={newHandleLoading}
+                                autoFocus
+                              />
+                              <select
+                                className="user-add-select"
+                                value={newHandlePosts}
+                                onChange={(e) => setNewHandlePosts(Number(e.target.value))}
+                                disabled={newHandleLoading}
+                                title="Antal inlägg att hämta"
+                              >
+                                <option value={20}>20 inlägg</option>
+                                <option value={50}>50 inlägg</option>
+                                <option value={100}>100 inlägg</option>
+                                <option value={200}>200 inlägg</option>
+                              </select>
+                              <button
+                                className="add-btn"
+                                onClick={() => handleAddNewHandle(u.id)}
+                                disabled={newHandleLoading || !newHandleInput.trim()}
+                              >
+                                {newHandleLoading ? "Skapar…" : "Lägg till & scrapa"}
+                              </button>
+                            </div>
                           </div>
                           {newHandleResult && (
-                            <p style={{ fontSize: 11, margin: 0, color: newHandleResult.ok ? "#2a7a2a" : "#c0392b" }}>
+                            <p className="user-add-msg" style={{ color: newHandleResult.ok ? "#3a7a3a" : "#9c2828" }}>
                               {newHandleResult.msg}
                             </p>
                           )}
@@ -1337,23 +1473,17 @@ export default function AdminPage() {
             ) : feedbackItems.length === 0 ? (
               <p className="empty">Inga feedbacksvar ännu.</p>
             ) : (
-              <ul className="account-list">
+              <ul className="entry-list">
                 {feedbackItems.map((item) => (
-                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
-                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", width: "100%" }}>
-                      <span className="account-handle" style={{ fontWeight: 600, fontSize: 12 }}>
-                        {item.email ?? "Anonym"}
-                      </span>
-                      {item.page && (
-                        <span className="account-meta" style={{ fontSize: 11, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}>
-                          {item.page}
-                        </span>
-                      )}
-                      <span className="account-meta" style={{ marginLeft: "auto" }}>
-                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  <li key={item.id} className="entry-item entry-item--column">
+                    <div className="entry-header">
+                      <span className="entry-primary">{item.email ?? "Anonym"}</span>
+                      {item.page && <span className="entry-pill">{item.page}</span>}
+                      <span className="entry-date">
+                        {new Date(item.created_at).toLocaleString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap" }}>{item.message}</p>
+                    <p className="entry-body">{item.message}</p>
                   </li>
                 ))}
               </ul>
@@ -1373,39 +1503,35 @@ export default function AdminPage() {
             ) : betaSignups.length === 0 ? (
               <p className="empty">Inga beta-anmälningar ännu.</p>
             ) : (
-              <ul className="account-list">
+              <ul className="entry-list">
                 {betaSignups.map((item) => (
-                  <li key={item.id} className="account-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.35rem" }}>
-                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", width: "100%" }}>
-                      <a className="account-handle" href={`mailto:${item.email}`} style={{ fontWeight: 600, fontSize: 13 }}>
-                        {item.email}
+                  <li key={item.id} className="entry-item">
+                    <a className="entry-primary entry-primary--link" href={`mailto:${item.email}`}>
+                      {item.email}
+                    </a>
+                    {item.handle && (
+                      <a
+                        className="entry-pill"
+                        href={`https://www.tiktok.com/@${item.handle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        @{item.handle}
                       </a>
-                      {item.handle && (
-                        <a
-                          className="account-meta"
-                          href={`https://www.tiktok.com/@${item.handle}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 12, background: "rgba(28,27,25,0.06)", padding: "1px 6px", borderRadius: 3 }}
-                        >
-                          @{item.handle}
-                        </a>
-                      )}
-                      {item.video_url && (
-                        <a
-                          className="account-meta"
-                          href={item.video_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: "#666" }}
-                        >
-                          Video
-                        </a>
-                      )}
-                      <span className="account-meta" style={{ marginLeft: "auto" }}>
-                        {new Date(item.created_at).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+                    )}
+                    {item.video_url && (
+                      <a
+                        className="entry-link"
+                        href={item.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Video
+                      </a>
+                    )}
+                    <span className="entry-date">
+                      {new Date(item.created_at).toLocaleString("sv-SE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1572,6 +1698,16 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
         <input type="checkbox" className="toggle-input" checked={a.is_active} onChange={() => onToggle(a)} />
         <span className="toggle-track"><span className="toggle-thumb" /></span>
       </label>
+      <div className="account-avatar">
+        {a.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={a.avatar_url} alt="" />
+        ) : (
+          <span className="account-avatar-fallback">
+            {(a.display_name?.charAt(0) || a.handle.charAt(0) || "?").toUpperCase()}
+          </span>
+        )}
+      </div>
       <div className="account-info">
         <a className="account-handle" href={`https://www.tiktok.com/@${a.handle}`} target="_blank" rel="noopener noreferrer">
           @{a.handle}
@@ -1624,17 +1760,17 @@ function AccountRow({ a, onToggle, onDelete, onCategoryChange, onRename }: {
 }
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-
   :root {
     --bg1:    #ffffff;
-    --bg2:    #f7f7f7;
-    --blue:   #222222;
-    --ink:    #222222;
-    --mid:    #555;
-    --muted:  #999;
-    --border: #222222;
-    --border-light: #e0e0e0;
+    --bg2:    #EBE7E2;
+    --bg3:    rgba(28,27,25,0.04);
+    --blue:   #1C1B19;
+    --ink:    #1C1B19;
+    --mid:    rgba(28,27,25,0.78);
+    --muted:  rgba(28,27,25,0.6);
+    --border: rgba(28,27,25,0.14);
+    --border-light: rgba(28,27,25,0.08);
+    --accent: #C8962A;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1645,10 +1781,10 @@ const styles = `
     background: var(--bg2);
     color: var(--ink);
     min-height: 100vh;
-    font-family: 'Inter', sans-serif;
-    max-width: 960px;
+    font-family: 'Barlow', sans-serif;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 0 2rem 6rem;
+    padding: 0 1.5rem 6rem;
   }
 
   .login-root {
@@ -1663,7 +1799,8 @@ const styles = `
   .login-form {
     background: var(--bg1);
     border: 1px solid var(--border);
-    box-shadow: 3px 3px 0 var(--ink);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(28,27,25,0.08), 0 4px 16px rgba(28,27,25,0.06);
     padding: 2.5rem 2rem;
     width: 100%;
     max-width: 360px;
@@ -1675,8 +1812,8 @@ const styles = `
     background: none;
     border: 1px solid var(--border-light);
     color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 0.4rem 0.85rem;
@@ -1702,25 +1839,28 @@ const styles = `
   }
 
   .admin-eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.16em;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
     display: block;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .admin-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     color: var(--ink);
+    letter-spacing: -0.005em;
   }
 
   .admin-sub {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
@@ -1734,25 +1874,33 @@ const styles = `
     border: 1px solid var(--border);
     background: var(--bg1);
     overflow: hidden;
-    box-shadow: 2px 2px 0 var(--ink);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--ink);
+    box-shadow: 0 1px 3px rgba(28,27,25,0.1);
   }
 
   .at-sign {
     padding: 0 0.6rem;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     flex-shrink: 0;
   }
 
   .handle-input {
     flex: 1;
+    min-width: 0;
     background: transparent;
     border: none;
     outline: none;
     color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    padding: 0.65rem 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    padding: 0.7rem 0.85rem;
   }
 
   .handle-input::placeholder { color: var(--muted); }
@@ -1760,32 +1908,33 @@ const styles = `
   .add-btn {
     background: var(--ink);
     border: none;
-    border-left: 1px solid var(--border);
-    color: var(--bg1);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    border-left: 1px solid rgba(28,27,25,0.4);
+    color: #EBE7E2;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 0 1.25rem;
+    padding: 0 1.4rem;
     align-self: stretch;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: opacity 0.15s;
     white-space: nowrap;
   }
 
-  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .add-btn:not(:disabled):hover { background: #333; }
+  .add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .add-btn:not(:disabled):hover { opacity: 0.88; }
 
   .form-error {
     margin-top: 0.5rem;
-    font-size: 11px;
+    font-size: 14px;
     color: #a33;
   }
 
   /* List */
   .loading, .empty {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 14px;
     padding: 2rem 0;
     letter-spacing: 0.04em;
   }
@@ -1796,55 +1945,82 @@ const styles = `
     flex-direction: column;
     gap: 0;
     border: 1px solid var(--border);
-    box-shadow: 2px 2px 0 var(--ink);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
     background: var(--bg1);
   }
 
   .account-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.85rem;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
     border-bottom: 1px solid var(--border-light);
     transition: background 0.12s, opacity 0.15s;
   }
 
   .account-row:last-child { border-bottom: none; }
-  .account-row--inactive { opacity: 0.65; }
-  .account-row:hover { background: #faf7f1; opacity: 1; }
+  .account-row--inactive { opacity: 0.55; }
+  .account-row:hover { background: var(--bg3); opacity: 1; }
 
   /* Toggle */
   .toggle-label { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
   .toggle-input { display: none; }
 
   .toggle-track {
-    width: 32px;
-    height: 18px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 0;
+    width: 34px;
+    height: 20px;
+    background: rgba(28,27,25,0.12);
+    border: none;
+    border-radius: 999px;
     position: relative;
     transition: background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track {
-    background: var(--blue);
-    border-color: var(--blue);
+    background: var(--ink);
   }
 
   .toggle-thumb {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 12px;
-    height: 12px;
-    background: var(--muted);
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.18);
     transition: transform 0.2s, background 0.2s;
   }
 
   .toggle-input:checked + .toggle-track .toggle-thumb {
     transform: translateX(14px);
-    background: #fff;
+  }
+
+  /* Avatar */
+  .account-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .account-avatar-fallback {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--muted);
   }
 
   /* Account info */
@@ -1857,7 +2033,7 @@ const styles = `
   }
 
   .account-handle {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--ink);
     text-decoration: none;
@@ -1871,8 +2047,8 @@ const styles = `
     border: none;
     border-bottom: 1px dashed var(--border-light);
     outline: none;
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
     color: var(--mid);
     padding: 1px 2px;
     width: 100%;
@@ -1895,8 +2071,8 @@ const styles = `
     border: none;
     border-bottom: 1px dashed var(--border-light);
     outline: none;
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
     color: var(--mid);
     padding: 1px 2px;
     cursor: pointer;
@@ -1906,7 +2082,7 @@ const styles = `
   .category-select:focus { border-bottom-color: var(--ink); }
 
   .accounts-divider {
-    font-size: 9px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1916,13 +2092,35 @@ const styles = `
   .handle-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    font-size: 10px;
-    font-family: 'Inter', sans-serif;
-    background: var(--bg2);
+    gap: 6px;
+    font-size: 13px;
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg1);
     border: 1px solid var(--border-light);
-    color: var(--mid);
-    padding: 1px 6px 1px 8px;
+    color: var(--ink);
+    padding: 2px 8px 2px 4px;
+    border-radius: 999px;
+  }
+  .handle-chip-avatar {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .handle-chip-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .handle-chip button {
@@ -1930,16 +2128,16 @@ const styles = `
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1;
     padding: 0;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
   }
 
   .handle-chip button:hover { color: #a33; }
 
   .week-badge {
-    font-size: 9px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     background: var(--bg2);
@@ -1950,12 +2148,12 @@ const styles = `
   }
 
   .account-meta {
-    font-size: 10px;
+    font-size: 13px;
     color: var(--muted);
   }
 
   .status-badge {
-    font-size: 9px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     flex-shrink: 0;
@@ -1982,7 +2180,7 @@ const styles = `
 
   /* Contest group labels */
   .contest-group-label {
-    font-size: 9px;
+    font-size: 13px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1997,7 +2195,7 @@ const styles = `
     background: var(--bg2);
     border: 1px solid var(--border-light);
     color: var(--muted);
-    font-size: 9px;
+    font-size: 13px;
     padding: 1px 6px;
     font-weight: 400;
     letter-spacing: 0;
@@ -2009,11 +2207,11 @@ const styles = `
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 14px;
     padding: 0.2rem 0.3rem;
     flex-shrink: 0;
     transition: color 0.12s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
   }
 
   .delete-btn:hover { color: #a33; }
@@ -2025,10 +2223,9 @@ const styles = `
     gap: 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 2rem;
-    background: var(--bg1);
-    margin-left: -2rem;
-    margin-right: -2rem;
-    padding: 0 2rem;
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding: 0 1.5rem;
   }
 
   .admin-tab {
@@ -2042,9 +2239,9 @@ const styles = `
     white-space: nowrap;
     flex-shrink: 0;
     margin-bottom: -1px;
-    padding: 0.75rem 1rem;
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    padding: 0.85rem 1rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2061,7 +2258,7 @@ const styles = `
   }
 
   .admin-tab-meta {
-    font-size: 9px;
+    font-size: 13px;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: none;
@@ -2082,20 +2279,20 @@ const styles = `
 
   .admin-section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--ink);
   }
 
   .admin-section-meta {
-    font-size: 10px;
+    font-size: 13px;
     color: var(--muted);
     letter-spacing: 0.04em;
   }
 
   .admin-section-desc {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 1rem;
     letter-spacing: 0.02em;
@@ -2113,7 +2310,7 @@ const styles = `
   }
 
   .admin-tool-label {
-    font-size: 9px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -2122,7 +2319,7 @@ const styles = `
   }
 
   .admin-tool-desc {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 0.75rem;
     letter-spacing: 0.02em;
@@ -2141,8 +2338,8 @@ const styles = `
     background: none;
     border: none;
     padding: 0.75rem 0;
-    font-family: 'Inter', sans-serif;
-    font-size: 9px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2181,8 +2378,9 @@ const styles = `
     gap: 0.5rem;
     border: 1px solid var(--border);
     background: var(--bg1);
-    padding: 0.5rem 0.75rem;
-    box-shadow: 1px 1px 0 var(--ink);
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
   }
 
   .days-input {
@@ -2190,14 +2388,14 @@ const styles = `
     background: transparent;
     border: none;
     outline: none;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
     color: var(--ink);
     text-align: center;
   }
 
   .days-label {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     letter-spacing: 0.04em;
     white-space: nowrap;
@@ -2206,24 +2404,458 @@ const styles = `
   .scrape-btn {
     background: var(--ink);
     border: 1px solid var(--ink);
-    color: var(--bg1);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    color: #EBE7E2;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 0.55rem 1.25rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 999px;
     cursor: pointer;
-    box-shadow: 2px 2px 0 var(--border);
-    transition: background 0.12s;
+    transition: opacity 0.15s;
   }
 
-  .scrape-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .scrape-btn:not(:disabled):hover { background: #333; }
+  .scrape-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .scrape-btn:not(:disabled):hover { opacity: 0.88; }
 
   .scrape-msg {
     margin-top: 0.75rem;
-    font-size: 11px;
+    font-size: 14px;
     color: var(--mid);
     letter-spacing: 0.02em;
   }
+
+  /* Contest videos (Tävlingar) — card grid */
+  .contest-week-group {
+    margin-bottom: 1.75rem;
+  }
+  .contest-week-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.25rem 0 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .contest-week-count {
+    background: var(--bg3);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+  .contest-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .contest-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    transition: opacity 0.18s, box-shadow 0.18s, transform 0.18s;
+  }
+  .contest-card:hover {
+    box-shadow: 0 2px 8px rgba(28,27,25,0.08);
+  }
+  .contest-card.approved {
+    opacity: 0.42;
+  }
+  .contest-card.approved:hover {
+    opacity: 0.85;
+  }
+  .contest-thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--bg3);
+    position: relative;
+  }
+  .contest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .contest-thumb-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--muted);
+  }
+  .contest-card .status-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+  }
+  .contest-body {
+    padding: 0.7rem 0.85rem 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .contest-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+    line-height: 1.25;
+  }
+  .contest-name:hover { text-decoration: underline; }
+  .contest-caption {
+    font-size: 13px;
+    color: var(--mid);
+    font-style: italic;
+    line-height: 1.4;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .contest-caption.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+  .contest-caption-toggle {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: -2px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: underline;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.12s;
+  }
+  .contest-caption-toggle:hover { opacity: 1; }
+  .contest-meta {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: auto;
+    padding-top: 4px;
+  }
+  .contest-actions {
+    padding: 0 0.85rem 0.85rem;
+    display: flex;
+  }
+  .contest-action-btn {
+    font-size: 13px;
+    padding: 0.45rem 0.9rem;
+    width: 100%;
+  }
+
+  /* Kalkylator-tester sort pills */
+  .calc-sort-row {
+    display: inline-flex;
+    background: var(--bg3);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 1rem;
+    gap: 0;
+  }
+  .calc-sort-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--mid);
+    background: transparent;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .calc-sort-pill:hover { color: var(--ink); }
+  .calc-sort-pill.active {
+    background: var(--bg1);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(28,27,25,0.1);
+  }
+
+  /* Användare — login summary subtext */
+  .user-login-meta {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+  }
+
+  /* Användare — link-style action button (Byt lösenord) */
+  .user-link-btn {
+    background: none;
+    border: none;
+    color: var(--mid);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    padding: 4px 6px;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.12s;
+  }
+  .user-link-btn:hover { color: var(--ink); }
+
+  /* Användare — handle chips + add-account panel */
+  .user-handles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 2.75rem;
+    align-items: center;
+  }
+  .add-handle-btn {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mid);
+    background: var(--bg3);
+    border: 1px dashed var(--border);
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .add-handle-btn:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+    background: var(--bg1);
+  }
+
+  .user-add-panel {
+    margin-left: 2.75rem;
+    margin-top: 4px;
+    background: var(--bg3);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .user-add-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .user-add-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  .user-add-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .user-add-input {
+    flex: 1;
+    min-width: 160px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg1);
+    padding: 0.55rem 0.75rem;
+  }
+  .user-add-select {
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .user-add-msg {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  /* Shared list for Feedback / Beta-anmälningar */
+  .entry-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+  }
+  .entry-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s;
+  }
+  .entry-item:last-child { border-bottom: none; }
+  .entry-item:hover { background: var(--bg3); }
+  .entry-item--column { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .entry-item--column .entry-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .entry-primary {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .entry-primary--link {
+    text-decoration: none;
+  }
+  .entry-primary--link:hover { text-decoration: underline; }
+  .entry-pill {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    color: var(--mid);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+  .entry-pill:hover { color: var(--ink); }
+  .entry-link {
+    font-size: 14px;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .entry-link:hover { opacity: 0.7; }
+  .entry-date {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .entry-body {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  /* Calc-test thumbnail / avatar cell */
+  .calc-thumb-cell {
+    width: 56px;
+    padding: 0.4rem 0 0.4rem 0.85rem !important;
+  }
+  .calc-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg3);
+    text-decoration: none;
+  }
+  .calc-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .calc-thumb--round {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  .calc-thumb--fallback {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--muted);
+  }
+
+  /* Source badge (DB / Apify) */
+  .src-pill {
+    display: inline-block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .src-pill--db { background: #d4ebd4; color: #2a5a2a; }
+  .src-pill--apify { background: var(--bg3); color: var(--mid); }
+
+  /* Tables (scrape-log, kalkylator-tester) */
+  .calc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,27,25,0.04);
+    font-family: 'Barlow', sans-serif;
+  }
+  .calc-table thead tr {
+    background: var(--bg3);
+  }
+  .calc-table th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+  }
+  .calc-table th.right { text-align: right; }
+  .calc-table td {
+    padding: 0.6rem 0.85rem;
+    font-size: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  .calc-table tbody tr:last-child td { border-bottom: none; }
+  .calc-table tbody tr:hover { background: var(--bg3); }
+  .calc-table td.right { text-align: right; }
 `;

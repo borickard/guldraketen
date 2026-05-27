@@ -389,7 +389,7 @@ body {
   background: var(--gr-dark);
   color: rgba(235, 231, 226, .85);
   font-family: 'Barlow', sans-serif;
-  font-size: var(--gr-fs-label);
+  font-size: 15px;
   padding: 1px 4px;
   border-radius: 6px;
   line-height: 1;
@@ -981,6 +981,119 @@ body {
   color: rgba(28,27,25,0.4);
 }
 
+/* ── HoF control bar (scope/sort/filter) ── */
+.gr-hof-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 48px 8px;
+  border-bottom: 1px solid rgba(28,27,25,0.08);
+  position: sticky;
+  top: 0;
+  background: #EBE7E2;
+  z-index: 10;
+}
+.gr-hof-control-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.gr-hof-control-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(28,27,25,0.5);
+}
+.gr-hof-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.gr-hof-pills--segment {
+  background: rgba(28,27,25,0.06);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 0;
+}
+.gr-hof-pill {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(28,27,25,0.6);
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.gr-hof-pill:hover {
+  color: var(--gr-dark);
+}
+.gr-hof-pill.active {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+.gr-hof-pills--segment .gr-hof-pill.active {
+  background: #fff;
+  color: var(--gr-dark);
+  box-shadow: 0 1px 3px rgba(28,27,25,0.1);
+}
+.gr-hof-pill--sort {
+  background: rgba(28,27,25,0.04);
+}
+.gr-hof-pill--sort.active {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+
+@media (max-width: 639px) {
+  .gr-hof-controls { padding: 16px 20px 8px; }
+}
+
+/* Date below handle on HoF cards */
+.gr-hof-card-date {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  color: rgba(28,27,25,0.45);
+  margin: 2px 0 0;
+  letter-spacing: .02em;
+}
+
+/* Boost badge — top-right on HoF cards */
+.gr-hof-boost-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(28,27,25,0.85);
+  color: #EBE7E2;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+/* Larger rank badge ("#1") on HoF cards */
+.gr-hof-row-card .gr-thumb-best {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+/* HoF category select sits in the control row, slim styling */
+.gr-hof-cat-select {
+  margin-left: auto;
+}
+
 /* ── Week sections ── */
 .gr-hof-week {
   padding-top: 28px;
@@ -1046,6 +1159,23 @@ body {
   background: #EBE7E2;
   color: var(--gr-dark);
 }
+.gr-hof-week-arrow--left {
+  left: 12px;
+  right: auto;
+}
+
+/* Left-fade — mirrors the right ::after, only when scrolled away from start */
+.gr-hof-week-scroll-wrap--scrolled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 20px;
+  width: 80px;
+  background: linear-gradient(to left, transparent, #EBE7E2 80%);
+  pointer-events: none;
+  z-index: 2;
+}
 
 .gr-hof-week-row {
   display: flex;
@@ -1075,9 +1205,83 @@ body {
   width: calc((100vw - 40px - 10px * 0.5) / 1.5);
 }
 
+/* "Sedan start" multi-row grid: auto-fill columns, no fixed width per card. */
+.gr-hof-all-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 0 48px 24px;
+}
+.gr-hof-all-grid .gr-hof-row-card {
+  width: auto;
+  flex-shrink: 1;
+}
+@media (max-width: 639px) {
+  .gr-hof-all-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 0 20px 24px;
+  }
+}
+
+.gr-hof-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 48px 32px;
+}
+.gr-hof-load-more {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gr-dark);
+  background: rgba(28,27,25,0.06);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gr-hof-load-more:hover {
+  background: var(--gr-dark);
+  color: #EBE7E2;
+}
+@media (max-width: 639px) {
+  .gr-hof-load-more-wrap { padding: 12px 20px 32px; }
+}
+
+/* Tablet portrait / large mobile */
+@media (min-width: 480px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 40px - 10px * 1.5) / 2.5);
+  }
+}
+
+/* Small tablet / phone landscape */
 @media (min-width: 640px) {
   .gr-hof-row-card {
-    /* desktop: 9.5 cards visible (96px total padding) */
+    width: calc((100vw - 96px - 10px * 3.5) / 4.5);
+  }
+}
+
+/* Laptop */
+@media (min-width: 1024px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 96px - 10px * 5.5) / 6.5);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1280px) {
+  .gr-hof-row-card {
+    width: calc((100vw - 96px - 10px * 7.5) / 8.5);
+  }
+}
+
+/* Wide desktop — original layout */
+@media (min-width: 1600px) {
+  .gr-hof-row-card {
     width: calc((100vw - 96px - 10px * 8.5) / 9.5);
   }
 }
@@ -3690,6 +3894,7 @@ body {
   text-decoration: none;
   cursor: pointer;
   background: none;
+  white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -3915,35 +4120,67 @@ body {
   max-width: 640px;
   margin: 0 auto;
   padding: var(--space-5) 0 var(--space-3);
-}
-
-.gr-week-subtitle {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(14px, 2.5vw, 18px);
-  color: rgba(237, 248, 251, 0.45);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin: 4px 0 0;
-}
-
-/* Mobile compact week row — hidden on desktop */
-.gr-rk-week-row {
-  display: none;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  max-width: 640px;
-  margin: 0 auto var(--space-1);
+  gap: 18px;
 }
 
-.gr-rk-week-label {
+/* Unified toolbar — week navigator + boost filter on one line */
+.gr-rk-toolbar {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(28,27,25,0.06);
+  border-radius: 999px;
+  padding: 5px;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.gr-rk-week-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.gr-rk-week-tag {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 15px;
-  color: rgba(237, 248, 251, 0.7);
-  letter-spacing: 0.06em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  min-width: 72px;
+  color: var(--gr-dark);
+  min-width: 76px;
   text-align: center;
+}
+
+/* Vertical separator between week nav and boost pills (desktop) */
+.gr-rk-toolbar .gr-rk-week-nav + .gr-rk-boost-pills {
+  border-left: 1px solid rgba(28,27,25,0.12);
+  margin-left: 4px;
+  padding-left: 4px;
+}
+
+@media (max-width: 559px) {
+  .gr-rk-toolbar {
+    flex-direction: column;
+    gap: 6px;
+    border-radius: 24px;
+    padding: 8px 8px;
+  }
+  .gr-rk-toolbar .gr-rk-week-nav + .gr-rk-boost-pills {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
+    border-top: 1px solid rgba(28,27,25,0.1);
+    padding-top: 6px;
+    width: 100%;
+    justify-content: center;
+  }
+  .gr-rk-week-tag { font-size: 13px; min-width: 64px; }
 }
 
 /* Nav wrap with margin arrows — desktop only */
@@ -3980,23 +4217,51 @@ body {
   cursor: default;
 }
 
-/* Desktop: arrows inline with week label in the header */
-.gr-rk-week-hdr-nav {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+.gr-rk-boost-pills {
+  display: inline-flex;
+  gap: 0;
+}
+.gr-rk-boost-pill {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(28,27,25,0.6);
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.gr-rk-boost-pill:hover {
+  color: var(--gr-dark);
+}
+.gr-rk-boost-pill.active {
+  background: #fff;
+  color: var(--gr-dark);
+  box-shadow: 0 1px 3px rgba(28,27,25,0.12);
 }
 
-@media (min-width: 760px) {
-  .gr-rk-week-hdr-nav { display: flex; }
-  .gr-week-subtitle { display: block; }
+/* Boost badge on topplistan cards — paired with the rank badge */
+.gr-rk-boost-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(28,27,25,0.85);
+  color: #EBE7E2;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
 }
 
 @media (max-width: 759px) {
-  .gr-rk-week-row { display: flex; }
-  .gr-rk-week-hdr-nav { display: none; }
-  .gr-week-subtitle { display: none; }
   .gr-list-section .gr-page-title { font-size: 1.5rem; }
   .gr-list-section-hdr { padding-top: var(--space-3); }
 }
@@ -4016,14 +4281,6 @@ body {
   text-transform: uppercase;
   letter-spacing: -0.01em;
   line-height: 1;
-}
-
-.gr-list-section .gr-week-subtitle {
-  color: rgba(28, 27, 25, 0.5);
-}
-
-.gr-list-section .gr-rk-week-label {
-  color: rgba(28, 27, 25, 0.6);
 }
 
 .gr-list-section .gr-page-hdr {
@@ -4584,7 +4841,7 @@ body {
 }
 
 .gr-rk-grid .gr-thumb-stats span {
-  font-size: 11px;
+  font-size: 15px;
   padding: 2px 5px;
 }
 
@@ -4674,13 +4931,55 @@ body {
   transform: translateY(-1px);
 }
 
-/* Skeleton */
+/* Skeleton — matches real card height (aspect-ratio: 9/16) so layout doesn't
+   jump on swap. Uses a sliding shimmer gradient instead of opacity pulses. */
+.gr-rk-vk-card--loading {
+  pointer-events: none;
+}
 .gr-rk-vk-card--loading .gr-thumb {
   background: rgba(28,27,25,0.08);
-  animation: gr-shimmer 1.6s ease-in-out infinite;
+  background-image: linear-gradient(90deg,
+    rgba(28,27,25,0) 0%,
+    rgba(28,27,25,0.12) 50%,
+    rgba(28,27,25,0) 100%);
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  animation: gr-shimmer-slide 1.4s ease-in-out infinite;
 }
 .gr-rk-vk-card--loading .gr-vid-info {
   background: #fff;
+  padding: 12px 14px;
+}
+
+.gr-rk-skel-badge {
+  background: rgba(7,37,58,0.18);
+  width: 28px;
+  height: 26px;
+  border-radius: 6px;
+  display: block;
+}
+.gr-rk-skel-er {
+  background: rgba(7,37,58,0.18);
+  width: 78px;
+  height: 30px;
+  border-radius: 8px;
+  display: block;
+}
+.gr-rk-skel-stats {
+  display: flex;
+  gap: 6px;
+}
+.gr-rk-skel-stat {
+  display: block;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.55);
+}
+
+@keyframes gr-shimmer-slide {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Flip card — 9:16 portrait */
@@ -5025,10 +5324,17 @@ body {
   gap: 7px;
 }
 .gr-rk-skel-bar {
-  height: 12px;
-  border-radius: 3px;
-  background: rgba(7,37,58,0.1);
-  animation: gr-shimmer-light 1.6s ease-in-out infinite;
+  height: 14px;
+  border-radius: 4px;
+  background: rgba(7,37,58,0.08);
+  background-image: linear-gradient(90deg,
+    rgba(7,37,58,0) 0%,
+    rgba(7,37,58,0.12) 50%,
+    rgba(7,37,58,0) 100%);
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  animation: gr-shimmer-slide 1.4s ease-in-out infinite;
 }
 .gr-rk-skel-bar:nth-child(2) { height: 10px; animation-delay: 0.2s; }
 

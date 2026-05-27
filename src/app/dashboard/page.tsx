@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+import { ADMIN_COOKIE_NAME, verifyAdminSession } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import LogoutButton from "./components/LogoutButton";
+import DashboardHeader from "./components/DashboardHeader";
 import DashboardClient from "./components/DashboardClient";
 
 interface ProfileData {
@@ -73,6 +74,13 @@ export default async function DashboardPage() {
   const session = token ? await verifySession(token) : null;
   if (!session) redirect("/dashboard/login");
 
+  // If an admin cookie is also present, this is an admin viewing the
+  // dashboard as the user that owns the dashboard_session — the impersonate
+  // endpoint sets that session for them. Show a banner so the admin doesn't
+  // forget which view they're in.
+  const adminToken = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  const isAdmin = adminToken ? await verifyAdminSession(adminToken) : false;
+
   const profiles = (
     await Promise.all(session.handles.map(fetchProfile))
   ).filter(Boolean) as ProfileData[];
@@ -82,15 +90,9 @@ export default async function DashboardPage() {
       <style>{styles}</style>
       <div className="db-root">
 
-        <header className="db-header">
-          <a href="/" className="db-wordmark">Sociala Raketer</a>
-          <nav className="db-nav">
-            <a href="/dashboard" className="db-nav-link">Dashboard</a>
-            <a href="/dashboard/jamforelse" className="db-nav-link">Jämför</a>
-            <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
-          </nav>
-          <LogoutButton />
-        </header>
+        <DashboardHeader
+          impersonating={isAdmin ? { username: session.username } : null}
+        />
 
         <main className="db-main">
           {profiles.length === 0 ? (

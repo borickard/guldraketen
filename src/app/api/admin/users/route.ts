@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export async function GET() {
   const { data: users, error } = await supabaseAdmin
     .from("users")
-    .select("id, username, is_active, created_at, notes")
+    .select("id, username, is_active, created_at, notes, last_seen_at, active_days")
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
