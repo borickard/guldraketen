@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
-import { verifyAdminSession, ADMIN_COOKIE_NAME } from "@/lib/adminAuth";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -9,10 +8,9 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Skip activity tracking when an admin is previewing via impersonate —
-  // otherwise the admin's previews would bump the user's active_days counter.
-  const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const isAdminPreview = adminToken ? await verifyAdminSession(adminToken) : false;
-  if (!isAdminPreview) {
+  // the session payload is marked at /api/admin/impersonate time. A real
+  // login (even by someone who also has an admin cookie) is not flagged.
+  if (!session.impersonated) {
     void trackDashboardVisit(session.userId);
   }
 

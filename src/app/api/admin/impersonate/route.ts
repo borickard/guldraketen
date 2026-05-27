@@ -29,7 +29,12 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id);
   const handles = (handleRows ?? []).map((r) => r.handle);
 
-  const token = await signSession({ userId: user.id, username: user.username, handles });
+  const token = await signSession({
+    userId: user.id,
+    username: user.username,
+    handles,
+    impersonated: true,
+  });
   const res = NextResponse.json({ ok: true, username: user.username, handles });
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,

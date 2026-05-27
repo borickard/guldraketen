@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
-import { ADMIN_COOKIE_NAME, verifyAdminSession } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardClient from "./components/DashboardClient";
@@ -74,12 +73,11 @@ export default async function DashboardPage() {
   const session = token ? await verifySession(token) : null;
   if (!session) redirect("/dashboard/login");
 
-  // If an admin cookie is also present, this is an admin viewing the
-  // dashboard as the user that owns the dashboard_session — the impersonate
-  // endpoint sets that session for them. Show a banner so the admin doesn't
-  // forget which view they're in.
-  const adminToken = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
-  const isAdmin = adminToken ? await verifyAdminSession(adminToken) : false;
+  // The impersonate endpoint marks the dashboard_session payload with
+  // impersonated:true so we can distinguish a real login from an admin
+  // preview. A regular login (even by someone who also happens to be admin)
+  // should not show the banner.
+  const isImpersonating = session.impersonated === true;
 
   const profiles = (
     await Promise.all(session.handles.map(fetchProfile))
@@ -91,7 +89,7 @@ export default async function DashboardPage() {
       <div className="db-root">
 
         <DashboardHeader
-          impersonating={isAdmin ? { username: session.username } : null}
+          impersonating={isImpersonating ? { username: session.username } : null}
         />
 
         <main className="db-main">
