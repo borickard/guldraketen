@@ -119,6 +119,9 @@ export default function AdminPage() {
   const [addingHandle, setAddingHandle] = useState<string | null>(null);
   const [addFeedback, setAddFeedback] = useState<Record<string, string>>({});
 
+  const [accountSort, setAccountSort] = useState<"name" | "date" | "videos">("name");
+  const [accountSortOrder, setAccountSortOrder] = useState<"asc" | "desc">("asc");
+
   const [calcDailyLimit, setCalcDailyLimit] = useState<number>(100);
   const [calcLimitInput, setCalcLimitInput] = useState<string>("100");
   const [calcUsage, setCalcUsage] = useState<{ today: number; week: number; month: number } | null>(null);
@@ -402,12 +405,9 @@ export default function AdminPage() {
   }
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [suggestionSort, setSuggestionSort] = useState<"name" | "date" | "videos">("name");
-  const [suggestionOrder, setSuggestionOrder] = useState<"asc" | "desc">("asc");
-
-  async function fetchSuggestions(sort = suggestionSort, order = suggestionOrder) {
+  async function fetchSuggestions() {
     setLoadingSuggestions(true);
-    const res = await fetch(`/api/admin/category-suggestions?sort=${sort}&order=${order}`);
+    const res = await fetch(`/api/admin/category-suggestions?sort=date&order=desc`);
     const data = await res.json();
     setSuggestions(Array.isArray(data) ? data : []);
     setLoadingSuggestions(false);
@@ -566,9 +566,33 @@ export default function AdminPage() {
     await fetchUsers();
   }
 
-  const active = accounts.filter((a) => a.is_active);
-  const inactive = accounts.filter((a) => !a.is_active);
   const videoCount = (a: Account) => a.videos?.[0]?.count ?? 0;
+  const sortAccounts = (list: Account[]) => {
+    const c = [...list];
+    if (accountSort === "name") {
+      c.sort((a, b) => {
+        const an = (a.display_name ?? a.handle).toLowerCase();
+        const bn = (b.display_name ?? b.handle).toLowerCase();
+        return accountSortOrder === "asc"
+          ? an.localeCompare(bn, "sv")
+          : bn.localeCompare(an, "sv");
+      });
+    } else if (accountSort === "date") {
+      c.sort((a, b) => {
+        const at = new Date(a.created_at).getTime();
+        const bt = new Date(b.created_at).getTime();
+        return accountSortOrder === "asc" ? at - bt : bt - at;
+      });
+    } else if (accountSort === "videos") {
+      c.sort((a, b) => {
+        const cmp = videoCount(a) - videoCount(b);
+        return accountSortOrder === "asc" ? cmp : -cmp;
+      });
+    }
+    return c;
+  };
+  const active = sortAccounts(accounts.filter((a) => a.is_active));
+  const inactive = sortAccounts(accounts.filter((a) => !a.is_active));
   const totalVideos = accounts.reduce((sum, a) => sum + videoCount(a), 0);
 
   if (authed === null) return null;
@@ -676,6 +700,31 @@ export default function AdminPage() {
             <p className="empty">Inga konton ännu. Lägg till det första ovan.</p>
           ) : (
             <>
+              <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", marginBottom: "0.85rem", fontSize: 12, alignItems: "center" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#666" }}>Sortera:</span>
+                  <select
+                    value={accountSort}
+                    onChange={(e) => setAccountSort(e.target.value as "name" | "date" | "videos")}
+                    style={{ padding: "0.25rem 0.4rem", border: "1px solid rgba(28,27,25,0.2)", borderRadius: 3, background: "#fff" }}
+                  >
+                    <option value="name">Namn</option>
+                    <option value="date">Tillagd</option>
+                    <option value="videos">Antal videor</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setAccountSortOrder((o) => (o === "asc" ? "desc" : "asc"))}
+                  style={{ background: "none", border: "1px solid rgba(28,27,25,0.2)", padding: "0.25rem 0.55rem", cursor: "pointer", fontSize: 12, borderRadius: 3 }}
+                >
+                  {accountSort === "name"
+                    ? accountSortOrder === "asc" ? "A → Ö" : "Ö → A"
+                    : accountSort === "date"
+                      ? accountSortOrder === "asc" ? "Äldst först" : "Senast först"
+                      : accountSortOrder === "asc" ? "Färst videor" : "Flest videor"}
+                </button>
+              </div>
               {active.length > 0 && (
                 <ul className="account-list">
                   {active.map((a) => <AccountRow key={a.id} a={a} onToggle={handleToggle} onDelete={handleDelete} onCategoryChange={handleCategoryChange} onRename={fetchAccounts} />)}
@@ -1372,40 +1421,6 @@ export default function AdminPage() {
               <span className="admin-section-meta">{suggestions.length} förslag</span>
             </div>
 
-            <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", marginBottom: "1rem", fontSize: 12 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#666" }}>Sortera:</span>
-                <select
-                  value={suggestionSort}
-                  onChange={(e) => {
-                    const sort = e.target.value as "name" | "date" | "videos";
-                    setSuggestionSort(sort);
-                    fetchSuggestions(sort, suggestionOrder);
-                  }}
-                  style={{ padding: "0.25rem 0.4rem", border: "1px solid rgba(28,27,25,0.2)", borderRadius: 3, background: "#fff" }}
-                >
-                  <option value="name">Namn</option>
-                  <option value="date">Inskickat</option>
-                  <option value="videos">Antal videor</option>
-                </select>
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = suggestionOrder === "asc" ? "desc" : "asc";
-                  setSuggestionOrder(order);
-                  fetchSuggestions(suggestionSort, order);
-                }}
-                style={{ background: "none", border: "1px solid rgba(28,27,25,0.2)", padding: "0.25rem 0.55rem", cursor: "pointer", fontSize: 12, borderRadius: 3 }}
-              >
-                {suggestionSort === "name"
-                  ? suggestionOrder === "asc" ? "A → Ö" : "Ö → A"
-                  : suggestionSort === "date"
-                    ? suggestionOrder === "asc" ? "Äldst först" : "Senast först"
-                    : suggestionOrder === "asc" ? "Färst videor" : "Flest videor"}
-              </button>
-            </div>
-
             {loadingSuggestions ? (
               <p className="loading">Laddar…</p>
             ) : suggestions.length === 0 ? (
@@ -2006,19 +2021,15 @@ const styles = `
   /* Tabs */
   .admin-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 2rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
     background: var(--bg1);
     margin-left: -2rem;
     margin-right: -2rem;
     padding: 0 2rem;
   }
-
-  .admin-tabs::-webkit-scrollbar { display: none; }
 
   .admin-tab {
     display: flex;
@@ -2031,7 +2042,7 @@ const styles = `
     white-space: nowrap;
     flex-shrink: 0;
     margin-bottom: -1px;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
