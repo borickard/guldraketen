@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+import { verifyAdminSession, ADMIN_COOKIE_NAME } from "@/lib/adminAuth";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Track dashboard activity — once per UTC day per user. Fire-and-forget.
-  void trackDashboardVisit(session.userId);
+  // Skip activity tracking when an admin is previewing via impersonate —
+  // otherwise the admin's previews would bump the user's active_days counter.
+  const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const isAdminPreview = adminToken ? await verifyAdminSession(adminToken) : false;
+  if (!isAdminPreview) {
+    void trackDashboardVisit(session.userId);
+  }
 
   if (session.handles.length === 0) return NextResponse.json([]);
 
