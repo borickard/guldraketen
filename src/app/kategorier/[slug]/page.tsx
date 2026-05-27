@@ -249,7 +249,7 @@ const styles = `
   }
 
   .cat-detail-wrap {
-    max-width: 1000px;
+    max-width: 760px;
     margin: 0 auto;
     padding: 100px 1.5rem 4rem;
   }
