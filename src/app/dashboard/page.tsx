@@ -86,6 +86,7 @@ export default async function DashboardPage() {
           <a href="/" className="db-wordmark">Sociala Raketer</a>
           <nav className="db-nav">
             <a href="/dashboard" className="db-nav-link">Dashboard</a>
+            <a href="/dashboard/jamforelse" className="db-nav-link">Jämför</a>
             <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
           </nav>
           <LogoutButton />
