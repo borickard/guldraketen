@@ -11,6 +11,7 @@ export interface SessionPayload {
   userId: string;
   username: string;
   handles: string[];
+  impersonated?: boolean;
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
