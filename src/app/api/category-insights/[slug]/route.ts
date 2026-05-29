@@ -40,6 +40,7 @@ export async function GET(
           .select("handle, engagement_rate, published_at, views")
           .in("handle", handles)
           .or("is_contest.eq.false,contest_approved.eq.true")
+          .eq("is_hidden", false)
           .gte("published_at", cutoff);
   if (vidErr) return NextResponse.json({ error: vidErr.message }, { status: 500 });
 

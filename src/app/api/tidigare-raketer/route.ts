@@ -156,6 +156,7 @@ export async function GET(request: Request) {
     .not("published_at", "is", null)
     .gte("published_at", MIN_PUBLISHED_DATE)
     .or("is_contest.eq.false,contest_approved.eq.true")
+    .eq("is_hidden", false)
     .gte("views", MIN_VIDEO_VIEWS)
     .not(sortCol, "is", null)
     .order(sortCol, { ascending: false, nullsFirst: false });
