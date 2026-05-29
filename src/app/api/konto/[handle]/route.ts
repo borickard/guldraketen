@@ -63,6 +63,7 @@ export async function GET(
     .select("id, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption")
     .eq("handle", handle)
     .or("is_contest.eq.false,contest_approved.eq.true")
+    .eq("is_hidden", false)
     .lt("published_at", cutoffDate.toISOString())
     .order("published_at", { ascending: false })
     .limit(500);
@@ -86,6 +87,7 @@ export async function GET(
     .select("handle, views, engagement_rate, published_at")
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
+    .eq("is_hidden", false)
     .gte("views", MIN_VIDEO_VIEWS);
 
   let gold = 0, silver = 0, bronze = 0;

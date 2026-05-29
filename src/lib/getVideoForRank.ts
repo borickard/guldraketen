@@ -65,6 +65,7 @@ export async function getVideoForRank(week: string, rank: number): Promise<Video
         .gte("published_at", start.toISOString())
         .lt("published_at", end.toISOString())
         .or("is_contest.eq.false,contest_approved.eq.true")
+    .eq("is_hidden", false)
         .order("engagement_rate", { ascending: false })
         .limit(200);
 
