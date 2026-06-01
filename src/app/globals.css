@@ -4778,14 +4778,14 @@ body {
 
 .gr-rk-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
-  max-width: 640px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 0 0 32px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 880px) {
   .gr-rk-grid {
     display: flex;
     grid-template-columns: unset;
