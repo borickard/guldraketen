@@ -968,7 +968,7 @@ function HomeInner() {
                   <div className="gr-rk-nav-wrap">
                     <div className="gr-rk-grid">
           {loading
-            ? [0, 1, 2].map((i) => (
+            ? [0, 1, 2, 3, 4].map((i) => (
                 <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
                   <div className="gr-thumb">
                     <span className="gr-thumb-best gr-rk-skel-badge" />
@@ -984,7 +984,7 @@ function HomeInner() {
                   </div>
                 </div>
               ))
-            : accounts.slice(0, 3).map((acc, i) => (
+            : accounts.slice(0, 5).map((acc, i) => (
                 <div key={acc.handle} className="gr-vc gr-rk-vk-card">
                   <a
                     href={acc.bestVideo.video_url}
