@@ -152,6 +152,31 @@ function fmt(n: number | null): string {
   return n != null ? n.toLocaleString("sv-SE") : "—";
 }
 
+function fmtPublished(iso: string | null): { abs: string; rel: string } | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const abs = d.toLocaleDateString("sv-SE", { year: "numeric", month: "short", day: "numeric" });
+
+  const diffMs = Date.now() - d.getTime();
+  const days = Math.max(0, Math.floor(diffMs / 86_400_000));
+  let rel: string;
+  if (days === 0) rel = "idag";
+  else if (days === 1) rel = "igår";
+  else if (days < 7) rel = `${days} dagar sedan`;
+  else if (days < 30) {
+    const w = Math.floor(days / 7);
+    rel = w === 1 ? "1 vecka sedan" : `${w} veckor sedan`;
+  } else if (days < 365) {
+    const m = Math.floor(days / 30);
+    rel = m === 1 ? "1 månad sedan" : `${m} månader sedan`;
+  } else {
+    const y = Math.floor(days / 365);
+    rel = y === 1 ? "1 år sedan" : `${y} år sedan`;
+  }
+  return { abs, rel };
+}
+
 type Filters = {
   dateRange: DateRange | undefined;
   views_min: string; views_max: string;
@@ -373,6 +398,7 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
 
   function renderCard(v: Video) {
     const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
+    const pub = fmtPublished(v.published_at);
     return (
       <div key={v.id} className="vg-card">
         <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
@@ -418,6 +444,13 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
             </div>
           ))}
         </div>
+        {pub && (
+          <div className="vg-published" title={pub.abs}>
+            <span className="vg-published-date">{pub.abs}</span>
+            <span className="vg-published-sep">·</span>
+            <span className="vg-published-rel">{pub.rel}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -984,6 +1017,30 @@ const css = `
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+
+  .vg-published {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.45rem 0.65rem 0.65rem;
+    font-size: 11px;
+    color: rgba(28,27,25,0.5);
+    border-top: 1px solid rgba(28,27,25,0.06);
+    margin-top: auto;
+  }
+
+  .vg-published-date {
+    font-weight: 600;
+    color: rgba(28,27,25,0.6);
+  }
+
+  .vg-published-sep {
+    color: rgba(28,27,25,0.3);
+  }
+
+  .vg-published-rel {
+    color: rgba(28,27,25,0.5);
   }
 
   /* Filter pill variant */
