@@ -237,6 +237,6 @@ export async function GET(request: Request) {
   }
 
   const res = NextResponse.json(groups);
-  res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  res.headers.set("Cache-Control", "s-maxage=300, stale-while-revalidate=3600");
   return res;
 }

@@ -48,6 +48,6 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const res = NextResponse.json(data);
-  res.headers.set("Cache-Control", "s-maxage=1800, stale-while-revalidate=7200");
+  res.headers.set("Cache-Control", "s-maxage=120, stale-while-revalidate=600");
   return res;
 }
