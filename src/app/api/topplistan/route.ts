@@ -108,6 +108,6 @@ export async function GET() {
     .sort((a, b) => b.totalPoints - a.totalPoints || b.gold - a.gold);
 
   const res = NextResponse.json(result);
-  res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  res.headers.set("Cache-Control", "s-maxage=300, stale-while-revalidate=3600");
   return res;
 }

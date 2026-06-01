@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const SORT_COLUMNS: Record<string, string> = {
@@ -75,5 +76,17 @@ export async function PATCH(req: NextRequest) {
 
   const { error } = await supabaseAdmin.from("videos").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Bust CDN cache for routes that surface the public ranking so admin
+  // changes (hide / flag as contest) are reflected on the homepage and
+  // HoF straight away instead of waiting out the s-maxage window.
+  try {
+    revalidatePath("/");
+    revalidatePath("/hall-of-fame");
+    revalidatePath("/api/videos");
+    revalidatePath("/api/tidigare-raketer");
+    revalidatePath("/api/topplistan");
+  } catch {}
+
   return NextResponse.json({ ok: true });
 }
