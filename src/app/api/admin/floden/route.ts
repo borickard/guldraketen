@@ -17,7 +17,7 @@ const STATUSES = new Set(["all", "visible", "hidden", "contest"]);
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10) || 0);
-  const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") ?? "100", 10) || 100));
+  const limit = Math.min(1000, Math.max(1, parseInt(searchParams.get("limit") ?? "100", 10) || 100));
 
   const sortKey = searchParams.get("sort") ?? "published";
   const sortColumn = SORT_COLUMNS[sortKey] ?? "published_at";
