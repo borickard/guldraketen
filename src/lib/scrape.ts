@@ -13,7 +13,7 @@ const RESULTS_PER_PROFILE = 100;
 export async function startScrape(
     webhookUrl: string,
     daysBack = 14,
-    triggeredBy: "cron" | "manual" = "manual"
+    triggeredBy: "cron" | "cron-backup" | "manual" = "manual"
 ): Promise<{ runId: string; handles: number; scrapeRunId: string }> {
     const apifyToken = process.env.APIFY_TOKEN;
     if (!apifyToken) throw new Error("APIFY_TOKEN saknas");
