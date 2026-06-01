@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { parseApifyItems, type VideoRow } from "@/lib/scrape";
+import { parseApifyItems, startScrape, type VideoRow } from "@/lib/scrape";
 import { uploadThumbnailsBatch, isStoredThumbnail } from "@/lib/thumbnails";
 
 // Daily dashboard refresh for dashboard-linked handles only.
@@ -36,6 +36,12 @@ async function runSnapshot(req: NextRequest) {
   // Vercel cron still uses the GET path; admin button triggers via POST.
   const ua = req.headers.get("user-agent") ?? "";
   const triggeredBy = /vercel-cron/i.test(ua) ? "cron-dashboard" : "manual-dashboard";
+
+  // Self-heal: Vercel Hobby cron sometimes skips the weekly /api/scrape on
+  // Mondays. Daily cron is more reliable — if it's been >6.5 days since the
+  // last weekly scrape, trigger one now. Apify run starts async via webhook so
+  // this adds ~1s overhead at most.
+  await maybeBackupWeeklyScrape();
 
   const apifyToken = process.env.APIFY_TOKEN;
   if (!apifyToken) {
@@ -252,4 +258,26 @@ async function runSnapshot(req: NextRequest) {
     followers_captured: historyRows.length,
     skipped: parseSkipped,
   });
+}
+
+async function maybeBackupWeeklyScrape() {
+  try {
+    const { data: latest } = await supabaseAdmin
+      .from("scrape_runs")
+      .select("started_at")
+      .in("triggered_by", ["cron", "cron-backup"])
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastMs = latest?.started_at ? new Date(latest.started_at).getTime() : 0;
+    const daysSince = (Date.now() - lastMs) / 86_400_000;
+    if (daysSince < 6.5) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://guldraketen.vercel.app";
+    const webhookUrl = `${baseUrl}/api/scrape/webhook`;
+    await startScrape(webhookUrl, 14, "cron-backup");
+  } catch (err) {
+    console.error("Backup weekly scrape failed:", err);
+  }
 }
