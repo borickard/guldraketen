@@ -55,8 +55,11 @@ const STATUSES: { key: StatusFilter; label: string }[] = [
 ];
 
 const DENSITIES: Density[] = [2, 3, 4, 6];
-const PAGE_SIZE = 100;
+const PAGE_SIZES = [100, 250, 500, 750, 1000] as const;
+type PageSize = (typeof PAGE_SIZES)[number];
+const DEFAULT_PAGE_SIZE: PageSize = 100;
 const DENSITY_KEY = "flode-density";
+const PAGE_SIZE_KEY = "flode-page-size";
 
 function getAcct(v: FeedVideo): AccountJoin | null {
   if (!v.accounts) return null;
@@ -112,6 +115,7 @@ export default function FlodeTab() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const [density, setDensity] = useState<Density>(3);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [sort, setSort] = useState<SortKey>("published");
   const [category, setCategory] = useState<string>("");
   const [selectedHandles, setSelectedHandles] = useState<string[]>([]);
@@ -122,17 +126,24 @@ export default function FlodeTab() {
   const [handleMenuOpen, setHandleMenuOpen] = useState(false);
   const handleBoxRef = useRef<HTMLDivElement>(null);
 
-  // Restore density from localStorage
+  // Restore density + page size from localStorage
   useEffect(() => {
     try {
-      const v = parseInt(localStorage.getItem(DENSITY_KEY) ?? "", 10);
-      if ([2, 3, 4, 6].includes(v)) setDensity(v as Density);
+      const d = parseInt(localStorage.getItem(DENSITY_KEY) ?? "", 10);
+      if ([2, 3, 4, 6].includes(d)) setDensity(d as Density);
+      const ps = parseInt(localStorage.getItem(PAGE_SIZE_KEY) ?? "", 10);
+      if ((PAGE_SIZES as readonly number[]).includes(ps)) setPageSize(ps as PageSize);
     } catch {}
   }, []);
 
   function setDensityPersisted(d: Density) {
     setDensity(d);
     try { localStorage.setItem(DENSITY_KEY, String(d)); } catch {}
+  }
+
+  function setPageSizePersisted(s: PageSize) {
+    setPageSize(s);
+    try { localStorage.setItem(PAGE_SIZE_KEY, String(s)); } catch {}
   }
 
   // Fetch the full handle/category list once for filter dropdowns
@@ -173,7 +184,7 @@ export default function FlodeTab() {
       try {
         const params = new URLSearchParams({
           offset: String(nextOffset),
-          limit: String(PAGE_SIZE),
+          limit: String(pageSize),
           sort,
           status,
         });
@@ -184,7 +195,7 @@ export default function FlodeTab() {
         const data: FeedVideo[] = await res.json();
         setVideos((curr) => (nextOffset === 0 ? data : [...curr, ...data]));
         setOffset(nextOffset + data.length);
-        setHasMore(data.length === PAGE_SIZE);
+        setHasMore(data.length === pageSize);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Okänt fel");
       } finally {
@@ -192,17 +203,17 @@ export default function FlodeTab() {
         setInitialLoad(false);
       }
     },
-    [sort, status, category, selectedHandles]
+    [sort, status, category, selectedHandles, pageSize]
   );
 
-  // Refetch from start when filters/sort change
+  // Refetch from start when filters/sort/page-size change
   useEffect(() => {
     setOffset(0);
     setVideos([]);
     setHasMore(true);
     fetchPage(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, status, category, selectedHandles]);
+  }, [sort, status, category, selectedHandles, pageSize]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -371,6 +382,20 @@ export default function FlodeTab() {
             )}
           </div>
 
+          <div className="flode-pagesize">
+            <span className="flode-pagesize-label">Per sida</span>
+            <select
+              className="flode-pagesize-select"
+              value={pageSize}
+              onChange={(e) => setPageSizePersisted(Number(e.target.value) as PageSize)}
+              aria-label="Antal inlägg per sida"
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flode-density">
             <span className="flode-density-label">Per rad</span>
             {DENSITIES.map((d) => (
@@ -499,7 +524,7 @@ export default function FlodeTab() {
             disabled={loading}
             onClick={() => fetchPage(offset)}
           >
-            {loading ? "Laddar…" : `Ladda ${PAGE_SIZE} fler`}
+            {loading ? "Laddar…" : `Ladda ${pageSize} fler`}
           </button>
         </div>
       )}
@@ -687,11 +712,36 @@ const css = `
     margin-top: 1px;
   }
 
+  .flode-pagesize {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .flode-pagesize-label {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(28,27,25,0.55);
+    font-weight: 600;
+  }
+  .flode-pagesize-select {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    padding: 0.4rem 0.55rem;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.15);
+    border-radius: 4px;
+    color: #1C1B19;
+    cursor: pointer;
+    outline: none;
+  }
+  .flode-pagesize-select:focus { border-color: #1C1B19; }
+
   .flode-density {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-left: auto;
   }
   .flode-density-label {
     font-size: 11px;
