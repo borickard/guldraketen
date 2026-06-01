@@ -1009,7 +1009,10 @@ function HomeInner() {
                       )}
                       <span><Eye size={9} />{fmt(acc.bestVideo.views)}</span>
                     </div>
-                    <span className="gr-thumb-er gr-rk-vk-er" style={{ color: rankColor(i) }}>
+                    <span
+                      className="gr-thumb-er gr-rk-vk-er"
+                      style={{ color: i < 3 ? rankColor(i) : "#EDF8FB" }}
+                    >
                       {acc.bestEngagement.toFixed(2)}%
                     </span>
                     <span className="gr-thumb-best" style={{ background: rankColor(i) }}>

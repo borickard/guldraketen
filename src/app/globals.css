@@ -4779,8 +4779,8 @@ body {
 .gr-rk-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  max-width: 1080px;
+  gap: 14px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 0 32px;
 }
