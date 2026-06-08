@@ -20,6 +20,7 @@ interface Video {
   is_ad: boolean | null;
   engagement_rate: number | null;
   caption: string | null;
+  is_excluded?: boolean | null;
 }
 
 type Scope = "week" | "month" | "all";
@@ -46,7 +47,11 @@ type GridStructure =
   | { type: "flat"; videos: Video[] }
   | { type: "grouped"; sections: Section[] };
 
-function computeGroupStats(videos: Video[]): GroupStats {
+function computeGroupStats(allVideos: Video[]): GroupStats {
+  // Excluded videos still appear in the grid (dimmed) but are dropped from
+  // every aggregate so the user can park "uploaded-by-mistake" posts without
+  // contaminating their numbers.
+  const videos = allVideos.filter((v) => !v.is_excluded);
   const sum = (k: keyof Video) =>
     videos.reduce((s, v) => s + Number(v[k] ?? 0), 0);
   const ers = videos
@@ -252,6 +257,31 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
   const [hoverDay, setHoverDay] = useState<Date | undefined>();
   const [urlReady, setUrlReady] = useState(false);
   const calRef = useRef<HTMLDivElement>(null);
+  const [excludingIds, setExcludingIds] = useState<Set<string>>(new Set());
+
+  async function toggleExcluded(v: Video) {
+    if (excludingIds.has(v.id)) return;
+    const next = !v.is_excluded;
+    setExcludingIds((curr) => new Set(curr).add(v.id));
+    setVideos((curr) => curr.map((x) => (x.id === v.id ? { ...x, is_excluded: next } : x)));
+    try {
+      const res = await fetch("/api/dashboard/videos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: v.id, is_excluded: next }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+    } catch {
+      setVideos((curr) => curr.map((x) => (x.id === v.id ? { ...x, is_excluded: v.is_excluded } : x)));
+      alert("Kunde inte uppdatera. Försök igen.");
+    } finally {
+      setExcludingIds((curr) => {
+        const n = new Set(curr);
+        n.delete(v.id);
+        return n;
+      });
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -399,8 +429,10 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
   function renderCard(v: Video) {
     const er = v.engagement_rate != null ? Number(v.engagement_rate) : null;
     const pub = fmtPublished(v.published_at);
+    const excluded = !!v.is_excluded;
+    const saving = excludingIds.has(v.id);
     return (
-      <div key={v.id} className="vg-card">
+      <div key={v.id} className={`vg-card${excluded ? " vg-card--excluded" : ""}`}>
         <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
           {v.thumbnail_url
             // eslint-disable-next-line @next/next/no-img-element
@@ -413,9 +445,32 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
           {v.is_ad === false && (
             <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
           )}
+          {excluded && (
+            <span className="vg-excluded-badge">Exkluderad</span>
+          )}
         </a>
         <div className="vg-card-bar">
           <span className="vg-card-er">{er != null ? `${er.toFixed(2)}%` : "—"}</span>
+          <button
+            type="button"
+            className={`vg-card-action${excluded ? " vg-card-action--on" : ""}`}
+            onClick={() => toggleExcluded(v)}
+            disabled={saving}
+            title={excluded ? "Inkludera i statistik" : "Exkludera från statistik"}
+            aria-label={excluded ? "Inkludera i statistik" : "Exkludera från statistik"}
+          >
+            {excluded ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            )}
+          </button>
           <a
             href={v.video_url}
             target="_blank"
@@ -989,6 +1044,39 @@ const css = `
   }
 
   .vg-card-link:hover { opacity: 1; }
+
+  .vg-card-action {
+    background: none;
+    border: 0;
+    padding: 2px 4px;
+    cursor: pointer;
+    color: #888;
+    opacity: 0.7;
+    transition: opacity 0.12s, color 0.12s;
+    display: inline-flex;
+    align-items: center;
+  }
+  .vg-card-action:hover:not(:disabled) { opacity: 1; color: #1C1B19; }
+  .vg-card-action:disabled { cursor: default; opacity: 0.4; }
+  .vg-card-action--on { color: #C8962A; opacity: 1; }
+
+  .vg-card--excluded { opacity: 0.45; }
+  .vg-card--excluded:hover { opacity: 0.7; }
+
+  .vg-excluded-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(28,27,25,0.85);
+    color: #EDF8FB;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 2px;
+  }
 
   /* Stats */
   .vg-stats {
