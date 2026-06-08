@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import VideoGrid from "./VideoGrid";
 import HeroBlock from "./HeroBlock";
 
@@ -17,10 +17,31 @@ interface ProfileData {
 
 export type BoostFilter = "all" | "organic" | "boosted";
 
+// Minimal subset of VideoGrid's Video interface — just the fields HeroBlock
+// needs for client-side benchmark aggregation.
+interface FilteredVideo {
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  collect_count: number | null;
+  engagement_rate: number | null;
+  published_at: string | null;
+  is_excluded?: boolean | null;
+}
+
 export default function DashboardClient({ profiles }: { profiles: ProfileData[] }) {
   const [activeHandle, setActiveHandle] = useState(profiles[0]?.handle ?? "");
   const [boost, setBoost] = useState<BoostFilter>("all");
+  const [filteredVideos, setFilteredVideos] = useState<FilteredVideo[] | undefined>(undefined);
   const profile = profiles.find((p) => p.handle === activeHandle) ?? profiles[0];
+
+  // Reset shared filtered list when user switches handle so the hero falls
+  // back to server data briefly instead of showing stale stats from the
+  // previous handle.
+  useEffect(() => {
+    setFilteredVideos(undefined);
+  }, [activeHandle]);
 
   if (!profile) return null;
 
@@ -44,9 +65,18 @@ export default function DashboardClient({ profiles }: { profiles: ProfileData[] 
         </div>
       )}
 
-      <HeroBlock handle={activeHandle} boost={boost} onBoostChange={setBoost} />
+      <HeroBlock
+        handle={activeHandle}
+        boost={boost}
+        onBoostChange={setBoost}
+        videos={filteredVideos}
+      />
 
-      <VideoGrid handle={activeHandle} boost={boost} />
+      <VideoGrid
+        handle={activeHandle}
+        boost={boost}
+        onFilteredChange={setFilteredVideos}
+      />
     </>
   );
 }
