@@ -103,7 +103,8 @@ export async function GET(req: NextRequest) {
   let videosQuery = supabaseAdmin
     .from("dashboard_videos")
     .select("views, likes, comments, shares, collect_count, engagement_rate, published_at")
-    .eq("handle", handle);
+    .eq("handle", handle)
+    .eq("is_excluded", false);
   if (boost === "organic") videosQuery = videosQuery.eq("is_ad", false);
   else if (boost === "boosted") videosQuery = videosQuery.eq("is_ad", true);
   const { data: videos } = await videosQuery;
