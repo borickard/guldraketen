@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
 import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
@@ -245,7 +245,15 @@ const FILTER_ROWS: { label: string; min: NumericFilterKey; max: NumericFilterKey
   { label: "Delningar", min: "shares_min",   max: "shares_max"   },
 ];
 
-export default function VideoGrid({ handle, boost = "all" }: { handle?: string; boost?: BoostFilter }) {
+export default function VideoGrid({
+  handle,
+  boost = "all",
+  onFilteredChange,
+}: {
+  handle?: string;
+  boost?: BoostFilter;
+  onFilteredChange?: (videos: Video[]) => void;
+}) {
   const [videos, setVideos]   = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort]       = useState<SortKey>("newest");
@@ -369,7 +377,16 @@ export default function VideoGrid({ handle, boost = "all" }: { handle?: string; 
   }
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
-  const filtered = applyFilters(videos, filters, boost);
+  const filtered = useMemo(
+    () => applyFilters(videos, filters, boost),
+    [videos, filters, boost]
+  );
+  useEffect(() => {
+    // Don't emit during the initial empty state — the parent would otherwise
+    // override the server hero with zeros for a brief moment.
+    if (loading) return;
+    onFilteredChange?.(filtered);
+  }, [filtered, loading, onFilteredChange]);
   const structure = buildStructure(filtered, sort, scope);
   const nActive = activeFilterCount(filters);
 

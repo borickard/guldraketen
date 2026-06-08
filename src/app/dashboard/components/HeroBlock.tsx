@@ -83,14 +83,66 @@ function Sparkline({ points }: { points: { date: string; followers: number }[] }
 
 type BoostFilter = "all" | "organic" | "boosted";
 
+interface HeroVideo {
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  collect_count: number | null;
+  engagement_rate: number | null;
+  published_at: string | null;
+  is_excluded?: boolean | null;
+}
+
+function computeBenchmarks(rawVideos: HeroVideo[]): HeroData["benchmarks"] {
+  // Skip user-excluded posts so they appear in the grid (dimmed) but never
+  // pollute hero numbers.
+  const vs = rawVideos.filter((v) => !v.is_excluded);
+  const n = vs.length;
+  const sum = (k: keyof HeroVideo) =>
+    vs.reduce((s, v) => s + Number(v[k] ?? 0), 0);
+
+  const ers = vs
+    .map((v) => (v.engagement_rate != null ? Number(v.engagement_rate) : null))
+    .filter((x): x is number => x != null && !isNaN(x));
+  const collectVids = vs.filter((v) => v.collect_count != null);
+  const totalCollects = collectVids.length > 0
+    ? collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0)
+    : null;
+
+  const ts = vs
+    .map((v) => (v.published_at ? new Date(v.published_at).getTime() : null))
+    .filter((t): t is number => t != null && !isNaN(t));
+  const spanMs = ts.length >= 2 ? Math.max(...ts) - Math.min(...ts) : 0;
+  const weeks = Math.max(spanMs / (7 * 86_400_000), 1);
+
+  return {
+    videos: n,
+    posts_per_week: n > 0 ? n / weeks : 0,
+    total_views: sum("views"),
+    total_likes: sum("likes"),
+    total_comments: sum("comments"),
+    total_shares: sum("shares"),
+    total_collects: totalCollects,
+    avg_views: n > 0 ? sum("views") / n : 0,
+    avg_likes: n > 0 ? sum("likes") / n : 0,
+    avg_comments: n > 0 ? sum("comments") / n : 0,
+    avg_shares: n > 0 ? sum("shares") / n : 0,
+    avg_collects: totalCollects != null ? totalCollects / collectVids.length : null,
+    avg_er: ers.length > 0 ? ers.reduce((s, x) => s + x, 0) / ers.length : 0,
+  };
+}
+
 export default function HeroBlock({
   handle,
   boost,
   onBoostChange,
+  videos,
 }: {
   handle: string;
   boost: BoostFilter;
   onBoostChange: (b: BoostFilter) => void;
+  videos?: HeroVideo[];
 }) {
   const [data, setData] = useState<HeroData | null>(null);
   const [isFetching, setIsFetching] = useState(true);
@@ -114,7 +166,13 @@ export default function HeroBlock({
   const ready = !!data && !isFetching;
   const name = data?.display_name ?? (data ? `@${data.handle}` : "");
   const f = data?.followers;
-  const b = data?.benchmarks;
+  // When the parent passes a filtered `videos` list, override the
+  // server-fetched benchmarks with client-side compute so the hero reflects
+  // exactly what the user sees below. Profile / follower data still comes
+  // from the server fetch.
+  const b: HeroData["benchmarks"] | undefined = videos
+    ? computeBenchmarks(videos)
+    : data?.benchmarks;
   const showDelta = (f?.delta?.meaningful ?? false) && !isFetching;
   const deltaText = showDelta && f?.delta
     ? `${f.delta.abs > 0 ? "+" : ""}${fmt(f.delta.abs)}  ·  ${f.delta.pct > 0 ? "+" : ""}${f.delta.pct.toFixed(1)} %`
