@@ -347,6 +347,17 @@ export default function VideoGrid({
     return () => document.removeEventListener("mousedown", handler);
   }, [showCal]);
 
+  const filtered = useMemo(
+    () => applyFilters(videos, filters, boost),
+    [videos, filters, boost]
+  );
+  useEffect(() => {
+    // Don't emit during the initial empty state — the parent would otherwise
+    // override the server hero with zeros for a brief moment.
+    if (loading) return;
+    onFilteredChange?.(filtered);
+  }, [filtered, loading, onFilteredChange]);
+
   if (loading) {
     return (
       <>
@@ -377,16 +388,6 @@ export default function VideoGrid({
   }
   if (videos.length === 0) return <p style={{ padding: "2rem 0", color: "#888", fontSize: 14, fontFamily: "Barlow, sans-serif" }}>Inga videor hittades.</p>;
 
-  const filtered = useMemo(
-    () => applyFilters(videos, filters, boost),
-    [videos, filters, boost]
-  );
-  useEffect(() => {
-    // Don't emit during the initial empty state — the parent would otherwise
-    // override the server hero with zeros for a brief moment.
-    if (loading) return;
-    onFilteredChange?.(filtered);
-  }, [filtered, loading, onFilteredChange]);
   const structure = buildStructure(filtered, sort, scope);
   const nActive = activeFilterCount(filters);
 
