@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+import { dashboardMetadata } from "@/lib/dashboardMetadata";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardClient from "./components/DashboardClient";
+
+export const generateMetadata = () => dashboardMetadata();
 
 interface ProfileData {
   handle: string;

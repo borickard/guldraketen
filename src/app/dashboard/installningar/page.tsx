@@ -1,8 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+import { dashboardMetadata } from "@/lib/dashboardMetadata";
 import DashboardHeader from "../components/DashboardHeader";
 import SettingsClient from "./SettingsClient";
+
+export const generateMetadata = () => dashboardMetadata("Inställningar");
 
 export default async function SettingsPage() {
   const cookieStore = await cookies();
