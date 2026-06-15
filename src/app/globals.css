@@ -1189,7 +1189,11 @@ body {
 .gr-hof-week-row::-webkit-scrollbar { display: none; }
 
 @media (max-width: 639px) {
-  .gr-hof-week-row { padding-left: 0; padding-right: 20px; }
+  .gr-hof-week-scroll-wrap { margin-left: 0; }
+  .gr-hof-week-scroll-wrap::before,
+  .gr-hof-week-scroll-wrap::after { display: none; }
+  .gr-hof-week-arrow { display: none; }
+  .gr-hof-week-row { padding: 0 0 20px 16px; }
 }
 
 /* ── Cards inside the scroll row ── */
@@ -1201,8 +1205,8 @@ body {
   overflow: hidden;
   color: #1C1B19;
   position: relative;
-  /* mobile: 1.5 cards visible (40px padding) */
-  width: calc((100vw - 40px - 10px * 0.5) / 1.5);
+  /* mobile: ~1.5 cards visible (16px left padding + 10px gap reserved) */
+  width: calc((100vw - 16px - 10px) / 1.5);
 }
 
 /* "Sedan start" multi-row grid: auto-fill columns, no fixed width per card. */
