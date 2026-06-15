@@ -395,6 +395,40 @@ export default function VideoGrid({
     setFilters((prev) => ({ ...prev, [key]: val }));
   }
 
+  // Re-sorting can shift card heights inside a section (e.g. variable caption
+  // lengths) which would otherwise jump the viewport away from what the user
+  // was looking at. Anchor on the topmost visible section header so the user
+  // keeps seeing the same week/month, just in a different order.
+  function changeSort(s: SortKey) {
+    const headers = Array.from(
+      document.querySelectorAll<HTMLElement>(".vg-section-head[data-section-key]")
+    );
+    // The 60px offset accounts for the sticky controls bar above the grid —
+    // anchor on the first header at-or-below that line.
+    const anchorMin = 60;
+    let anchor: { key: string; top: number } | null = null;
+    for (const h of headers) {
+      const top = h.getBoundingClientRect().top;
+      if (top >= anchorMin) {
+        anchor = { key: h.dataset.sectionKey ?? "", top };
+        break;
+      }
+      // Otherwise, remember as fallback — last header above the line whose
+      // content is still visible.
+      anchor = { key: h.dataset.sectionKey ?? "", top };
+    }
+    setSort(s);
+    if (!anchor) return;
+    requestAnimationFrame(() => {
+      const sel = `.vg-section-head[data-section-key="${CSS.escape(anchor!.key)}"]`;
+      const next = document.querySelector<HTMLElement>(sel);
+      if (!next) return;
+      const newTop = next.getBoundingClientRect().top;
+      const diff = newTop - anchor!.top;
+      if (Math.abs(diff) > 0.5) window.scrollBy(0, diff);
+    });
+  }
+
   const dateRange = filters.dateRange;
 
   function renderSectionHeader(sec: Section) {
@@ -411,7 +445,7 @@ export default function VideoGrid({
       cols.push({ label: "Favoriter", icon: <Bookmark size={14} />, total: s.collects, avg: s.collects / s.collectsTracked });
     }
     return (
-      <div className="vg-section-head">
+      <div className="vg-section-head" data-section-key={sec.key}>
         <p className="vg-section-head-top">
           <span className="vg-section-title">{sec.label}</span>
         </p>
@@ -575,7 +609,7 @@ export default function VideoGrid({
                   <button
                     key={s.key}
                     className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
-                    onClick={() => setSort(s.key)}
+                    onClick={() => changeSort(s.key)}
                   >
                     {s.label}
                   </button>
