@@ -548,54 +548,55 @@ export default function VideoGrid({
       <style>{css}</style>
       <div className="vg-root">
 
-        <div className="vg-toolbar">
-          <div className="vg-toolbar-row">
-            <span className="vg-row-label">Gruppera</span>
-            <div className="vg-segment">
-              {([
-                { key: "week",  label: "Per vecka"   },
-                { key: "month", label: "Per månad"   },
-                { key: "all",   label: "Sedan start" },
-              ] as { key: Scope; label: string }[]).map((s) => (
-                <button
-                  key={s.key}
-                  className={`vg-segment-btn${scope === s.key ? " vg-segment-btn--on" : ""}`}
-                  onClick={() => setScope(s.key)}
-                >
-                  {s.label}
-                </button>
-              ))}
+        <div className="vg-sticky-controls">
+          <div className="vg-toolbar">
+            <div className="vg-toolbar-row">
+              <span className="vg-row-label">Gruppera</span>
+              <div className="vg-segment">
+                {([
+                  { key: "week",  label: "Per vecka"   },
+                  { key: "month", label: "Per månad"   },
+                  { key: "all",   label: "Sedan start" },
+                ] as { key: Scope; label: string }[]).map((s) => (
+                  <button
+                    key={s.key}
+                    className={`vg-segment-btn${scope === s.key ? " vg-segment-btn--on" : ""}`}
+                    onClick={() => setScope(s.key)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="vg-toolbar-row">
-            <span className="vg-row-label">Sortering och filter</span>
-            <div className="vg-sorts">
-              {SORTS.map((s) => (
-                <button
-                  key={s.key}
-                  className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
-                  onClick={() => setSort(s.key)}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-            <button
-              className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
-              onClick={() => setShowFilters((v) => !v)}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                <path d="M4 6h16l-7 9.5V21l-2-1v-4.5L4 6z"/>
-              </svg>
-              {nActive > 0 ? `${nActive} aktiva` : "Filter"}
-            </button>
-            {nActive > 0 && (
-              <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
-                Rensa
+            <div className="vg-toolbar-row">
+              <span className="vg-row-label">Sortering och filter</span>
+              <div className="vg-sorts">
+                {SORTS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`vg-pill${sort === s.key ? " vg-pill--on" : ""}`}
+                    onClick={() => setSort(s.key)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
+                onClick={() => setShowFilters((v) => !v)}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                  <path d="M4 6h16l-7 9.5V21l-2-1v-4.5L4 6z"/>
+                </svg>
+                {nActive > 0 ? `${nActive} aktiva` : "Filter"}
               </button>
-            )}
+              {nActive > 0 && (
+                <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
+                  Rensa
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
         {showFilters && (
           <div className="vg-filter-panel">
@@ -687,6 +688,7 @@ export default function VideoGrid({
             ))}
           </div>
         )}
+        </div>
 
         {structure.type === "flat" ? (
           <div className="vg-grid">
@@ -741,11 +743,26 @@ const css = `
     font-family: 'Barlow', sans-serif;
   }
 
-  .vg-toolbar {
+  .vg-sticky-controls {
+    position: sticky;
+    top: 52px;
+    z-index: 80;
+    background: #EBE7E2;
+    padding: 0.75rem 0 0.75rem;
+    margin-top: -0.75rem;
     margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+  }
+
+  .vg-toolbar {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .vg-sticky-controls .vg-filter-panel {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
   }
 
   .vg-toolbar-row {
