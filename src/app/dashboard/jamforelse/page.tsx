@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
+import { dashboardMetadata } from "@/lib/dashboardMetadata";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "../components/LogoutButton";
 import CompareClient from "./CompareClient";
+
+export const generateMetadata = () => dashboardMetadata("Jämför");
 
 interface OwnHandle {
   handle: string;
