@@ -60,6 +60,16 @@ async function runSnapshot(req: NextRequest) {
     return NextResponse.json({ ok: true, handles: 0, message: "No dashboard handles linked." });
   }
 
+  // 1b. Backfill dashboard_videos from the public `videos` table. The daily
+  // scrape below only pulls the last DAYS_BACK days, so a dashboard-linked
+  // handle's older history never reaches dashboard_videos — the dashboard would
+  // show only the handful of recent posts even though `videos` has the full
+  // back-catalogue. For any handle whose dashboard_videos count is behind its
+  // `videos` count, copy the missing rows across (ignoreDuplicates keeps the
+  // freshly-scraped rows with real is_ad values). Self-healing: skips handles
+  // that are already caught up, so it's cheap in steady state.
+  const seeded = await backfillDashboardFromPublic(handles);
+
   // Log run start in scrape_runs so it shows up in the admin scrape-log.
   const { data: runRow } = await supabaseAdmin
     .from("scrape_runs")
@@ -257,7 +267,77 @@ async function runSnapshot(req: NextRequest) {
     videos_upserted: upserted,
     followers_captured: historyRows.length,
     skipped: parseSkipped,
+    seeded_from_public: seeded,
   });
+}
+
+// Backfill dashboard_videos from the public `videos` table for any handle whose
+// dashboard rows lag behind. The daily scrape only covers DAYS_BACK days, so a
+// handle's older history never lands in dashboard_videos on its own. For each
+// handle where dashboard_videos has fewer rows than `videos`, copy the whole
+// back-catalogue across; ignoreDuplicates keeps rows the fresh scrape already
+// wrote (with real is_ad). `videos` has no is_ad/is_sponsored — seeded rows get
+// null there until a future daily scrape overwrites the recent ones.
+// Count-based so it self-heals a newly-linked account AND fills gaps for one
+// that only has a few recent rows, then goes quiet once caught up.
+async function backfillDashboardFromPublic(handles: string[]): Promise<number> {
+  try {
+    let total = 0;
+    for (const handle of handles) {
+      const [{ count: dashCount }, { count: pubCount }] = await Promise.all([
+        supabaseAdmin
+          .from("dashboard_videos")
+          .select("id", { count: "exact", head: true })
+          .eq("handle", handle),
+        supabaseAdmin
+          .from("videos")
+          .select("id", { count: "exact", head: true })
+          .eq("handle", handle),
+      ]);
+      // Already caught up (or ahead, e.g. a very recent post the weekly public
+      // scrape hasn't picked up yet) — nothing to backfill.
+      if ((pubCount ?? 0) <= (dashCount ?? 0)) continue;
+
+      const { data: rows } = await supabaseAdmin
+        .from("videos")
+        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
+        .eq("handle", handle);
+      if (!rows || rows.length === 0) continue;
+
+      const dashRows = rows.map((v) => ({
+        handle: v.handle,
+        video_url: v.video_url,
+        published_at: v.published_at,
+        views: v.views,
+        likes: v.likes,
+        comments: v.comments,
+        shares: v.shares,
+        collect_count: v.collect_count,
+        thumbnail_url: v.thumbnail_url,
+        caption: v.caption,
+        is_ad: null,
+        is_sponsored: null,
+        last_updated: new Date().toISOString(),
+      }));
+
+      const BATCH = 100;
+      for (let i = 0; i < dashRows.length; i += BATCH) {
+        const batch = dashRows.slice(i, i + BATCH);
+        const { error } = await supabaseAdmin
+          .from("dashboard_videos")
+          .upsert(batch, { onConflict: "video_url", ignoreDuplicates: true });
+        if (error) {
+          console.error(`backfill dashboard_videos (${handle}):`, error.message);
+          break;
+        }
+        total += batch.length;
+      }
+    }
+    return total;
+  } catch (err) {
+    console.error("backfillDashboardFromPublic failed:", err);
+    return 0;
+  }
 }
 
 async function maybeBackupWeeklyScrape() {
