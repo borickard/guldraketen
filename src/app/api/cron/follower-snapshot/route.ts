@@ -60,12 +60,15 @@ async function runSnapshot(req: NextRequest) {
     return NextResponse.json({ ok: true, handles: 0, message: "No dashboard handles linked." });
   }
 
-  // 1b. Seed dashboard_videos for newly-linked handles. The daily scrape below
-  // only pulls the last DAYS_BACK days, so a handle linked to a dashboard user
-  // that hasn't posted recently would show an empty dashboard even though the
-  // public `videos` table already has its history. Backfill those from `videos`
-  // (one-time per handle: only handles with zero dashboard_videos rows).
-  const seeded = await seedNewDashboardHandles(handles);
+  // 1b. Backfill dashboard_videos from the public `videos` table. The daily
+  // scrape below only pulls the last DAYS_BACK days, so a dashboard-linked
+  // handle's older history never reaches dashboard_videos — the dashboard would
+  // show only the handful of recent posts even though `videos` has the full
+  // back-catalogue. For any handle whose dashboard_videos count is behind its
+  // `videos` count, copy the missing rows across (ignoreDuplicates keeps the
+  // freshly-scraped rows with real is_ad values). Self-healing: skips handles
+  // that are already caught up, so it's cheap in steady state.
+  const seeded = await backfillDashboardFromPublic(handles);
 
   // Log run start in scrape_runs so it shows up in the admin scrape-log.
   const { data: runRow } = await supabaseAdmin
@@ -268,24 +271,33 @@ async function runSnapshot(req: NextRequest) {
   });
 }
 
-// Copy a newly-linked handle's full history from the public `videos` table into
-// `dashboard_videos`, so the dashboard isn't empty before the handle happens to
-// post within the daily DAYS_BACK window. Runs only for handles that currently
-// have zero dashboard_videos rows, so it's a cheap one-time seed per handle.
-// `videos` has no is_ad/is_sponsored — those stay null until the daily scrape
-// overwrites recent rows with real values (upsert on video_url).
-async function seedNewDashboardHandles(handles: string[]): Promise<number> {
+// Backfill dashboard_videos from the public `videos` table for any handle whose
+// dashboard rows lag behind. The daily scrape only covers DAYS_BACK days, so a
+// handle's older history never lands in dashboard_videos on its own. For each
+// handle where dashboard_videos has fewer rows than `videos`, copy the whole
+// back-catalogue across; ignoreDuplicates keeps rows the fresh scrape already
+// wrote (with real is_ad). `videos` has no is_ad/is_sponsored — seeded rows get
+// null there until a future daily scrape overwrites the recent ones.
+// Count-based so it self-heals a newly-linked account AND fills gaps for one
+// that only has a few recent rows, then goes quiet once caught up.
+async function backfillDashboardFromPublic(handles: string[]): Promise<number> {
   try {
-    const { data: existing } = await supabaseAdmin
-      .from("dashboard_videos")
-      .select("handle")
-      .in("handle", handles);
-    const haveRows = new Set((existing ?? []).map((r) => r.handle));
-    const needSeed = handles.filter((h) => !haveRows.has(h));
-    if (needSeed.length === 0) return 0;
-
     let total = 0;
-    for (const handle of needSeed) {
+    for (const handle of handles) {
+      const [{ count: dashCount }, { count: pubCount }] = await Promise.all([
+        supabaseAdmin
+          .from("dashboard_videos")
+          .select("id", { count: "exact", head: true })
+          .eq("handle", handle),
+        supabaseAdmin
+          .from("videos")
+          .select("id", { count: "exact", head: true })
+          .eq("handle", handle),
+      ]);
+      // Already caught up (or ahead, e.g. a very recent post the weekly public
+      // scrape hasn't picked up yet) — nothing to backfill.
+      if ((pubCount ?? 0) <= (dashCount ?? 0)) continue;
+
       const { data: rows } = await supabaseAdmin
         .from("videos")
         .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
@@ -315,7 +327,7 @@ async function seedNewDashboardHandles(handles: string[]): Promise<number> {
           .from("dashboard_videos")
           .upsert(batch, { onConflict: "video_url", ignoreDuplicates: true });
         if (error) {
-          console.error(`seed dashboard_videos (${handle}):`, error.message);
+          console.error(`backfill dashboard_videos (${handle}):`, error.message);
           break;
         }
         total += batch.length;
@@ -323,7 +335,7 @@ async function seedNewDashboardHandles(handles: string[]): Promise<number> {
     }
     return total;
   } catch (err) {
-    console.error("seedNewDashboardHandles failed:", err);
+    console.error("backfillDashboardFromPublic failed:", err);
     return 0;
   }
 }
