@@ -60,6 +60,13 @@ async function runSnapshot(req: NextRequest) {
     return NextResponse.json({ ok: true, handles: 0, message: "No dashboard handles linked." });
   }
 
+  // 1b. Seed dashboard_videos for newly-linked handles. The daily scrape below
+  // only pulls the last DAYS_BACK days, so a handle linked to a dashboard user
+  // that hasn't posted recently would show an empty dashboard even though the
+  // public `videos` table already has its history. Backfill those from `videos`
+  // (one-time per handle: only handles with zero dashboard_videos rows).
+  const seeded = await seedNewDashboardHandles(handles);
+
   // Log run start in scrape_runs so it shows up in the admin scrape-log.
   const { data: runRow } = await supabaseAdmin
     .from("scrape_runs")
@@ -257,7 +264,68 @@ async function runSnapshot(req: NextRequest) {
     videos_upserted: upserted,
     followers_captured: historyRows.length,
     skipped: parseSkipped,
+    seeded_from_public: seeded,
   });
+}
+
+// Copy a newly-linked handle's full history from the public `videos` table into
+// `dashboard_videos`, so the dashboard isn't empty before the handle happens to
+// post within the daily DAYS_BACK window. Runs only for handles that currently
+// have zero dashboard_videos rows, so it's a cheap one-time seed per handle.
+// `videos` has no is_ad/is_sponsored — those stay null until the daily scrape
+// overwrites recent rows with real values (upsert on video_url).
+async function seedNewDashboardHandles(handles: string[]): Promise<number> {
+  try {
+    const { data: existing } = await supabaseAdmin
+      .from("dashboard_videos")
+      .select("handle")
+      .in("handle", handles);
+    const haveRows = new Set((existing ?? []).map((r) => r.handle));
+    const needSeed = handles.filter((h) => !haveRows.has(h));
+    if (needSeed.length === 0) return 0;
+
+    let total = 0;
+    for (const handle of needSeed) {
+      const { data: rows } = await supabaseAdmin
+        .from("videos")
+        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
+        .eq("handle", handle);
+      if (!rows || rows.length === 0) continue;
+
+      const dashRows = rows.map((v) => ({
+        handle: v.handle,
+        video_url: v.video_url,
+        published_at: v.published_at,
+        views: v.views,
+        likes: v.likes,
+        comments: v.comments,
+        shares: v.shares,
+        collect_count: v.collect_count,
+        thumbnail_url: v.thumbnail_url,
+        caption: v.caption,
+        is_ad: null,
+        is_sponsored: null,
+        last_updated: new Date().toISOString(),
+      }));
+
+      const BATCH = 100;
+      for (let i = 0; i < dashRows.length; i += BATCH) {
+        const batch = dashRows.slice(i, i + BATCH);
+        const { error } = await supabaseAdmin
+          .from("dashboard_videos")
+          .upsert(batch, { onConflict: "video_url", ignoreDuplicates: true });
+        if (error) {
+          console.error(`seed dashboard_videos (${handle}):`, error.message);
+          break;
+        }
+        total += batch.length;
+      }
+    }
+    return total;
+  } catch (err) {
+    console.error("seedNewDashboardHandles failed:", err);
+    return 0;
+  }
 }
 
 async function maybeBackupWeeklyScrape() {
