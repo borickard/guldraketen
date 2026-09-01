@@ -213,6 +213,51 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
         upserted += batch.length;
     }
 
+    // ── Keep dashboard_videos in sync for dashboard-linked handles ───────────────
+    // Any public scrape (add-handle, manual, weekly cron) should also populate the
+    // dashboard so a linked account never shows an empty dashboard until 03:00.
+    // videoRows carry the real is_ad / is_sponsored from this same scrape, so the
+    // dashboard gets correct boost flags immediately. Overwrite on video_url to
+    // keep data fresh. Non-fatal: the public `videos` write above already succeeded.
+    try {
+        const scrapedHandles = Array.from(new Set(videoRows.map((v) => v.handle)));
+        if (scrapedHandles.length > 0) {
+            const { data: linked } = await supabaseAdmin
+                .from("user_handles")
+                .select("handle")
+                .in("handle", scrapedHandles);
+            const dashHandles = new Set((linked ?? []).map((r: { handle: string }) => r.handle));
+            if (dashHandles.size > 0) {
+                const dashRows = videoRows
+                    .filter((v) => dashHandles.has(v.handle))
+                    .map((v) => ({
+                        handle: v.handle,
+                        video_url: v.video_url,
+                        published_at: v.published_at,
+                        views: v.views,
+                        likes: v.likes,
+                        comments: v.comments,
+                        shares: v.shares,
+                        collect_count: v.collect_count,
+                        thumbnail_url: v.thumbnail_url,
+                        caption: v.caption,
+                        is_ad: v.is_ad,
+                        is_sponsored: v.is_sponsored,
+                        last_updated: v.last_updated,
+                    }));
+                for (let i = 0; i < dashRows.length; i += BATCH) {
+                    const batch = dashRows.slice(i, i + BATCH);
+                    const { error } = await supabaseAdmin
+                        .from("dashboard_videos")
+                        .upsert(batch, { onConflict: "video_url" });
+                    if (error) { console.error("dashboard_videos sync:", error.message); break; }
+                }
+            }
+        }
+    } catch (err) {
+        console.error("dashboard_videos sync failed:", err);
+    }
+
     // Uppdatera följarantal
     const now = new Date().toISOString();
     for (const [handle, followers] of Object.entries(followerMap)) {

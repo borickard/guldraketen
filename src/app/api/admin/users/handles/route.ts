@@ -4,14 +4,13 @@ import { NextResponse } from "next/server";
 // Copy a handle's full history from the public `videos` table into
 // dashboard_videos so a freshly-linked dashboard account shows its content
 // immediately instead of waiting for the 03:00 daily cron. Fast, no Apify.
-// ignoreDuplicates keeps any rows a prior scrape already wrote (with real
-// is_ad); seeded rows get is_ad/is_sponsored null until a dashboard scrape
-// (daily, or the deep /api/admin/dashboard-refresh) overwrites them.
+// `videos` carries the real is_ad/is_sponsored, so they come across too.
+// ignoreDuplicates keeps any rows a prior dashboard scrape already wrote.
 async function seedHandleFromPublic(handle: string): Promise<number> {
   try {
     const { data: rows } = await supabaseAdmin
       .from("videos")
-      .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
+      .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption, is_ad, is_sponsored")
       .eq("handle", handle);
     if (!rows || rows.length === 0) return 0;
 
@@ -26,8 +25,8 @@ async function seedHandleFromPublic(handle: string): Promise<number> {
       collect_count: v.collect_count,
       thumbnail_url: v.thumbnail_url,
       caption: v.caption,
-      is_ad: null,
-      is_sponsored: null,
+      is_ad: v.is_ad,
+      is_sponsored: v.is_sponsored,
       last_updated: new Date().toISOString(),
     }));
 

@@ -8,9 +8,9 @@ import { ADMIN_COOKIE_NAME, verifyAdminSession } from "@/lib/adminAuth";
 // copies the full back-catalogue across for every linked handle and returns
 // per-handle counts so the outcome is observable (no waiting on a scrape run).
 //
-// ignoreDuplicates keeps rows the daily scrape already wrote (with real is_ad);
-// seeded rows get is_ad/is_sponsored null until a future scrape overwrites the
-// recent ones. engagement_rate is a generated column, so it recomputes.
+// `videos` carries is_ad/is_sponsored, so those come across too. ignoreDuplicates
+// keeps rows the daily scrape already wrote. engagement_rate is a generated
+// column, so it recomputes.
 
 export async function POST(req: NextRequest) {
   const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     if (publicVideos > dashboardBefore) {
       const { data: rows } = await supabaseAdmin
         .from("videos")
-        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
+        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption, is_ad, is_sponsored")
         .eq("handle", handle);
 
       const dashRows = (rows ?? []).map((v) => ({
@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
         collect_count: v.collect_count,
         thumbnail_url: v.thumbnail_url,
         caption: v.caption,
-        is_ad: null,
-        is_sponsored: null,
+        is_ad: v.is_ad,
+        is_sponsored: v.is_sponsored,
         last_updated: new Date().toISOString(),
       }));
 
