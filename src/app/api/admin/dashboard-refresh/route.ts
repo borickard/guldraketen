@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { parseApifyItems } from "@/lib/scrape";
+import { isStoredThumbnail } from "@/lib/thumbnails";
 import { ADMIN_COOKIE_NAME, verifyAdminSession } from "@/lib/adminAuth";
 
 // Admin-only deep dashboard scrape. Unlike the daily cron (last ~10 days), this
@@ -136,12 +137,47 @@ export async function POST(req: NextRequest) {
     upserted += batch.length;
   }
 
+  // The scraped rows carry raw (expiring) TikTok thumbnail URLs. The public
+  // `videos` table already has permanent Supabase Storage URLs for the same
+  // videos, so re-point dashboard_videos to those instead of re-uploading.
+  const thumbsRepaired = await repointThumbnailsFromPublic(handles, BATCH);
+
   return NextResponse.json({
     ok: true,
     handles,
     scraped: dashRows.length,
     upserted,
     with_is_ad: withIsAd,
+    thumbs_repaired: thumbsRepaired,
     skipped,
   });
+}
+
+// Copy the permanent Storage thumbnail URLs from `videos` onto the matching
+// dashboard_videos rows, replacing raw TikTok URLs that expire. Shared shape
+// with /api/admin/repair-dashboard-thumbnails.
+async function repointThumbnailsFromPublic(handles: string[], BATCH: number): Promise<number> {
+  let repaired = 0;
+  for (const handle of handles) {
+    const { data: pub } = await supabaseAdmin
+      .from("videos")
+      .select("video_url, thumbnail_url")
+      .eq("handle", handle);
+    const updates = (pub ?? [])
+      .filter((v) => v.thumbnail_url && isStoredThumbnail(v.thumbnail_url))
+      .map((v) => ({ video_url: v.video_url, thumbnail_url: v.thumbnail_url as string }));
+    for (let i = 0; i < updates.length; i += BATCH) {
+      const batch = updates.slice(i, i + BATCH);
+      await Promise.all(
+        batch.map((u) =>
+          supabaseAdmin
+            .from("dashboard_videos")
+            .update({ thumbnail_url: u.thumbnail_url })
+            .eq("video_url", u.video_url)
+        )
+      );
+      repaired += batch.length;
+    }
+  }
+  return repaired;
 }

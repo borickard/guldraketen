@@ -219,6 +219,9 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
     // videoRows carry the real is_ad / is_sponsored from this same scrape, so the
     // dashboard gets correct boost flags immediately. Overwrite on video_url to
     // keep data fresh. Non-fatal: the public `videos` write above already succeeded.
+    // Thumbnails here are still the raw (expiring) TikTok URLs — the thumbnail step
+    // further down re-points these dashboard rows to the permanent Storage URLs.
+    const dashHandles = new Set<string>();
     try {
         const scrapedHandles = Array.from(new Set(videoRows.map((v) => v.handle)));
         if (scrapedHandles.length > 0) {
@@ -226,7 +229,7 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
                 .from("user_handles")
                 .select("handle")
                 .in("handle", scrapedHandles);
-            const dashHandles = new Set((linked ?? []).map((r: { handle: string }) => r.handle));
+            for (const r of (linked ?? []) as { handle: string }[]) dashHandles.add(r.handle);
             if (dashHandles.size > 0) {
                 const dashRows = videoRows
                     .filter((v) => dashHandles.has(v.handle))
@@ -353,6 +356,23 @@ export async function processScrapeResults(datasetId: string, apifyRunId?: strin
                         .eq("video_url", row.video_url)
                 )
             );
+        }
+        // Re-point the dashboard rows we synced above to the permanent Storage
+        // URLs (they were written with raw, expiring TikTok URLs). Only the
+        // dashboard-linked handles need this.
+        if (dashHandles.size > 0) {
+            const dashStored = stored.filter(r => dashHandles.has(r.handle));
+            for (let i = 0; i < dashStored.length; i += BATCH) {
+                const batchRows = dashStored.slice(i, i + BATCH);
+                await Promise.all(
+                    batchRows.map(row =>
+                        supabaseAdmin
+                            .from("dashboard_videos")
+                            .update({ thumbnail_url: row.thumbnail_url })
+                            .eq("video_url", row.video_url)
+                    )
+                );
+            }
         }
     } catch {
         // Thumbnail upload failures are non-fatal — videos and run record are already saved
