@@ -28,11 +28,12 @@ export async function GET(req: NextRequest) {
 
   const { start, end } = weekBounds(week);
 
-  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, collect_count, is_ad, engagement_rate, thumbnail_url, caption, last_updated, accounts ( followers, display_name, category )";
+  const fields = "id, handle, video_url, published_at, views, likes, comments, shares, collect_count, is_ad, engagement_rate, thumbnail_url, caption, last_updated, accounts!inner ( followers, display_name, category )";
 
   let query = supabaseAdmin
     .from("videos")
     .select(fields)
+    .eq("accounts.is_active", true)
     .gte("published_at", start.toISOString())
     .lt("published_at", end.toISOString())
     .or("is_contest.eq.false,contest_approved.eq.true")
