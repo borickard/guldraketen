@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { parseApifyItems } from "@/lib/scrape";
-import { isStoredThumbnail } from "@/lib/thumbnails";
+import { parseApifyItems, type VideoRow } from "@/lib/scrape";
+import { isStoredThumbnail, uploadThumbnailsBatch } from "@/lib/thumbnails";
 import { ADMIN_COOKIE_NAME, verifyAdminSession } from "@/lib/adminAuth";
 
 // Admin-only deep dashboard scrape. Unlike the daily cron (last ~10 days), this
@@ -23,6 +23,7 @@ const DAYS_BACK = 730; // ~2 years back to cover full history
 const RESULTS_PER_PROFILE = 500;
 
 export async function POST(req: NextRequest) {
+  const started = Date.now();
   const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   const isAdmin = adminToken ? await verifyAdminSession(adminToken) : false;
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -137,10 +138,9 @@ export async function POST(req: NextRequest) {
     upserted += batch.length;
   }
 
-  // The scraped rows carry raw (expiring) TikTok thumbnail URLs. The public
-  // `videos` table already has permanent Supabase Storage URLs for the same
-  // videos, so re-point dashboard_videos to those instead of re-uploading.
-  const thumbsRepaired = await repointThumbnailsFromPublic(handles, BATCH);
+  // Fix dashboard thumbnails so they use permanent Supabase Storage URLs rather
+  // than the raw (expiring) TikTok cover URLs the scrape produced.
+  const thumbs = await repairThumbnails(handles, videoRows, BATCH, started);
 
   return NextResponse.json({
     ok: true,
@@ -148,36 +148,95 @@ export async function POST(req: NextRequest) {
     scraped: dashRows.length,
     upserted,
     with_is_ad: withIsAd,
-    thumbs_repaired: thumbsRepaired,
+    thumbs_from_public: thumbs.fromPublic,
+    thumbs_uploaded: thumbs.uploaded,
+    thumbs_remaining: thumbs.remaining,
     skipped,
   });
 }
 
-// Copy the permanent Storage thumbnail URLs from `videos` onto the matching
-// dashboard_videos rows, replacing raw TikTok URLs that expire. Shared shape
-// with /api/admin/repair-dashboard-thumbnails.
-async function repointThumbnailsFromPublic(handles: string[], BATCH: number): Promise<number> {
-  let repaired = 0;
+// Give dashboard_videos permanent Storage thumbnail URLs. Two sources:
+//   1. Videos that also live in public `videos` already have a Storage URL —
+//      copy it across (fast, no upload).
+//   2. Dashboard-only videos (older history the public pipeline never scraped)
+//      have no Storage URL anywhere, so upload their fresh cover URL — valid
+//      right now because it came from THIS scrape — to Storage.
+// Bounded by a time budget so it never trips Vercel's 300s limit; anything left
+// over is reported as `remaining` and is picked up on a re-run (already-stored
+// dashboard rows are skipped, so re-runs resume rather than repeat).
+async function repairThumbnails(
+  handles: string[],
+  videoRows: VideoRow[],
+  BATCH: number,
+  started: number
+): Promise<{ fromPublic: number; uploaded: number; remaining: number }> {
+  const DEADLINE_MS = 265_000; // leave margin under maxDuration (300s)
+  const UPLOAD_CHUNK = 25;
+  let fromPublic = 0;
+  let uploaded = 0;
+  let remaining = 0;
+
   for (const handle of handles) {
+    const handleRows = videoRows.filter((v) => v.handle === handle);
+
+    // Permanent Storage URLs already known from the public `videos` table.
     const { data: pub } = await supabaseAdmin
       .from("videos")
       .select("video_url, thumbnail_url")
       .eq("handle", handle);
-    const updates = (pub ?? [])
-      .filter((v) => v.thumbnail_url && isStoredThumbnail(v.thumbnail_url))
-      .map((v) => ({ video_url: v.video_url, thumbnail_url: v.thumbnail_url as string }));
-    for (let i = 0; i < updates.length; i += BATCH) {
-      const batch = updates.slice(i, i + BATCH);
+    const storageByUrl = new Map<string, string>();
+    for (const v of pub ?? []) {
+      if (v.thumbnail_url && isStoredThumbnail(v.thumbnail_url)) storageByUrl.set(v.video_url, v.thumbnail_url);
+    }
+
+    // Dashboard rows already carrying a Storage URL — skip so re-runs resume.
+    const { data: dash } = await supabaseAdmin
+      .from("dashboard_videos")
+      .select("video_url, thumbnail_url")
+      .eq("handle", handle);
+    const dashDone = new Set<string>();
+    for (const d of dash ?? []) {
+      if (d.thumbnail_url && isStoredThumbnail(d.thumbnail_url)) dashDone.add(d.video_url);
+    }
+
+    // 1. Copy from public Storage.
+    const fromPub = handleRows
+      .filter((v) => storageByUrl.has(v.video_url))
+      .map((v) => ({ video_url: v.video_url, thumbnail_url: storageByUrl.get(v.video_url)! }));
+    for (let i = 0; i < fromPub.length; i += BATCH) {
+      const batch = fromPub.slice(i, i + BATCH);
       await Promise.all(
         batch.map((u) =>
-          supabaseAdmin
-            .from("dashboard_videos")
-            .update({ thumbnail_url: u.thumbnail_url })
-            .eq("video_url", u.video_url)
+          supabaseAdmin.from("dashboard_videos").update({ thumbnail_url: u.thumbnail_url }).eq("video_url", u.video_url)
         )
       );
-      repaired += batch.length;
+      fromPublic += batch.length;
+    }
+
+    // 2. Upload the dashboard-only ones from this scrape's fresh cover URLs.
+    const rest = handleRows.filter(
+      (v) =>
+        !storageByUrl.has(v.video_url) &&
+        !dashDone.has(v.video_url) &&
+        v.thumbnail_url &&
+        !isStoredThumbnail(v.thumbnail_url)
+    );
+    for (let i = 0; i < rest.length; i += UPLOAD_CHUNK) {
+      if (Date.now() - started > DEADLINE_MS) {
+        remaining += rest.length - i;
+        break;
+      }
+      const chunk = rest.slice(i, i + UPLOAD_CHUNK);
+      await uploadThumbnailsBatch(chunk); // mutates thumbnail_url in place on success
+      const done = chunk.filter((v) => v.thumbnail_url && isStoredThumbnail(v.thumbnail_url));
+      await Promise.all(
+        done.map((v) =>
+          supabaseAdmin.from("dashboard_videos").update({ thumbnail_url: v.thumbnail_url }).eq("video_url", v.video_url)
+        )
+      );
+      uploaded += done.length;
     }
   }
-  return repaired;
+
+  return { fromPublic, uploaded, remaining };
 }
