@@ -57,11 +57,12 @@ export async function getVideoForRank(week: string, rank: number): Promise<Video
     const { start, end } = weekBounds(week);
 
     const fields =
-        "handle, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption, accounts ( followers, display_name )";
+        "handle, video_url, published_at, views, likes, comments, shares, collect_count, engagement_rate, thumbnail_url, caption, accounts!inner ( followers, display_name )";
 
     const { data, error } = await supabaseAdmin
         .from("videos")
         .select(fields)
+        .eq("accounts.is_active", true)
         .gte("published_at", start.toISOString())
         .lt("published_at", end.toISOString())
         .or("is_contest.eq.false,contest_approved.eq.true")
