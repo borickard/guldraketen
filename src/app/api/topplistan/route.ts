@@ -37,7 +37,8 @@ export async function GET() {
   // Fetch all videos (all time — can add cutoff later if needed)
   const { data, error } = await supabaseAdmin
     .from("videos")
-    .select("handle, views, engagement_rate, published_at, accounts(display_name)")
+    .select("handle, views, engagement_rate, published_at, accounts!inner(display_name)")
+    .eq("accounts.is_active", true)
     .not("published_at", "is", null)
     .or("is_contest.eq.false,contest_approved.eq.true")
     .eq("is_hidden", false)
