@@ -66,8 +66,8 @@ async function runSnapshot(req: NextRequest) {
   // show only the handful of recent posts even though `videos` has the full
   // back-catalogue. For any handle whose dashboard_videos count is behind its
   // `videos` count, copy the missing rows across (ignoreDuplicates keeps the
-  // freshly-scraped rows with real is_ad values). Self-healing: skips handles
-  // that are already caught up, so it's cheap in steady state.
+  // freshly-scraped rows). Self-healing: skips handles that are already caught
+  // up, so it's cheap in steady state.
   const seeded = await backfillDashboardFromPublic(handles);
 
   // Log run start in scrape_runs so it shows up in the admin scrape-log.
@@ -276,8 +276,7 @@ async function runSnapshot(req: NextRequest) {
 // handle's older history never lands in dashboard_videos on its own. For each
 // handle where dashboard_videos has fewer rows than `videos`, copy the whole
 // back-catalogue across; ignoreDuplicates keeps rows the fresh scrape already
-// wrote (with real is_ad). `videos` has no is_ad/is_sponsored — seeded rows get
-// null there until a future daily scrape overwrites the recent ones.
+// wrote. `videos` carries is_ad/is_sponsored so those come across too.
 // Count-based so it self-heals a newly-linked account AND fills gaps for one
 // that only has a few recent rows, then goes quiet once caught up.
 async function backfillDashboardFromPublic(handles: string[]): Promise<number> {
@@ -300,7 +299,7 @@ async function backfillDashboardFromPublic(handles: string[]): Promise<number> {
 
       const { data: rows } = await supabaseAdmin
         .from("videos")
-        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption")
+        .select("handle, video_url, published_at, views, likes, comments, shares, collect_count, thumbnail_url, caption, is_ad, is_sponsored")
         .eq("handle", handle);
       if (!rows || rows.length === 0) continue;
 
@@ -315,8 +314,8 @@ async function backfillDashboardFromPublic(handles: string[]): Promise<number> {
         collect_count: v.collect_count,
         thumbnail_url: v.thumbnail_url,
         caption: v.caption,
-        is_ad: null,
-        is_sponsored: null,
+        is_ad: v.is_ad,
+        is_sponsored: v.is_sponsored,
         last_updated: new Date().toISOString(),
       }));
 
