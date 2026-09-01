@@ -151,8 +151,9 @@ export async function GET(request: Request) {
   let query = supabaseAdmin
     .from("videos")
     .select(
-      "handle, views, likes, comments, shares, collect_count, is_ad, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts(display_name, category, avatar_url)"
+      "handle, views, likes, comments, shares, collect_count, is_ad, engagement_rate, published_at, thumbnail_url, caption, video_url, accounts!inner(display_name, category, avatar_url)"
     )
+    .eq("accounts.is_active", true)
     .not("published_at", "is", null)
     .gte("published_at", MIN_PUBLISHED_DATE)
     .or("is_contest.eq.false,contest_approved.eq.true")
