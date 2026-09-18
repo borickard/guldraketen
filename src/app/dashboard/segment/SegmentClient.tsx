@@ -44,7 +44,8 @@ interface Stats {
   count: number;
   views: number; likes: number; comments: number; shares: number;
   collects: number; collectsTracked: number;
-  avgEr: number | null;
+  avgEr: number | null;   // mean of each post's engagement rate
+  totalEr: number | null; // pooled: engagements over views (views-weighted)
 }
 
 function computeStats(videos: Video[]): Stats {
@@ -54,12 +55,21 @@ function computeStats(videos: Video[]): Stats {
     .map((v) => (v.engagement_rate != null ? Number(v.engagement_rate) : null))
     .filter((n): n is number => n != null && !isNaN(n));
   const collectVids = vids.filter((v) => v.collect_count != null);
+
+  const views = sum("views"), likes = sum("likes"), comments = sum("comments"), shares = sum("shares");
+  const collects = collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0);
+  // Same weighting as the DB engagement_rate, but pooled across the segment so a
+  // couple of low-view posts can't dominate the way a plain rate average does.
+  const totalEr = views > 0
+    ? ((likes + comments * 5 + collects * 5 + shares * 10) / views) * 100
+    : null;
+
   return {
     count: vids.length,
-    views: sum("views"), likes: sum("likes"), comments: sum("comments"), shares: sum("shares"),
-    collects: collectVids.reduce((s, v) => s + Number(v.collect_count ?? 0), 0),
-    collectsTracked: collectVids.length,
+    views, likes, comments, shares,
+    collects, collectsTracked: collectVids.length,
     avgEr: ers.length ? ers.reduce((s, n) => s + n, 0) / ers.length : null,
+    totalEr,
   };
 }
 
@@ -133,6 +143,7 @@ const pf = (n: number | null) => (n != null ? `${n.toFixed(2)}%` : "—");
 // Chart metric options — one axis, one value per bar.
 const CHART_METRICS: { key: string; label: string; get: (s: Stats) => number; fmt: (n: number) => string }[] = [
   { key: "avgEr", label: "Snitt-ER", get: (s) => s.avgEr ?? 0, fmt: (n) => `${n.toFixed(2)}%` },
+  { key: "totalEr", label: "Totalt ER (viktat)", get: (s) => s.totalEr ?? 0, fmt: (n) => `${n.toFixed(2)}%` },
   { key: "views_avg", label: "Visningar / inlägg", get: (s) => (s.count ? s.views / s.count : 0), fmt: nf },
   { key: "views_total", label: "Visningar totalt", get: (s) => s.views, fmt: nf },
   { key: "likes_avg", label: "Likes / inlägg", get: (s) => (s.count ? s.likes / s.count : 0), fmt: nf },
@@ -478,7 +489,10 @@ export default function SegmentClient({ handles }: { handles: HandleOpt[] }) {
                           return (
                             <td key={c.key} className={`sg-td sg-td--num${isBest ? " sg-td--best" : ""}`}>
                               {c.kind === "pct" ? (
-                                <span className="sg-cell-primary">{pf(r.stats.avgEr)}</span>
+                                <>
+                                  <span className="sg-cell-primary">{pf(r.stats.avgEr)}</span>
+                                  <span className="sg-cell-avg">{pf(r.stats.totalEr)} totalt</span>
+                                </>
                               ) : c.kind === "int" ? (
                                 <span className="sg-cell-primary">{nf(primary)}</span>
                               ) : (
@@ -496,8 +510,10 @@ export default function SegmentClient({ handles }: { handles: HandleOpt[] }) {
                 </table>
               </div>
               <p className="sg-note">
-                Snitt-ER är genomsnittet av varje inläggs engagement rate. Exkluderade inlägg räknas inte med.
-                Favoriter visas bara för inlägg där data finns.
+                <strong>Snitt-ER</strong> är genomsnittet av varje inläggs engagement rate — ett par små inlägg
+                kan dra upp det. <strong>Totalt ER</strong> viktar på visningar (allt engagemang delat med alla
+                visningar) och ger en rättvisare helhet. Exkluderade inlägg räknas inte med; favoriter visas bara
+                för inlägg där data finns.
               </p>
             </div>
           )}
@@ -637,11 +653,14 @@ const css = `
     padding: 0.6rem 0.65rem; text-align: right; border-bottom: 1px solid rgba(28,27,25,0.07);
     font-variant-numeric: tabular-nums; color: #1C1B19;
   }
-  .sg-td--name { text-align: left; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 0.4rem; }
+  .sg-td--name { text-align: left; font-weight: 600; min-width: 150px; }
+  .sg-td--name .sg-dot { vertical-align: middle; margin-right: 0.4rem; }
+  .sg-th--name { min-width: 150px; }
   .sg-cell-primary { display: block; font-size: 14px; font-weight: 700; }
   .sg-cell-avg { display: block; font-size: 11px; color: #999; margin-top: 1px; }
   .sg-td--best .sg-cell-primary { color: #C8962A; }
   .sg-td--best { background: rgba(200,150,42,0.07); }
 
-  .sg-note { font-family: 'Barlow', sans-serif; font-size: 12px; color: #999; margin-top: 1rem; }
+  .sg-note { font-family: 'Barlow', sans-serif; font-size: 12px; color: #999; margin-top: 1rem; line-height: 1.5; }
+  .sg-note strong { color: #666; font-weight: 700; }
 `;
