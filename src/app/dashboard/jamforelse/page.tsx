@@ -4,6 +4,7 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { dashboardMetadata } from "@/lib/dashboardMetadata";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LogoutButton from "../components/LogoutButton";
+import AnalysTabs from "../components/AnalysTabs";
 import CompareClient from "./CompareClient";
 
 export const generateMetadata = () => dashboardMetadata("Jämför");
@@ -60,14 +61,14 @@ export default async function JamforelsePage() {
           <a href="/" className="db-wordmark">Sociala Raketer</a>
           <nav className="db-nav">
             <a href="/dashboard" className="db-nav-link">Dashboard</a>
-            <a href="/dashboard/jamforelse" className="db-nav-link db-nav-link--active">Jämför</a>
-            <a href="/dashboard/segment" className="db-nav-link">Segment</a>
+            <a href="/dashboard/segment" className="db-nav-link db-nav-link--active">Analys</a>
             <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
           </nav>
           <LogoutButton />
         </header>
 
         <main className="db-main">
+          <AnalysTabs active="konton" />
           <CompareClient ownHandles={ownHandles} initialSavedHandles={savedHandles} />
         </main>
       </div>

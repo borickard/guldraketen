@@ -4,6 +4,7 @@ import { verifySession, COOKIE_NAME } from "@/lib/dashboardAuth";
 import { dashboardMetadata } from "@/lib/dashboardMetadata";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import DashboardHeader from "../components/DashboardHeader";
+import AnalysTabs from "../components/AnalysTabs";
 import SegmentClient from "./SegmentClient";
 
 export const generateMetadata = () => dashboardMetadata("Segment");
@@ -39,6 +40,7 @@ export default async function SegmentPage() {
           impersonating={isImpersonating ? { username: session.username } : null}
         />
         <main className="db-main">
+          <AnalysTabs active="innehall" />
           {handles.length === 0 ? (
             <p className="db-empty">Inga konton är tilldelade din profil ännu. Kontakta administratören.</p>
           ) : (

@@ -47,8 +47,7 @@ export default function DashboardHeader({
 
         <nav className="db-nav db-nav--desktop">
           <a href="/dashboard" className="db-nav-link">Dashboard</a>
-          <a href="/dashboard/jamforelse" className="db-nav-link">Jämför</a>
-          <a href="/dashboard/segment" className="db-nav-link">Segment</a>
+          <a href="/dashboard/segment" className="db-nav-link">Analys</a>
           <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
           <a href="/dashboard/installningar" className="db-nav-link">Inställningar</a>
         </nav>
@@ -71,8 +70,7 @@ export default function DashboardHeader({
       {open && (
         <div className="db-mobile-menu">
           <a href="/dashboard" className="db-mobile-link" onClick={() => setOpen(false)}>Dashboard</a>
-          <a href="/dashboard/jamforelse" className="db-mobile-link" onClick={() => setOpen(false)}>Jämför</a>
-          <a href="/dashboard/segment" className="db-mobile-link" onClick={() => setOpen(false)}>Segment</a>
+          <a href="/dashboard/segment" className="db-mobile-link" onClick={() => setOpen(false)}>Analys</a>
           <a href="/hall-of-fame" className="db-mobile-link" onClick={() => setOpen(false)}>Hall of Fame</a>
           <a href="/dashboard/installningar" className="db-mobile-link" onClick={() => setOpen(false)}>Inställningar</a>
           <button onClick={handleLogout} className="db-mobile-link db-mobile-link--btn">Logga ut</button>

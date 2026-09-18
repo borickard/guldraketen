@@ -291,7 +291,7 @@ export default function SegmentClient({ handles }: { handles: HandleOpt[] }) {
       <style>{css}</style>
 
       <div className="sg-intro">
-        <h1 className="sg-title">Segment</h1>
+        <h1 className="sg-title">Jämför innehåll</h1>
         <p className="sg-sub">
           Jämför olika delar av ditt innehåll mot varandra — kampanjer, format, teman eller
           otaggat. Samma tagg-typ räknas som <strong>eller</strong>, olika typer som <strong>och</strong>.
