@@ -281,6 +281,12 @@ export default function VideoGrid({
   // Tag filter: a tag id, the "__untagged__" sentinel, or null for "all".
   const [tagFilter, setTagFilter] = useState<string | null>(null);
 
+  // Collapse the tall controls block into a slim summary bar once scrolled;
+  // the full controls reopen in a popover. Saves ~1/3 of the viewport on scroll.
+  const [scrolled, setScrolled] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const controlsRef = useRef<HTMLDivElement>(null);
+
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
   async function refetchTags() {
@@ -305,6 +311,28 @@ export default function VideoGrid({
   // Clear multi-select when the tag filter changes so a bulk action never
   // touches cards that are no longer visible.
   useEffect(() => { setSelected(new Set()); }, [tagFilter]);
+
+  // Collapse controls after scrolling past the top; reopen inline when back up.
+  useEffect(() => {
+    const onScroll = () => {
+      const s = window.scrollY > 220;
+      setScrolled(s);
+      if (!s) setPanelOpen(false);
+    };
+    const raf = requestAnimationFrame(onScroll); // avoids sync setState in effect
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("scroll", onScroll); };
+  }, []);
+
+  // Close the collapsed popover on an outside click.
+  useEffect(() => {
+    if (!panelOpen) return;
+    function handler(e: MouseEvent) {
+      if (controlsRef.current && !controlsRef.current.contains(e.target as Node)) setPanelOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [panelOpen]);
 
   function toggleSelected(videoUrl: string) {
     setSelected((curr) => {
@@ -678,12 +706,58 @@ export default function VideoGrid({
       : dateRange.from.toLocaleDateString("sv-SE")
     : "Välj period";
 
+  // Collapsed-bar summary of the currently active controls.
+  const scopeLabel = scope === "week" ? "Per vecka" : scope === "month" ? "Per månad" : "Sedan start";
+  const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? "";
+  const activeTag = tagFilter === "__untagged__"
+    ? { name: "Otaggat", color: null as string | null }
+    : tagFilter
+      ? tagsById.get(tagFilter) ?? null
+      : null;
+  const controlsBodyClass =
+    "vg-controls-body" +
+    (scrolled ? (panelOpen ? " vg-controls-body--panel" : " vg-controls-body--hidden") : "");
+
   return (
     <>
       <style>{css}</style>
       <div className="vg-root">
 
-        <div className="vg-sticky-controls">
+        <div className="vg-sticky-controls" ref={controlsRef}>
+          {scrolled && (
+            <div className="vg-compact">
+              <button
+                type="button"
+                className={`vg-compact-summary${panelOpen ? " vg-compact-summary--open" : ""}`}
+                onClick={() => setPanelOpen((o) => !o)}
+                aria-expanded={panelOpen}
+              >
+                <svg className="vg-compact-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
+                <span className="vg-compact-chips">
+                  <span className="vg-cchip">{scopeLabel}</span>
+                  <span className="vg-cchip">{sortLabel}</span>
+                  {nActive > 0 && <span className="vg-cchip vg-cchip--accent">{nActive} filter</span>}
+                  {activeTag && (
+                    <span
+                      className="vg-cchip vg-cchip--tag"
+                      style={activeTag.color ? { background: activeTag.color, color: chipTextColor(activeTag.color) } : undefined}
+                    >
+                      {activeTag.name}
+                    </span>
+                  )}
+                  {selectMode && selected.size > 0 && (
+                    <span className="vg-cchip vg-cchip--accent">{selected.size} markerade</span>
+                  )}
+                </span>
+                <svg className={`vg-compact-caret${panelOpen ? " vg-compact-caret--up" : ""}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <div className={controlsBodyClass}>
           <div className="vg-toolbar">
             <div className="vg-toolbar-row">
               <span className="vg-row-label">Gruppera</span>
@@ -768,6 +842,11 @@ export default function VideoGrid({
             )}
             <div className="vg-toolbar-row">
               <span className="vg-row-label">Taggar</span>
+              {tags.length === 0 && (
+                <span className="vg-tag-hint">
+                  Tagga inlägg för att gruppera kampanjer, format och teman — jämför dem sedan under Analys.
+                </span>
+              )}
               <button
                 className={`vg-pill${selectMode ? " vg-pill--on" : ""}`}
                 onClick={() => {
@@ -892,6 +971,7 @@ export default function VideoGrid({
             ))}
           </div>
         )}
+          </div>
         </div>
 
         {filtered.length === 0 ? (
@@ -992,6 +1072,70 @@ const css = `
   .vg-sticky-controls .vg-filter-panel {
     margin-top: 0.75rem;
     margin-bottom: 0;
+  }
+
+  /* Collapsed controls (after scroll) — slim summary bar + popover */
+  .vg-compact { position: relative; }
+  .vg-compact-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid rgba(28,27,25,0.12);
+    border-radius: 999px;
+    padding: 8px 12px 8px 14px;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    transition: border-color 0.12s;
+  }
+  .vg-compact-summary:hover { border-color: rgba(28,27,25,0.28); }
+  .vg-compact-summary--open { border-color: #1C1B19; }
+  .vg-compact-icon { color: #888; flex-shrink: 0; }
+  .vg-compact-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .vg-cchip {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1C1B19;
+    background: rgba(28,27,25,0.06);
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .vg-cchip--accent { background: rgba(200,150,42,0.16); color: #8a6a1e; }
+  .vg-cchip--tag { color: #fff; }
+  .vg-compact-caret { color: #888; flex-shrink: 0; margin-left: auto; transition: transform 0.15s; }
+  .vg-compact-caret--up { transform: rotate(180deg); }
+
+  .vg-controls-body--hidden { display: none; }
+  .vg-controls-body--panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: #EBE7E2;
+    border: 1px solid rgba(28,27,25,0.14);
+    border-radius: 12px;
+    box-shadow: 0 14px 34px rgba(28,27,25,0.16);
+    padding: 1rem 1rem 0.5rem;
+    z-index: 95;
+  }
+
+  .vg-tag-hint {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12.5px;
+    color: #999;
+    max-width: 520px;
   }
 
   .vg-toolbar-row {
