@@ -273,10 +273,13 @@ export default function VideoGrid({
   // Tagging state
   const [tags, setTags] = useState<Tag[]>([]);
   const [videoTags, setVideoTags] = useState<Record<string, string[]>>({});
+  const [tagsLoaded, setTagsLoaded] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<string[] | null>(null);
   const [showTagManager, setShowTagManager] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Tag filter: a tag id, the "__untagged__" sentinel, or null for "all".
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -287,8 +290,21 @@ export default function VideoGrid({
     ]);
     setTags(Array.isArray(t) ? t : []);
     setVideoTags(vt && typeof vt === "object" ? vt : {});
+    setTagsLoaded(true);
   }
   useEffect(() => { refetchTags(); }, []); // eslint-disable-line
+
+  // If the filtered-on tag gets deleted, fall back to "all".
+  useEffect(() => {
+    if (!tagsLoaded) return;
+    if (tagFilter && tagFilter !== "__untagged__" && !tagsById.has(tagFilter)) {
+      setTagFilter(null);
+    }
+  }, [tagsLoaded, tagsById, tagFilter]);
+
+  // Clear multi-select when the tag filter changes so a bulk action never
+  // touches cards that are no longer visible.
+  useEffect(() => { setSelected(new Set()); }, [tagFilter]);
 
   function toggleSelected(videoUrl: string) {
     setSelected((curr) => {
@@ -350,6 +366,8 @@ export default function VideoGrid({
     for (const k of numKeys) { const v = p.get(k); if (v) numUpdates[k] = v; }
     if (Object.keys(numUpdates).length) setFilters((prev) => ({ ...prev, ...numUpdates }));
     if (p.get("filters") === "1") setShowFilters(true);
+    const tg = p.get("tag");
+    if (tg) setTagFilter(tg);
     setUrlReady(true);
   }, []); // eslint-disable-line
 
@@ -364,9 +382,10 @@ export default function VideoGrid({
     const numKeys: NumericFilterKey[] = ["views_min","views_max","likes_min","likes_max","comments_min","comments_max","shares_min","shares_max"];
     for (const k of numKeys) { if (filters[k]) p.set(k, filters[k] as string); }
     if (showFilters) p.set("filters", "1");
+    if (tagFilter) p.set("tag", tagFilter);
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [sort, scope, filters, showFilters, urlReady]);
+  }, [sort, scope, filters, showFilters, tagFilter, urlReady]);
 
   // Close calendar on outside click
   useEffect(() => {
@@ -378,10 +397,15 @@ export default function VideoGrid({
     return () => document.removeEventListener("mousedown", handler);
   }, [showCal]);
 
-  const filtered = useMemo(
-    () => applyFilters(videos, filters, boost),
-    [videos, filters, boost]
-  );
+  const filtered = useMemo(() => {
+    let out = applyFilters(videos, filters, boost);
+    if (tagFilter === "__untagged__") {
+      out = out.filter((v) => (videoTags[v.video_url] ?? []).length === 0);
+    } else if (tagFilter) {
+      out = out.filter((v) => (videoTags[v.video_url] ?? []).includes(tagFilter));
+    }
+    return out;
+  }, [videos, filters, boost, tagFilter, videoTags]);
   useEffect(() => {
     // Don't emit during the initial empty state — the parent would otherwise
     // override the server hero with zeros for a brief moment.
@@ -707,6 +731,41 @@ export default function VideoGrid({
                 </button>
               )}
             </div>
+            {tags.length > 0 && (
+              <div className="vg-toolbar-row">
+                <span className="vg-row-label">Visa tagg</span>
+                <div className="vg-sorts">
+                  <button
+                    className={`vg-pill${tagFilter === null ? " vg-pill--on" : ""}`}
+                    onClick={() => setTagFilter(null)}
+                  >
+                    Alla
+                  </button>
+                  {tags.map((t) => {
+                    const on = tagFilter === t.id;
+                    const bg = t.color ?? "#8A8A8A";
+                    return (
+                      <button
+                        key={t.id}
+                        className={`vg-pill vg-pill--tag${on ? " vg-pill--on" : ""}`}
+                        style={on ? { background: bg, color: chipTextColor(bg) } : undefined}
+                        onClick={() => setTagFilter(on ? null : t.id)}
+                        title={`${t.type}: ${t.name}`}
+                      >
+                        {!on && <span className="vg-pill-dot" style={{ background: bg }} />}
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                  <button
+                    className={`vg-pill${tagFilter === "__untagged__" ? " vg-pill--on" : ""}`}
+                    onClick={() => setTagFilter((c) => (c === "__untagged__" ? null : "__untagged__"))}
+                  >
+                    Otaggat
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="vg-toolbar-row">
               <span className="vg-row-label">Taggar</span>
               <button
@@ -835,7 +894,15 @@ export default function VideoGrid({
         )}
         </div>
 
-        {structure.type === "flat" ? (
+        {filtered.length === 0 ? (
+          <p className="vg-empty-filtered">
+            {tagFilter === "__untagged__"
+              ? "Alla inlägg har minst en tagg."
+              : tagFilter
+                ? "Inga inlägg med den taggen."
+                : "Inga inlägg matchar filtren."}
+          </p>
+        ) : structure.type === "flat" ? (
           <div className="vg-grid">
             {structure.videos.map((v) => renderCard(v))}
           </div>
@@ -1228,6 +1295,23 @@ const css = `
     color: #fff;
   }
   .vg-pill--tagbulk:hover { color: #fff; opacity: 0.9; }
+
+  /* Tag-filter pill with color dot */
+  .vg-pill--tag { gap: 0.4rem; }
+  .vg-pill-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .vg-empty-filtered {
+    padding: 2rem 0;
+    color: #888;
+    font-size: 14px;
+    font-family: 'Barlow', sans-serif;
+  }
 
 
   /* Thumbnail: 4:5 */
