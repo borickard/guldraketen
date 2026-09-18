@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import TagPicker from "./TagPicker";
+import TagManager from "./TagManager";
+import { Tag, chipTextColor } from "./tagTypes";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { sv } from "react-day-picker/locale";
 import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark, Flame } from "lucide-react";
@@ -267,6 +270,34 @@ export default function VideoGrid({
   const calRef = useRef<HTMLDivElement>(null);
   const [excludingIds, setExcludingIds] = useState<Set<string>>(new Set());
 
+  // Tagging state
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [videoTags, setVideoTags] = useState<Record<string, string[]>>({});
+  const [pickerTarget, setPickerTarget] = useState<string[] | null>(null);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
+
+  async function refetchTags() {
+    const [t, vt] = await Promise.all([
+      fetch("/api/dashboard/tags").then((r) => r.json()).catch(() => []),
+      fetch("/api/dashboard/video-tags").then((r) => r.json()).catch(() => ({})),
+    ]);
+    setTags(Array.isArray(t) ? t : []);
+    setVideoTags(vt && typeof vt === "object" ? vt : {});
+  }
+  useEffect(() => { refetchTags(); }, []); // eslint-disable-line
+
+  function toggleSelected(videoUrl: string) {
+    setSelected((curr) => {
+      const n = new Set(curr);
+      if (n.has(videoUrl)) n.delete(videoUrl); else n.add(videoUrl);
+      return n;
+    });
+  }
+
   async function toggleExcluded(v: Video) {
     if (excludingIds.has(v.id)) return;
     const next = !v.is_excluded;
@@ -483,8 +514,25 @@ export default function VideoGrid({
     const pub = fmtPublished(v.published_at);
     const excluded = !!v.is_excluded;
     const saving = excludingIds.has(v.id);
+    const vtags = (videoTags[v.video_url] ?? [])
+      .map((id) => tagsById.get(id))
+      .filter((t): t is Tag => !!t);
+    const isSel = selected.has(v.video_url);
     return (
-      <div key={v.id} className={`vg-card${excluded ? " vg-card--excluded" : ""}`}>
+      <div
+        key={v.id}
+        className={`vg-card${excluded ? " vg-card--excluded" : ""}${isSel ? " vg-card--selected" : ""}`}
+      >
+        {selectMode && (
+          <button
+            type="button"
+            className={`vg-select-box${isSel ? " vg-select-box--on" : ""}`}
+            onClick={() => toggleSelected(v.video_url)}
+            aria-label={isSel ? "Avmarkera" : "Markera"}
+          >
+            {isSel ? "✓" : ""}
+          </button>
+        )}
         <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
           {v.thumbnail_url
             // eslint-disable-next-line @next/next/no-img-element
@@ -523,6 +571,18 @@ export default function VideoGrid({
               </svg>
             )}
           </button>
+          <button
+            type="button"
+            className={`vg-card-action${vtags.length > 0 ? " vg-card-action--on" : ""}`}
+            onClick={() => setPickerTarget([v.video_url])}
+            title="Tagga inlägg"
+            aria-label="Tagga inlägg"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+          </button>
           <a
             href={v.video_url}
             target="_blank"
@@ -551,6 +611,23 @@ export default function VideoGrid({
             </div>
           ))}
         </div>
+        {vtags.length > 0 && (
+          <div className="vg-chips">
+            {vtags.map((t) => {
+              const bg = t.color ?? "#8A8A8A";
+              return (
+                <span
+                  key={t.id}
+                  className="vg-chip"
+                  style={{ background: bg, color: chipTextColor(bg) }}
+                  title={`${t.type}: ${t.name}`}
+                >
+                  {t.name}
+                </span>
+              );
+            })}
+          </div>
+        )}
         {pub && (
           <div className="vg-published" title={pub.abs}>
             <span className="vg-published-date">{pub.abs}</span>
@@ -629,6 +706,40 @@ export default function VideoGrid({
                   Rensa
                 </button>
               )}
+            </div>
+            <div className="vg-toolbar-row">
+              <span className="vg-row-label">Taggar</span>
+              <button
+                className={`vg-pill${selectMode ? " vg-pill--on" : ""}`}
+                onClick={() => {
+                  setSelectMode((v) => {
+                    if (v) setSelected(new Set());
+                    return !v;
+                  });
+                }}
+              >
+                {selectMode ? "Avsluta markering" : "Markera flera"}
+              </button>
+              {selectMode && selected.size > 0 && (
+                <>
+                  <button
+                    className="vg-pill vg-pill--tagbulk"
+                    onClick={() => setPickerTarget([...selected])}
+                  >
+                    Tagga {selected.size} markerade
+                  </button>
+                  <button className="vg-filter-clear" onClick={() => setSelected(new Set())}>
+                    Avmarkera
+                  </button>
+                </>
+              )}
+              <button
+                className="vg-pill"
+                style={{ marginLeft: "auto" }}
+                onClick={() => setShowTagManager(true)}
+              >
+                Hantera taggar
+              </button>
             </div>
           </div>
 
@@ -742,6 +853,23 @@ export default function VideoGrid({
         )}
 
       </div>
+
+      {pickerTarget && (
+        <TagPicker
+          videoUrls={pickerTarget}
+          tags={tags}
+          videoTags={videoTags}
+          onClose={() => setPickerTarget(null)}
+          onChange={refetchTags}
+        />
+      )}
+      {showTagManager && (
+        <TagManager
+          tags={tags}
+          onClose={() => setShowTagManager(false)}
+          onChange={refetchTags}
+        />
+      )}
     </>
   );
 }
@@ -1037,6 +1165,7 @@ const css = `
 
   /* Card */
   .vg-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     background: #fff;
@@ -1044,6 +1173,61 @@ const css = `
     border-radius: 12px;
     overflow: hidden;
   }
+
+  .vg-card--selected {
+    border-color: #E8116A;
+    box-shadow: 0 0 0 1.5px #E8116A;
+  }
+
+  /* Selection checkbox overlay (shown in select mode) */
+  .vg-select-box {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 2px solid #fff;
+    background: rgba(28,27,25,0.55);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: background 0.12s;
+  }
+  .vg-select-box--on {
+    background: #E8116A;
+  }
+
+  /* Tag chips row on card */
+  .vg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 0.65rem 0.55rem;
+  }
+  .vg-chip {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* Bulk-tag action pill */
+  .vg-pill--tagbulk {
+    background: #E8116A;
+    color: #fff;
+  }
+  .vg-pill--tagbulk:hover { color: #fff; opacity: 0.9; }
 
 
   /* Thumbnail: 4:5 */
