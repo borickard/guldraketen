@@ -286,7 +286,6 @@ export default function VideoGrid({
   const [scrolled, setScrolled] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const controlsRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -313,25 +312,28 @@ export default function VideoGrid({
   // touches cards that are no longer visible.
   useEffect(() => { setSelected(new Set()); }, [tagFilter]);
 
-  // Collapse only once the controls reach their pinned position (i.e. are about
-  // to scroll under the sticky header), not at a fixed scroll distance. A
-  // zero-height sentinel sits just above the controls; when it crosses above the
-  // 52px header line it stops intersecting → the bar is now stuck → collapse.
-  // Observing the sentinel (not the bar itself) avoids a collapse/height/expand
-  // feedback loop.
+  // Collapse only once the controls reach their pinned position (top:52px, just
+  // under the sticky header), not at a fixed scroll distance. Read the bar's live
+  // position on scroll: before pinning its top is > 52; once stuck it sits at 52.
+  // Measuring the bar's `top` (which stays 52 when pinned regardless of its
+  // height) avoids a collapse/height/expand feedback loop. The listener reads the
+  // ref lazily, so it works even though the bar isn't in the DOM during loading.
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        const stuck = !entry.isIntersecting && entry.boundingClientRect.top <= 52;
-        setScrolled(stuck);
-        if (!stuck) setPanelOpen(false);
-      },
-      { rootMargin: "-52px 0px 0px 0px", threshold: 0 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    const onScroll = () => {
+      const el = controlsRef.current;
+      if (!el) return;
+      const stuck = el.getBoundingClientRect().top <= 53;
+      setScrolled(stuck);
+      if (!stuck) setPanelOpen(false);
+    };
+    const raf = requestAnimationFrame(onScroll); // sync initial state, lint-safe
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   // Close the collapsed popover on an outside click.
@@ -733,7 +735,6 @@ export default function VideoGrid({
       <style>{css}</style>
       <div className="vg-root">
 
-        <div ref={sentinelRef} className="vg-sticky-sentinel" aria-hidden="true" />
         <div className="vg-sticky-controls" ref={controlsRef}>
           {scrolled && (
             <div className="vg-compact">
@@ -1061,12 +1062,6 @@ const css = `
   .vg-root {
     margin-top: 2rem;
     font-family: 'Barlow', sans-serif;
-  }
-
-  .vg-sticky-sentinel {
-    height: 1px;
-    margin-bottom: -1px;
-    pointer-events: none;
   }
 
   .vg-sticky-controls {
