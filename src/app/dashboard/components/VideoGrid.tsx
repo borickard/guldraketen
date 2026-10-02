@@ -721,6 +721,14 @@ export default function VideoGrid({
   // Collapsed-bar summary of the currently active controls.
   const scopeLabel = scope === "week" ? "Per vecka" : scope === "month" ? "Per månad" : "Sedan start";
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? "";
+  const dShort = (dt: Date) => dt.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+  const dateChipLabel = dateRange?.from
+    ? dateRange.to
+      ? `${dShort(dateRange.from)}–${dShort(dateRange.to)}`
+      : `fr. ${dShort(dateRange.from)}`
+    : null;
+  // Date is shown as its own chip, so keep it out of the generic filter count.
+  const numFilterCount = nActive - (dateRange?.from ? 1 : 0);
   const activeTag = tagFilter === "__untagged__"
     ? { name: "Otaggat", color: null as string | null }
     : tagFilter
@@ -750,7 +758,15 @@ export default function VideoGrid({
                 <span className="vg-compact-chips">
                   <span className="vg-cchip">{scopeLabel}</span>
                   <span className="vg-cchip">{sortLabel}</span>
-                  {nActive > 0 && <span className="vg-cchip vg-cchip--accent">{nActive} filter</span>}
+                  {dateChipLabel && (
+                    <span className="vg-cchip vg-cchip--accent">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 3, verticalAlign: "-1px" }}>
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                      </svg>
+                      {dateChipLabel}
+                    </span>
+                  )}
+                  {numFilterCount > 0 && <span className="vg-cchip vg-cchip--accent">{numFilterCount} filter</span>}
                   {activeTag && (
                     <span
                       className="vg-cchip vg-cchip--tag"
