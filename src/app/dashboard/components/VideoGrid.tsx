@@ -286,6 +286,7 @@ export default function VideoGrid({
   const [scrolled, setScrolled] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -312,16 +313,25 @@ export default function VideoGrid({
   // touches cards that are no longer visible.
   useEffect(() => { setSelected(new Set()); }, [tagFilter]);
 
-  // Collapse controls after scrolling past the top; reopen inline when back up.
+  // Collapse only once the controls reach their pinned position (i.e. are about
+  // to scroll under the sticky header), not at a fixed scroll distance. A
+  // zero-height sentinel sits just above the controls; when it crosses above the
+  // 52px header line it stops intersecting → the bar is now stuck → collapse.
+  // Observing the sentinel (not the bar itself) avoids a collapse/height/expand
+  // feedback loop.
   useEffect(() => {
-    const onScroll = () => {
-      const s = window.scrollY > 220;
-      setScrolled(s);
-      if (!s) setPanelOpen(false);
-    };
-    const raf = requestAnimationFrame(onScroll); // avoids sync setState in effect
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("scroll", onScroll); };
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        const stuck = !entry.isIntersecting && entry.boundingClientRect.top <= 52;
+        setScrolled(stuck);
+        if (!stuck) setPanelOpen(false);
+      },
+      { rootMargin: "-52px 0px 0px 0px", threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   // Close the collapsed popover on an outside click.
@@ -723,6 +733,7 @@ export default function VideoGrid({
       <style>{css}</style>
       <div className="vg-root">
 
+        <div ref={sentinelRef} className="vg-sticky-sentinel" aria-hidden="true" />
         <div className="vg-sticky-controls" ref={controlsRef}>
           {scrolled && (
             <div className="vg-compact">
@@ -1050,6 +1061,12 @@ const css = `
   .vg-root {
     margin-top: 2rem;
     font-family: 'Barlow', sans-serif;
+  }
+
+  .vg-sticky-sentinel {
+    height: 1px;
+    margin-bottom: -1px;
+    pointer-events: none;
   }
 
   .vg-sticky-controls {
