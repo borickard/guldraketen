@@ -286,6 +286,9 @@ export default function VideoGrid({
   const [scrolled, setScrolled] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const scrolledRef = useRef(false);     // mirrors `scrolled` for the scroll handler
+  const expandedHRef = useRef(0);        // measured height of the expanded controls
+  const compactHRef = useRef(0);         // measured height of the collapsed bar
 
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -312,19 +315,33 @@ export default function VideoGrid({
   // touches cards that are no longer visible.
   useEffect(() => { setSelected(new Set()); }, [tagFilter]);
 
-  // Collapse only once the controls reach their pinned position (top:52px, just
-  // under the sticky header), not at a fixed scroll distance. Read the bar's live
-  // position on scroll: before pinning its top is > 52; once stuck it sits at 52.
-  // Measuring the bar's `top` (which stays 52 when pinned regardless of its
-  // height) avoids a collapse/height/expand feedback loop. The listener reads the
-  // ref lazily, so it works even though the bar isn't in the DOM during loading.
+  // Collapse the controls once they reach their pinned position (top:52px, under
+  // the sticky header) — BUT only when the page is tall enough that removing the
+  // controls' height won't force the scroll to jump. On a short page (e.g. one
+  // week filtered to 1–2 rows) collapsing would shrink the document below the
+  // current scroll, the browser would clamp back up, which un-pins and re-expands
+  // the bar → an upward "jump" loop. Gating on available scroll room avoids it.
   useEffect(() => {
     const onScroll = () => {
       const el = controlsRef.current;
       if (!el) return;
-      const stuck = el.getBoundingClientRect().top <= 53;
-      setScrolled(stuck);
-      if (!stuck) setPanelOpen(false);
+      const collapsed = scrolledRef.current;
+      const h = el.offsetHeight;
+      if (collapsed) compactHRef.current = h; else expandedHRef.current = h;
+      const pinned = el.getBoundingClientRect().top <= 53;
+
+      if (pinned && !collapsed) {
+        const delta = Math.max(0, expandedHRef.current - (compactHRef.current || 60));
+        const maxAfter = document.documentElement.scrollHeight - delta - window.innerHeight;
+        if (window.scrollY <= maxAfter - 8) {
+          scrolledRef.current = true;
+          setScrolled(true);
+        }
+      } else if (!pinned && collapsed) {
+        scrolledRef.current = false;
+        setScrolled(false);
+        setPanelOpen(false);
+      }
     };
     const raf = requestAnimationFrame(onScroll); // sync initial state, lint-safe
     window.addEventListener("scroll", onScroll, { passive: true });
