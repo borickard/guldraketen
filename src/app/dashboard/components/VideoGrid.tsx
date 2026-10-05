@@ -281,14 +281,10 @@ export default function VideoGrid({
   // Tag filter: a tag id, the "__untagged__" sentinel, or null for "all".
   const [tagFilter, setTagFilter] = useState<string | null>(null);
 
-  // Collapse the tall controls block into a slim summary bar once scrolled;
-  // the full controls reopen in a popover. Saves ~1/3 of the viewport on scroll.
-  const [scrolled, setScrolled] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
+  // The full controls sit in normal flow and scroll away 1:1 with the page. Once
+  // they've scrolled up under the sticky header, a fixed condensed bar appears.
+  const [showCompact, setShowCompact] = useState(false);
   const controlsRef = useRef<HTMLDivElement>(null);
-  const scrolledRef = useRef(false);     // mirrors `scrolled` for the scroll handler
-  const expandedHRef = useRef(0);        // measured height of the expanded controls
-  const compactHRef = useRef(0);         // measured height of the collapsed bar
 
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -315,33 +311,15 @@ export default function VideoGrid({
   // touches cards that are no longer visible.
   useEffect(() => { setSelected(new Set()); }, [tagFilter]);
 
-  // Collapse the controls once they reach their pinned position (top:52px, under
-  // the sticky header) — BUT only when the page is tall enough that removing the
-  // controls' height won't force the scroll to jump. On a short page (e.g. one
-  // week filtered to 1–2 rows) collapsing would shrink the document below the
-  // current scroll, the browser would clamp back up, which un-pins and re-expands
-  // the bar → an upward "jump" loop. Gating on available scroll room avoids it.
+  // Show the condensed bar once the full controls have scrolled above the header
+  // line (52px). The controls stay in normal flow (their height never changes) and
+  // the condensed bar is fixed (out of flow), so toggling it never shifts the
+  // document — no scroll jump, on any page length.
   useEffect(() => {
     const onScroll = () => {
       const el = controlsRef.current;
       if (!el) return;
-      const collapsed = scrolledRef.current;
-      const h = el.offsetHeight;
-      if (collapsed) compactHRef.current = h; else expandedHRef.current = h;
-      const pinned = el.getBoundingClientRect().top <= 53;
-
-      if (pinned && !collapsed) {
-        const delta = Math.max(0, expandedHRef.current - (compactHRef.current || 60));
-        const maxAfter = document.documentElement.scrollHeight - delta - window.innerHeight;
-        if (window.scrollY <= maxAfter - 8) {
-          scrolledRef.current = true;
-          setScrolled(true);
-        }
-      } else if (!pinned && collapsed) {
-        scrolledRef.current = false;
-        setScrolled(false);
-        setPanelOpen(false);
-      }
+      setShowCompact(el.getBoundingClientRect().bottom <= 52);
     };
     const raf = requestAnimationFrame(onScroll); // sync initial state, lint-safe
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -352,16 +330,6 @@ export default function VideoGrid({
       window.removeEventListener("resize", onScroll);
     };
   }, []);
-
-  // Close the collapsed popover on an outside click.
-  useEffect(() => {
-    if (!panelOpen) return;
-    function handler(e: MouseEvent) {
-      if (controlsRef.current && !controlsRef.current.contains(e.target as Node)) setPanelOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [panelOpen]);
 
   function toggleSelected(videoUrl: string) {
     setSelected((curr) => {
@@ -751,58 +719,55 @@ export default function VideoGrid({
     : tagFilter
       ? tagsById.get(tagFilter) ?? null
       : null;
-  const controlsBodyClass =
-    "vg-controls-body" +
-    (scrolled ? (panelOpen ? " vg-controls-body--panel" : " vg-controls-body--hidden") : "");
-
   return (
     <>
       <style>{css}</style>
       <div className="vg-root">
 
-        <div className="vg-sticky-controls" ref={controlsRef}>
-          {scrolled && (
-            <div className="vg-compact">
-              <button
-                type="button"
-                className={`vg-compact-summary${panelOpen ? " vg-compact-summary--open" : ""}`}
-                onClick={() => setPanelOpen((o) => !o)}
-                aria-expanded={panelOpen}
-              >
-                <svg className="vg-compact-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
-                </svg>
-                <span className="vg-compact-chips">
-                  <span className="vg-cchip">{scopeLabel}</span>
-                  <span className="vg-cchip">{sortLabel}</span>
-                  {dateChipLabel && (
-                    <span className="vg-cchip vg-cchip--accent">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 3, verticalAlign: "-1px" }}>
-                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                      </svg>
-                      {dateChipLabel}
-                    </span>
-                  )}
-                  {numFilterCount > 0 && <span className="vg-cchip vg-cchip--accent">{numFilterCount} filter</span>}
-                  {activeTag && (
-                    <span
-                      className="vg-cchip vg-cchip--tag"
-                      style={activeTag.color ? { background: activeTag.color, color: chipTextColor(activeTag.color) } : undefined}
-                    >
-                      {activeTag.name}
-                    </span>
-                  )}
-                  {selectMode && selected.size > 0 && (
-                    <span className="vg-cchip vg-cchip--accent">{selected.size} markerade</span>
-                  )}
+        {/* Condensed indicator bar — fixed under the header, appears once the full
+            controls have scrolled out of view. Tap to jump back up to them. */}
+        <div className={`vg-compactbar${showCompact ? " vg-compactbar--shown" : ""}`} aria-hidden={!showCompact}>
+          <button
+            type="button"
+            className="vg-compact-summary"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            tabIndex={showCompact ? 0 : -1}
+            title="Visa filter"
+          >
+            <svg className="vg-compact-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+            <span className="vg-compact-chips">
+              <span className="vg-cchip">{scopeLabel}</span>
+              <span className="vg-cchip">{sortLabel}</span>
+              {dateChipLabel && (
+                <span className="vg-cchip vg-cchip--accent">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 3, verticalAlign: "-1px" }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  {dateChipLabel}
                 </span>
-                <svg className={`vg-compact-caret${panelOpen ? " vg-compact-caret--up" : ""}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            </div>
-          )}
-          <div className={controlsBodyClass}>
+              )}
+              {numFilterCount > 0 && <span className="vg-cchip vg-cchip--accent">{numFilterCount} filter</span>}
+              {activeTag && (
+                <span
+                  className="vg-cchip vg-cchip--tag"
+                  style={activeTag.color ? { background: activeTag.color, color: chipTextColor(activeTag.color) } : undefined}
+                >
+                  {activeTag.name}
+                </span>
+              )}
+              {selectMode && selected.size > 0 && (
+                <span className="vg-cchip vg-cchip--accent">{selected.size} markerade</span>
+              )}
+            </span>
+            <svg className="vg-compact-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 15 12 9 18 15" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="vg-controls" ref={controlsRef}>
           <div className="vg-toolbar">
             <div className="vg-toolbar-row">
               <span className="vg-row-label">Gruppera</span>
@@ -1016,7 +981,6 @@ export default function VideoGrid({
             ))}
           </div>
         )}
-          </div>
         </div>
 
         {filtered.length === 0 ? (
@@ -1097,14 +1061,10 @@ const css = `
     font-family: 'Barlow', sans-serif;
   }
 
-  .vg-sticky-controls {
-    position: sticky;
-    top: 52px;
-    z-index: 80;
-    background: #EBE7E2;
-    padding: 0.75rem 0 0.75rem;
-    margin-top: -0.75rem;
+  /* Full controls — normal flow; they scroll away 1:1 with the page. */
+  .vg-controls {
     margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid rgba(28,27,25,0.08);
   }
 
@@ -1114,13 +1074,32 @@ const css = `
     gap: 0.75rem;
   }
 
-  .vg-sticky-controls .vg-filter-panel {
+  .vg-controls .vg-filter-panel {
     margin-top: 0.75rem;
     margin-bottom: 0;
   }
 
-  /* Collapsed controls (after scroll) — slim summary bar + popover */
-  .vg-compact { position: relative; }
+  /* Condensed indicator bar — fixed under the 52px header, slides in once the
+     full controls scroll out of view. Fixed = out of flow, so no scroll jump. */
+  .vg-compactbar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: #EBE7E2;
+    border-bottom: 1px solid rgba(28,27,25,0.08);
+    padding: 8px 1.5rem;
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+  }
+  .vg-compactbar--shown {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
   .vg-compact-summary {
     display: flex;
     align-items: center;
@@ -1135,7 +1114,6 @@ const css = `
     transition: border-color 0.12s;
   }
   .vg-compact-summary:hover { border-color: rgba(28,27,25,0.28); }
-  .vg-compact-summary--open { border-color: #1C1B19; }
   .vg-compact-icon { color: #888; flex-shrink: 0; }
   .vg-compact-chips {
     display: flex;
@@ -1158,23 +1136,7 @@ const css = `
   }
   .vg-cchip--accent { background: rgba(200,150,42,0.16); color: #8a6a1e; }
   .vg-cchip--tag { color: #fff; }
-  .vg-compact-caret { color: #888; flex-shrink: 0; margin-left: auto; transition: transform 0.15s; }
-  .vg-compact-caret--up { transform: rotate(180deg); }
-
-  .vg-controls-body--hidden { display: none; }
-  .vg-controls-body--panel {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 8px;
-    background: #EBE7E2;
-    border: 1px solid rgba(28,27,25,0.14);
-    border-radius: 12px;
-    box-shadow: 0 14px 34px rgba(28,27,25,0.16);
-    padding: 1rem 1rem 0.5rem;
-    z-index: 95;
-  }
+  .vg-compact-caret { color: #888; flex-shrink: 0; margin-left: auto; }
 
   .vg-tag-hint {
     font-family: 'Barlow', sans-serif;
