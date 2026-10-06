@@ -5,10 +5,6 @@ export const metadata: Metadata = {
   description: "Gillar du Sociala Raketer? Bjud på en kaffe och hjälp till att hålla raketerna i luften.",
 };
 
-// Fyll i Swish-numret (eller Swish Handel-numret) för att visa Swish-kortet.
-// Lämnas tomt tills vidare — kortet visas inte förrän ett nummer finns här.
-const SWISH_NUMBER = "";
-
 const CoffeeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
@@ -45,16 +41,6 @@ export default function Stotta() {
               Stötta på Ko-fi
             </a>
           </div>
-
-          {SWISH_NUMBER && (
-            <div className="gr-stotta-card">
-              <h2 className="gr-stotta-card-title">Swish</h2>
-              <p className="gr-stotta-card-text">
-                Föredrar du Swish? Skanna QR-koden eller skicka till numret nedan.
-              </p>
-              <p className="gr-stotta-swish-number">{SWISH_NUMBER}</p>
-            </div>
-          )}
         </div>
 
         <p className="gr-page-body" style={{ marginTop: "var(--space-5)", opacity: 0.85 }}>
