@@ -22,7 +22,10 @@ const otherLinks = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/header-test")) return null;
+  // Hide the public nav on dashboard/admin, but compute this AFTER all hooks run
+  // (below) — an early return before the hooks would change the hook order
+  // between renders and crash React when navigating to/from those sections.
+  const hidden = pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/header-test");
   const isHome = pathname === "/";
   const links = isHome ? homeLinks : otherLinks;
 
@@ -51,16 +54,19 @@ export default function NavBar() {
   // larger than the height change prevents that loop, and short pages that can't
   // scroll past 170px simply stay expanded (compacting gains nothing there).
   useEffect(() => {
+    if (hidden) return;
     function handleScroll() {
       const y = window.scrollY;
       setScrolled(prev => prev ? y > 90 : y > 170);
     }
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hidden]);
 
   // Close drawer on route change
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  if (hidden) return null;
 
   return (
     <>
