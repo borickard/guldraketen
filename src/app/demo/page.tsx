@@ -27,6 +27,8 @@ export default function DemoPage() {
 }
 
 const styles = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   .demo-root {
     min-height: 100vh;
     background: #EBE7E2;
@@ -61,7 +63,7 @@ const styles = `
     white-space: nowrap;
   }
   .demo-main {
-    max-width: 1100px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 2.5rem 1.5rem 6rem;
   }
