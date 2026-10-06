@@ -4888,6 +4888,57 @@ body {
   margin-top: auto;
 }
 
+.gr-stotta-dash {
+  margin-top: 28px;
+  background: rgba(200, 150, 42, 0.08);
+  border: 1px solid rgba(200, 150, 42, 0.35);
+  border-radius: 18px;
+  padding: 28px;
+}
+.gr-stotta-dash-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #C8962A;
+  display: block;
+  margin-bottom: 8px;
+}
+.gr-stotta-dash-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #EDF8FB;
+  margin-bottom: 10px;
+}
+.gr-stotta-dash-lead {
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(237, 248, 251, 0.72);
+  max-width: 620px;
+  margin-bottom: 20px;
+}
+.gr-stotta-dash-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.gr-stotta-dash-secondary {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #EDF8FB;
+  text-decoration: none;
+  padding: 0.5rem 0.95rem;
+  border: 1.5px solid rgba(237, 248, 251, 0.3);
+  border-radius: 999px;
+  transition: border-color 0.12s;
+}
+.gr-stotta-dash-secondary:hover { border-color: rgba(237, 248, 251, 0.6); }
+
 .gr-stotta-foot {
   text-align: center;
   font-family: 'Barlow', sans-serif;
