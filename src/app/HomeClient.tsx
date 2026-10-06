@@ -6,6 +6,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { calculateEngagement } from "@/lib/engagement";
 
+// Anchor slugs for the FAQ items, in the same order as they're rendered below.
+// Linking to e.g. /#beta opens that item on arrival. Keep in sync with the list.
+const FAQ_SLUGS = [
+  "engagemang",   // Hur beräknas engagemangsgraden?
+  "tavlingar",    // Varför filtreras tävlingsvideor bort?
+  "konton",       // Vilka konton mäts?
+  "uppdatering",  // Hur ofta uppdateras topplistan?
+  "nominera",     // Vårt konto är inte med
+  "beta",         // Jag vill vara beta-testare
+  "vem",          // Vem ligger bakom Sociala Raketer?
+];
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RawVideo {
@@ -366,6 +378,26 @@ function HomeInner() {
   const [betaError, setBetaError] = useState<string | null>(null);
   // ── FAQ accordion + inline forms ────────────────────────────────────────────
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  // Open (and scroll to) a FAQ item when the URL targets it via hash, e.g.
+  // /#beta or /#vem. Also handles in-page hash changes.
+  useEffect(() => {
+    function openFromHash() {
+      const hash = window.location.hash.slice(1);
+      const idx = FAQ_SLUGS.indexOf(hash);
+      if (idx === -1) return;
+      setFaqOpen(idx);
+      requestAnimationFrame(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    const raf = requestAnimationFrame(openFromHash); // initial, lint-safe
+    window.addEventListener("hashchange", openFromHash);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("hashchange", openFromHash);
+    };
+  }, []);
   type FormState = { handle: string; email: string; status: "idle" | "loading" | "ok" | "err"; msg: string };
   const FORM_IDLE: FormState = { handle: "", email: "", status: "idle", msg: "" };
   const [nomForm, setNomForm] = useState<FormState>(FORM_IDLE);
@@ -1451,7 +1483,7 @@ function HomeInner() {
                 ),
               },
             ] as { q: string; body: React.ReactNode }[]).map((item, i) => (
-              <div key={i} className="gr-faq-item">
+              <div key={i} id={FAQ_SLUGS[i]} className="gr-faq-item" style={{ scrollMarginTop: 96 }}>
                 <button
                   className={`gr-faq-q${faqOpen === i ? " gr-faq-q--open" : ""}`}
                   onClick={() => setFaqOpen(faqOpen === i ? null : i)}
