@@ -1274,6 +1274,9 @@ function HomeInner() {
                       </div>
                     ))}
                   </div>
+                  <a href="/demo" className="gr-kalky-v2-demo-cta">
+                    Följ ditt konto över tid — testa dashboard-demon →
+                  </a>
                 </>
               ) : (
                 <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
@@ -1291,10 +1294,10 @@ function HomeInner() {
               )}
               <div className="gr-kalky-beta">
                 <p className="gr-kalky-beta-desc">
-                  Vill du vara beta-testare när vi lägger till fler funktioner i framtiden? Fyll i din mail så återkommer vi när vi öppnar upp för beta-testning.
+                  Vill du följa hela ditt konto över tid i stället för en video i taget? Anmäl intresse för en personlig dashboard så hör vi av oss när platserna öppnar.
                 </p>
                 {betaSubmitted ? (
-                  <p className="gr-kalky-beta-success">Tack! Vi hör av oss när beta öppnar.</p>
+                  <p className="gr-kalky-beta-success">Tack! Vi hör av oss så snart vi kan.</p>
                 ) : (
                   <>
                     <div className="gr-kalky-beta-row">

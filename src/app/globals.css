@@ -1577,6 +1577,19 @@ body {
   color: rgba(237,248,251,0.45);
 }
 
+.gr-kalky-v2-demo-cta {
+  display: block;
+  margin-top: 16px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: #C8962A;
+  text-decoration: none;
+}
+.gr-kalky-v2-demo-cta:hover { text-decoration: underline; }
+.gr-calc-video-result .gr-kalky-v2-demo-cta { text-align: center; align-self: stretch; }
+
 .gr-kalky-v2-bench-line {
   font-family: 'Barlow', sans-serif;
   font-size: 14px;
