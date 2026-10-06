@@ -4781,38 +4781,110 @@ body {
   transform: translateY(-1px);
 }
 
-/* Stötta / support page cards */
+/* ── Stötta / support page ── */
+.gr-stotta-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 24px 96px;
+}
+
+.gr-stotta-hero {
+  text-align: center;
+  margin-bottom: 44px;
+}
+
+.gr-stotta-mark {
+  display: block;
+  margin: 0 auto 22px;
+  border-radius: 14px;
+}
+
+.gr-stotta-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(32px, 7vw, 52px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  color: #EDF8FB;
+  margin: 0 0 16px;
+}
+
+.gr-stotta-lead {
+  font-family: 'Barlow', sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  color: rgba(237, 248, 251, 0.72);
+  max-width: 580px;
+  margin: 0 auto;
+}
+
 .gr-stotta-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-4);
-  margin: var(--space-5) 0 var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+  gap: 20px;
 }
 
 .gr-stotta-card {
-  background: rgba(237, 248, 251, 0.04);
+  background: rgba(237, 248, 251, 0.05);
   border: 1px solid rgba(237, 248, 251, 0.12);
-  border-radius: 14px;
-  padding: var(--space-4);
+  border-radius: 18px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.gr-stotta-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(237, 248, 251, 0.26);
+  background: rgba(237, 248, 251, 0.07);
+}
+
+.gr-stotta-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(237, 248, 251, 0.08);
+  color: #EDF8FB;
+  margin-bottom: 18px;
+}
+
+.gr-stotta-card-badge--gold {
+  background: rgba(200, 150, 42, 0.18);
+  color: #C8962A;
 }
 
 .gr-stotta-card-title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #EDF8FB;
-  margin-bottom: var(--space-2);
+  margin-bottom: 8px;
 }
 
 .gr-stotta-card-text {
   font-family: 'Barlow', sans-serif;
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.6;
   color: rgba(237, 248, 251, 0.6);
-  margin-bottom: var(--space-3);
+  margin-bottom: 22px;
+  flex: 1;
+}
+
+.gr-stotta-cta {
+  margin-top: auto;
+}
+
+.gr-stotta-foot {
+  text-align: center;
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  color: rgba(237, 248, 251, 0.45);
+  margin-top: 40px;
 }
 
 .gr-footer-v2-col-title {
