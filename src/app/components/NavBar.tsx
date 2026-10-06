@@ -10,6 +10,7 @@ const homeLinks = [
   { href: "/kategorier",    label: "Kategorier" },
   { href: "#kalkylator",    label: "Räkna ut engagemang" },
   { href: "#om-engagemang", label: "Om Sociala Raketer" },
+  { href: "/stotta",        label: "Stötta" },
 ];
 
 const otherLinks = [
@@ -18,6 +19,7 @@ const otherLinks = [
   { href: "/kategorier",    label: "Kategorier" },
   { href: "/#kalkylator",   label: "Räkna ut engagemang" },
   { href: "/#om-engagemang", label: "Om Sociala Raketer" },
+  { href: "/stotta",         label: "Stötta" },
 ];
 
 export default function NavBar() {
