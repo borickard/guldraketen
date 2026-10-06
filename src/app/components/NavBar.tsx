@@ -17,7 +17,7 @@ const otherLinks = [
   { href: "/hall-of-fame",  label: "Hall of Fame" },
   { href: "/kategorier",    label: "Kategorier" },
   { href: "/#kalkylator",   label: "Räkna ut engagemang" },
-  { href: "/om-engagemang", label: "Om Sociala Raketer" },
+  { href: "/#om-engagemang", label: "Om Sociala Raketer" },
 ];
 
 export default function NavBar() {
