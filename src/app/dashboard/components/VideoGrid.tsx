@@ -590,9 +590,14 @@ export default function VideoGrid({
         <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
           {v.thumbnail_url
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={v.thumbnail_url} alt="" className="vg-thumb" />
+            ? <img src={v.thumbnail_url} alt={v.caption ?? ""} className="vg-thumb" />
             : <div className="vg-thumb vg-thumb--empty" />
           }
+          {v.caption && (
+            <span className="vg-thumb-caption">
+              <span className="vg-thumb-caption-text">{v.caption}</span>
+            </span>
+          )}
           {v.is_ad === true && (
             <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
           )}
@@ -605,13 +610,12 @@ export default function VideoGrid({
         </a>
         <div className="vg-card-bar">
           <span className="vg-card-er">{er != null ? `${er.toFixed(2)}%` : "—"}</span>
-          {!readOnly && (<>
           <button
             type="button"
             className={`vg-card-action${excluded ? " vg-card-action--on" : ""}`}
-            onClick={() => toggleExcluded(v)}
-            disabled={saving}
-            title={excluded ? "Inkludera i statistik" : "Exkludera från statistik"}
+            onClick={readOnly ? undefined : () => toggleExcluded(v)}
+            disabled={readOnly || saving}
+            title={readOnly ? "Dölj från statistik — finns i din egen dashboard" : excluded ? "Inkludera i statistik" : "Exkludera från statistik"}
             aria-label={excluded ? "Inkludera i statistik" : "Exkludera från statistik"}
           >
             {excluded ? (
@@ -629,8 +633,9 @@ export default function VideoGrid({
           <button
             type="button"
             className={`vg-card-action${vtags.length > 0 ? " vg-card-action--on" : ""}`}
-            onClick={() => setPickerTarget([v.video_url])}
-            title="Tagga inlägg"
+            onClick={readOnly ? undefined : () => setPickerTarget([v.video_url])}
+            disabled={readOnly}
+            title={readOnly ? "Tagga inlägg — finns i din egen dashboard" : "Tagga inlägg"}
             aria-label="Tagga inlägg"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -638,7 +643,6 @@ export default function VideoGrid({
               <line x1="7" y1="7" x2="7.01" y2="7" />
             </svg>
           </button>
-          </>)}
           <a
             href={v.video_url}
             target="_blank"
@@ -1512,6 +1516,34 @@ const css = `
   .vg-thumb--empty {
     width: 100%;
     height: 100%;
+  }
+
+  /* Caption overlay — fades in over the thumbnail on hover */
+  .vg-thumb-caption {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px;
+    background: linear-gradient(to top,
+      rgba(7,37,58,0.94) 0%,
+      rgba(7,37,58,0.78) 42%,
+      rgba(7,37,58,0.15) 80%,
+      rgba(7,37,58,0) 100%);
+    opacity: 0;
+    transition: opacity 0.16s ease;
+    pointer-events: none;
+  }
+  .vg-thumb-wrap:hover .vg-thumb-caption { opacity: 1; }
+  .vg-thumb-caption-text {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12.5px;
+    line-height: 1.38;
+    color: #EDF8FB;
+    display: -webkit-box;
+    -webkit-line-clamp: 7;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   /* ER + link row */
