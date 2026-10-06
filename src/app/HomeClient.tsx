@@ -1480,12 +1480,7 @@ function HomeInner() {
               Utvärderar engagemang på TikTok sedan 2026. Skapat av{" "}
               <a href="https://www.linkedin.com/in/rickardberggren/" target="_blank" rel="noopener noreferrer" className="gr-footer-v2-name">Rickard Berggren</a>.
             </p>
-            <a
-              href="https://ko-fi.com/rickardb"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gr-kofi-btn"
-            >
+            <a href="/stotta" className="gr-kofi-btn">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
