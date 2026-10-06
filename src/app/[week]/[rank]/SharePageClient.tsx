@@ -170,6 +170,11 @@ export default function VideoSharePage() {
                                 </a>
                             ) : <span />}
                         </div>
+
+                        <p className="sp2-foot">
+                            Byggt på fritiden. Gillar du Sociala Raketer?{" "}
+                            <a href="/stotta" className="sp2-foot-link">Stötta projektet →</a>
+                        </p>
                     </div>
                 </div>
             )}
