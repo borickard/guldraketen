@@ -4794,14 +4794,6 @@ body {
   margin-bottom: var(--space-3);
 }
 
-.gr-stotta-swish-number {
-  font-family: 'Barlow', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #EDF8FB;
-  letter-spacing: 0.04em;
-}
-
 .gr-footer-v2-col-title {
   font-family: var(--gr-mono);
   font-size: 9px;
