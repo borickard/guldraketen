@@ -362,6 +362,10 @@ function HallOfFameInner() {
           </div>
         ))
       )}
+      <p className="gr-hof-foot">
+        Gillar du Sociala Raketer?{" "}
+        <a href="/stotta" className="gr-hof-foot-link">Stötta projektet →</a>
+      </p>
     </main>
   );
 }

@@ -155,6 +155,10 @@ export default async function KategorierPage() {
               </Link>
             ))}
           </div>
+          <p className="cat-list-foot">
+            Gillar du Sociala Raketer?{" "}
+            <a href="/stotta" className="cat-list-foot-link">Stötta projektet →</a>
+          </p>
         </div>
       </main>
     </>
@@ -270,4 +274,14 @@ const styles = `
     color: #C8962A;
     font-weight: 600;
   }
+
+  .cat-list-foot {
+    text-align: center;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    color: rgba(28,27,25,0.55);
+    margin: 36px 0 0;
+  }
+  .cat-list-foot-link { color: #C8962A; font-weight: 700; text-decoration: none; white-space: nowrap; }
+  .cat-list-foot-link:hover { text-decoration: underline; }
 `;
