@@ -822,6 +822,15 @@ body {
   padding-bottom: 80px;
 }
 
+/* /om-engagemang and /nominera were designed as LIGHT pages (navy text on a
+   light background, light cards, a dark formula callout). They use .gr-root,
+   which is now navy — making all their var(--gr-dark) text invisible. Restore
+   the intended light background for exactly these pages. */
+.gr-root.gr-page {
+  background: var(--gr-bg);
+  color: var(--gr-dark);
+}
+
 .gr-page-content {
   max-width: 680px;
   margin: 0 auto;
