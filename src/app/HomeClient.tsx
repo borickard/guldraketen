@@ -16,6 +16,7 @@ const FAQ_SLUGS = [
   "nominera",     // Vårt konto är inte med
   "beta",         // Jag vill vara beta-testare
   "vem",          // Vem ligger bakom Sociala Raketer?
+  "stotta",      // Hur kan jag stödja projektet?
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1439,10 +1440,10 @@ function HomeInner() {
                 ),
               },
               {
-                q: "Jag vill vara beta-testare",
+                q: "Kan jag få en egen dashboard?",
                 body: (
                   <>
-                    <p>Just nu bygger vi en dashboard för dig som vill ha bättre översikt över ditt TikTok-innehåll. Du får detaljerad statistik per video, genomsnitt och totala resultat — men framför allt möjligheten att jämföra mot konkurrenter och andra konton i din kategori. Begränsat antal platser. Anmäl intresse nedan.</p>
+                    <p>Ja. Din personliga dashboard ger detaljerad statistik per inlägg, trender över tid, viktad engagement rate och framför allt jämförelser mot konkurrenter och andra konton i din kategori. <a href="/demo" className="gr-faq-link">Testa demon här →</a> eller anmäl intresse nedan.</p>
                     {faqBetaForm.status === "ok" ? (
                       <p className="gr-faq-msg gr-faq-msg--ok">{faqBetaForm.msg}</p>
                     ) : (
@@ -1479,6 +1480,14 @@ function HomeInner() {
                 body: (
                   <>
                     <p><a href="https://www.linkedin.com/in/rickardberggren/" target="_blank" rel="noopener noreferrer" className="gr-faq-link">Rickard Berggren</a>, digital strateg som jobbat med sociala medier och content i 12 år. Brinner för internetkultur och innehåll som verkligen berör och engagerar. Projektet startade 2026 som ett sätt att lyfta fram det som faktiskt fungerar — inte det som syns mest.</p>
+                  </>
+                ),
+              },
+              {
+                q: "Hur kan jag stödja projektet?",
+                body: (
+                  <>
+                    <p>Sociala Raketer är gratis och drivs på fritiden — datainsamlingen kostar varje månad. Gillar du projektet kan du <a href="/stotta" className="gr-faq-link">stötta det med en dricks eller donation</a>. Tack!</p>
                   </>
                 ),
               },
