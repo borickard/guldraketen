@@ -4760,6 +4760,27 @@ body {
   transform: translateY(-1px);
 }
 
+/* Stripe "betala direkt"-knapp (ljus pill, för kontrast mot guld-Ko-fi) */
+.gr-stripe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C1B19;
+  background: #EDF8FB;
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.gr-stripe-btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
 /* Stötta / support page cards */
 .gr-stotta-cards {
   display: grid;
