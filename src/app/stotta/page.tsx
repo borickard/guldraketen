@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Stötta Sociala Raketer",
-  description: "Gillar du Sociala Raketer? Ett litet stöd hjälper mig att fortsätta driva projektet.",
+  description: "Sociala Raketer är gratis och oberoende. Tycker du det fyller en funktion? Var med och backa projektet.",
 };
 
 // Stripe "pay what you want" dricks-länk (SEK).
@@ -32,10 +32,9 @@ export default function Stotta() {
           <img src="/icon.svg" alt="" className="gr-stotta-mark" width={64} height={64} />
           <h1 className="gr-stotta-title">Stötta Sociala Raketer</h1>
           <p className="gr-stotta-lead">
-            Jag bygger och driver Sociala Raketer på min fritid. Att samla in och hantera
-            all data kostar pengar varje månad. Gillar du projektet och vill att jag ska
-            kunna fortsätta utveckla det? Då uppskattar jag verkligen ett litet stöd — en
-            dricks eller donation gör stor skillnad.
+            Sociala Raketer är ett oberoende projekt som lyfter fram svenskt innehåll som
+            faktiskt engagerar — gratis för alla att använda. Datan bakom kostar dock pengar
+            varje månad. Tycker du det fyller en funktion? Då kan du vara med och backa det.
           </p>
         </header>
 
@@ -77,7 +76,7 @@ export default function Stotta() {
           </div>
         </div>
 
-        <p className="gr-stotta-foot">Tack för att du håller raketerna i luften. 🚀</p>
+        <p className="gr-stotta-foot">Varje bidrag håller raketen i luften. 🚀</p>
       </div>
     </main>
   );
