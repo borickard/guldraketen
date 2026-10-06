@@ -76,6 +76,20 @@ export default function Stotta() {
           </div>
         </div>
 
+        <section className="gr-stotta-dash">
+          <span className="gr-stotta-dash-eyebrow">För företag</span>
+          <h2 className="gr-stotta-dash-title">Vill du ha en egen dashboard?</h2>
+          <p className="gr-stotta-dash-lead">
+            Full koll på ert eget TikTok-innehåll: statistik per inlägg, trender över tid,
+            viktad engagement rate och jämförelser mot konkurrenter och er kategori. Testa demon
+            för att se hur det fungerar.
+          </p>
+          <div className="gr-stotta-dash-actions">
+            <a href="/demo" className="gr-stripe-btn">Testa demon</a>
+            <a href="/#beta" className="gr-stotta-dash-secondary">Anmäl intresse</a>
+          </div>
+        </section>
+
         <p className="gr-stotta-foot">Varje bidrag håller raketen i luften. 🚀</p>
       </div>
     </main>
