@@ -33,8 +33,8 @@ function thumb(i: number): string {
     `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
     `<stop offset='0' stop-color='${c}'/><stop offset='1' stop-color='#07253A'/></linearGradient></defs>` +
     `<rect width='300' height='375' fill='url(#g)'/>` +
-    `<text x='150' y='205' font-family='Arial, sans-serif' font-size='150' font-weight='bold' ` +
-    `fill='rgba(255,255,255,0.22)' text-anchor='middle'>${i + 1}</text></svg>`;
+    `<circle cx='150' cy='188' r='42' fill='rgba(255,255,255,0.16)'/>` +
+    `<path d='M138 165 L138 211 L178 188 Z' fill='rgba(255,255,255,0.85)'/></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
@@ -50,30 +50,32 @@ type Row = {
 };
 
 // [views, likes, comments, shares, collect, isAd, date, caption]
+// Dates are grouped into ISO weeks of 3–5 posts each (W35–W40 2026) so the
+// "per vecka" grouping shows several realistic buckets.
 const ROWS: Row[] = [
-  { v: 2_410_000, l: 58_000, c: 420, s: 3_900, col: 2_100, ad: false, date: "2026-09-28", cap: "När måndagen kommer för tidigt 😅 #humor" },
-  { v: 7_800,     l: 1_450,  c: 390, s: 540,   col: 980,   ad: false, date: "2026-10-01", cap: "Liten video, stort engagemang — vår community är bäst" },
-  { v: 320_000,   l: 12_400, c: 210, s: 9_600, col: 1_800, ad: false, date: "2026-09-12", cap: "Dela med någon som behöver se det här 🔁" },
-  { v: 184_000,   l: 9_800,  c: 4_300, s: 620, col: 540,   ad: false, date: "2026-08-30", cap: "Vad tycker ni? Svara i kommentarerna 👇" },
-  { v: 96_000,    l: 31_000, c: 180,  s: 410,  col: 220,   ad: false, date: "2026-09-20", cap: "Tack för all kärlek på den här ❤️" },
-  { v: 142_000,   l: 5_600,  c: 150,  s: 480,  col: 8_900, ad: false, date: "2026-07-18", cap: "Spara den här till nästa gång du ska baka 🧁" },
-  { v: 54_000,    l: 2_100,  c: 95,   s: 180,  col: 160,   ad: true,  date: "2026-09-05", cap: "Kampanj: höstens nyheter är här" },
-  { v: 410_000,   l: 18_200, c: 640,  s: 1_250, col: 1_400, ad: true, date: "2026-08-14", cap: "Annons: prova själv — länk i bion" },
-  { v: 23_000,    l: 1_900,  c: 240,  s: 310,  col: 450,   ad: false, date: "2026-10-03", cap: "Behind the scenes från inspelningen" },
-  { v: 67_000,    l: 3_400,  c: 120,  s: 220,  col: 300,   ad: false, date: "2026-09-25", cap: "En helt vanlig dag på kontoret" },
-  { v: 890_000,   l: 24_000, c: 310,  s: 1_600, col: 900,  ad: false, date: "2026-07-02", cap: "Den här tog fart direkt 🚀" },
-  { v: 12_500,    l: 820,    c: 60,   s: 70,   col: 110,   ad: false, date: "2026-08-08", cap: "Snabb tips-tisdag" },
-  { v: 205_000,   l: 7_300,  c: 2_900, s: 540, col: 620,   ad: false, date: "2026-09-02", cap: "Diskussionen i kommentarerna blev het 🔥" },
-  { v: 48_000,    l: 6_900,  c: 130,  s: 190,  col: 240,   ad: false, date: "2026-08-22", cap: "Liten men fin räckvidd" },
+  { v: 2_410_000, l: 58_000, c: 420, s: 3_900, col: 2_100, ad: false, date: "2026-08-24", cap: "När måndagen kommer för tidigt 😅 #humor" },
+  { v: 7_800,     l: 1_450,  c: 390, s: 540,   col: 980,   ad: false, date: "2026-08-25", cap: "Liten video, stort engagemang — vår community är bäst" },
+  { v: 320_000,   l: 12_400, c: 210, s: 9_600, col: 1_800, ad: false, date: "2026-08-27", cap: "Dela med någon som behöver se det här 🔁" },
+  { v: 184_000,   l: 9_800,  c: 4_300, s: 620, col: 540,   ad: false, date: "2026-08-28", cap: "Vad tycker ni? Svara i kommentarerna 👇" },
+  { v: 96_000,    l: 31_000, c: 180,  s: 410,  col: 220,   ad: false, date: "2026-08-30", cap: "Tack för all kärlek på den här ❤️" },
+  { v: 142_000,   l: 5_600,  c: 150,  s: 480,  col: 8_900, ad: false, date: "2026-08-31", cap: "Spara den här till nästa gång du ska baka 🧁" },
+  { v: 54_000,    l: 2_100,  c: 95,   s: 180,  col: 160,   ad: true,  date: "2026-09-02", cap: "Kampanj: höstens nyheter är här" },
+  { v: 410_000,   l: 18_200, c: 640,  s: 1_250, col: 1_400, ad: true, date: "2026-09-04", cap: "Annons: prova själv — länk i bion" },
+  { v: 23_000,    l: 1_900,  c: 240,  s: 310,  col: 450,   ad: false, date: "2026-09-05", cap: "Behind the scenes från inspelningen" },
+  { v: 67_000,    l: 3_400,  c: 120,  s: 220,  col: 300,   ad: false, date: "2026-09-07", cap: "En helt vanlig dag på kontoret" },
+  { v: 890_000,   l: 24_000, c: 310,  s: 1_600, col: 900,  ad: false, date: "2026-09-09", cap: "Den här tog fart direkt 🚀" },
+  { v: 12_500,    l: 820,    c: 60,   s: 70,   col: 110,   ad: false, date: "2026-09-11", cap: "Snabb tips-tisdag" },
+  { v: 205_000,   l: 7_300,  c: 2_900, s: 540, col: 620,   ad: false, date: "2026-09-12", cap: "Diskussionen i kommentarerna blev het 🔥" },
+  { v: 48_000,    l: 6_900,  c: 130,  s: 190,  col: 240,   ad: false, date: "2026-09-14", cap: "Liten men fin räckvidd" },
   { v: 760_000,   l: 15_000, c: 280,  s: 5_200, col: 1_100, ad: false, date: "2026-09-16", cap: "Taggade en vän? Bra jobbat 🔁" },
-  { v: 33_000,    l: 2_600,  c: 410,  s: 260,  col: 1_900, ad: false, date: "2026-10-05", cap: "Guide: steg för steg (spara!)" },
-  { v: 128_000,   l: 4_100,  c: 90,   s: 150,  col: 200,   ad: true,  date: "2026-07-28", cap: "Sponsrat: i samarbete med X" },
-  { v: 59_000,    l: 3_050,  c: 175,  s: 330,  col: 410,   ad: false, date: "2026-08-02", cap: "Sommarminnen ☀️" },
-  { v: 17_200,    l: 2_300,  c: 310,  s: 420,  col: 560,   ad: false, date: "2026-09-29", cap: "Ni frågade — vi svarar" },
-  { v: 1_150_000, l: 29_500, c: 390,  s: 2_100, col: 1_300, ad: false, date: "2026-08-19", cap: "Trend vi inte kunde låta bli 💃" },
-  { v: 41_000,    l: 1_700,  c: 85,   s: 120,  col: 150,   ad: false, date: "2026-07-11", cap: "Kort och gott" },
-  { v: 88_000,    l: 5_900,  c: 2_050, s: 300, col: 330,   ad: false, date: "2026-09-08", cap: "Fråga oss vad som helst 👇" },
-  { v: 26_500,    l: 1_250,  c: 70,   s: 95,   col: 3_200, ad: false, date: "2026-08-26", cap: "Checklista inför lanseringen (spara)" },
+  { v: 33_000,    l: 2_600,  c: 410,  s: 260,  col: 1_900, ad: false, date: "2026-09-18", cap: "Guide: steg för steg (spara!)" },
+  { v: 128_000,   l: 4_100,  c: 90,   s: 150,  col: 200,   ad: true,  date: "2026-09-19", cap: "Sponsrat: i samarbete med X" },
+  { v: 59_000,    l: 3_050,  c: 175,  s: 330,  col: 410,   ad: false, date: "2026-09-21", cap: "Sommarminnen ☀️" },
+  { v: 17_200,    l: 2_300,  c: 310,  s: 420,  col: 560,   ad: false, date: "2026-09-23", cap: "Ni frågade — vi svarar" },
+  { v: 1_150_000, l: 29_500, c: 390,  s: 2_100, col: 1_300, ad: false, date: "2026-09-25", cap: "Trend vi inte kunde låta bli 💃" },
+  { v: 41_000,    l: 1_700,  c: 85,   s: 120,  col: 150,   ad: false, date: "2026-09-26", cap: "Kort och gott" },
+  { v: 88_000,    l: 5_900,  c: 2_050, s: 300, col: 330,   ad: false, date: "2026-09-28", cap: "Fråga oss vad som helst 👇" },
+  { v: 26_500,    l: 1_250,  c: 70,   s: 95,   col: 3_200, ad: false, date: "2026-09-30", cap: "Checklista inför lanseringen (spara)" },
   { v: 305_000,   l: 11_800, c: 260,  s: 700,  col: 640,   ad: true,  date: "2026-10-02", cap: "Kampanj: sista chansen den här veckan" },
 ];
 
@@ -127,7 +129,7 @@ export const DEMO_HERO = {
   // Overridden client-side from the (filtered) videos, but filled for safety.
   benchmarks: {
     videos: DEMO_VIDEOS.length,
-    posts_per_week: 2,
+    posts_per_week: 4,
     total_views: 0, total_likes: 0, total_comments: 0, total_shares: 0, total_collects: 0,
     avg_views: 0, avg_likes: 0, avg_comments: 0, avg_shares: 0, avg_collects: 0, avg_er: 0,
   },
