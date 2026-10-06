@@ -44,11 +44,16 @@ export default function NavBar() {
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  // Track scroll for compact mode — hysteresis prevents jitter near threshold
+  // Track scroll for compact mode. The nav is sticky and ~60px shorter when
+  // compact, so shrinking it reduces the document height. On a short page the
+  // browser then clamps the scroll back up, which flips the state and makes the
+  // bar flicker while scrolling. A wide hysteresis (90/170) with a dead zone
+  // larger than the height change prevents that loop, and short pages that can't
+  // scroll past 170px simply stay expanded (compacting gains nothing there).
   useEffect(() => {
     function handleScroll() {
       const y = window.scrollY;
-      setScrolled(prev => prev ? y > 30 : y > 80);
+      setScrolled(prev => prev ? y > 90 : y > 170);
     }
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
