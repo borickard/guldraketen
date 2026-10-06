@@ -252,13 +252,17 @@ export default function VideoGrid({
   handle,
   boost = "all",
   onFilteredChange,
+  demoVideos,
+  readOnly = false,
 }: {
   handle?: string;
   boost?: BoostFilter;
   onFilteredChange?: (videos: Video[]) => void;
+  demoVideos?: Video[];   // inject data instead of fetching (demo dashboard)
+  readOnly?: boolean;     // hide write features (tagging, exclude) for the demo
 }) {
-  const [videos, setVideos]   = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [videos, setVideos]   = useState<Video[]>(demoVideos ?? []);
+  const [loading, setLoading] = useState(!demoVideos);
   const [sort, setSort]       = useState<SortKey>("newest");
   const [scope, setScope]     = useState<Scope>("week");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -297,7 +301,7 @@ export default function VideoGrid({
     setVideoTags(vt && typeof vt === "object" ? vt : {});
     setTagsLoaded(true);
   }
-  useEffect(() => { refetchTags(); }, []); // eslint-disable-line
+  useEffect(() => { if (!readOnly) refetchTags(); }, []); // eslint-disable-line
 
   // If the filtered-on tag gets deleted, fall back to "all".
   useEffect(() => {
@@ -364,12 +368,13 @@ export default function VideoGrid({
   }
 
   useEffect(() => {
+    if (demoVideos) { setVideos(demoVideos); setLoading(false); return; }
     setLoading(true);
     const url = handle ? `/api/dashboard/videos?handle=${encodeURIComponent(handle)}` : "/api/dashboard/videos";
     fetch(url)
       .then((r) => r.json())
       .then((data) => { setVideos(Array.isArray(data) ? data : []); setLoading(false); });
-  }, [handle]);
+  }, [handle, demoVideos]);
 
   // Read URL params on mount
   useEffect(() => {
@@ -600,6 +605,7 @@ export default function VideoGrid({
         </a>
         <div className="vg-card-bar">
           <span className="vg-card-er">{er != null ? `${er.toFixed(2)}%` : "—"}</span>
+          {!readOnly && (<>
           <button
             type="button"
             className={`vg-card-action${excluded ? " vg-card-action--on" : ""}`}
@@ -632,6 +638,7 @@ export default function VideoGrid({
               <line x1="7" y1="7" x2="7.01" y2="7" />
             </svg>
           </button>
+          </>)}
           <a
             href={v.video_url}
             target="_blank"
@@ -850,6 +857,7 @@ export default function VideoGrid({
                 </div>
               </div>
             )}
+            {!readOnly && (
             <div className="vg-toolbar-row">
               <span className="vg-row-label">Taggar</span>
               {tags.length === 0 && (
@@ -889,6 +897,7 @@ export default function VideoGrid({
                 Hantera taggar
               </button>
             </div>
+            )}
           </div>
 
         {showFilters && (

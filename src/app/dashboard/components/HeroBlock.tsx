@@ -138,16 +138,19 @@ export default function HeroBlock({
   boost,
   onBoostChange,
   videos,
+  demo,
 }: {
   handle: string;
   boost: BoostFilter;
   onBoostChange: (b: BoostFilter) => void;
   videos?: HeroVideo[];
+  demo?: HeroData;
 }) {
-  const [data, setData] = useState<HeroData | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
+  const [data, setData] = useState<HeroData | null>(demo ?? null);
+  const [isFetching, setIsFetching] = useState(!demo);
 
   useEffect(() => {
+    if (demo) return; // demo mode: use injected identity/followers, no authed fetch
     setIsFetching(true);
     const params = new URLSearchParams({ handle });
     if (boost !== "all") params.set("boost", boost);
@@ -161,7 +164,7 @@ export default function HeroBlock({
       })
       .catch(() => { if (!cancelled) setIsFetching(false); });
     return () => { cancelled = true; };
-  }, [handle, boost]);
+  }, [handle, boost, demo]);
 
   const ready = !!data && !isFetching;
   const name = data?.display_name ?? (data ? `@${data.handle}` : "");
