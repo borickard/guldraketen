@@ -5849,6 +5849,47 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* "Är det här ert konto?" dashboard CTA under the video table */
+.gr-konto-cta {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--gr-card);
+  border: 1px solid rgba(28, 27, 25, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+}
+.gr-konto-cta-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1C1B19;
+  margin-bottom: 6px;
+}
+.gr-konto-cta-lead {
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(28, 27, 25, 0.7);
+  max-width: 520px;
+}
+.gr-konto-cta-btn {
+  flex-shrink: 0;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #EDF8FB;
+  background: #1C1B19;
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  text-decoration: none;
+  transition: opacity 0.12s;
+}
+.gr-konto-cta-btn:hover { opacity: 0.88; }
+
 .gr-konto-table {
   width: 100%;
   border-collapse: collapse;

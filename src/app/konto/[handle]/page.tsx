@@ -237,6 +237,17 @@ export default function KontoPage() {
                 </tbody>
               </table>
             </div>
+
+            <div className="gr-konto-cta">
+              <div>
+                <h2 className="gr-konto-cta-title">Är det här ert konto?</h2>
+                <p className="gr-konto-cta-lead">
+                  Få en personlig dashboard med trender över tid, viktad engagement rate och
+                  jämförelser mot konkurrenter. Testa demon eller anmäl intresse.
+                </p>
+              </div>
+              <a href="/stotta" className="gr-konto-cta-btn">Läs mer</a>
+            </div>
           </>
         )}
 
