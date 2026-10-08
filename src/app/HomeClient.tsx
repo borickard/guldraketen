@@ -380,23 +380,29 @@ function HomeInner() {
   // ── FAQ accordion + inline forms ────────────────────────────────────────────
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
-  // Open (and scroll to) a FAQ item when the URL targets it via hash, e.g.
-  // /#beta or /#vem. Also handles in-page hash changes.
+  // Scroll to the in-page target named by the URL hash — section anchors like
+  // #kalkylator / #topplistan and FAQ items (#beta, #vem, …), opening the FAQ
+  // item when it's one. The nav's "Räkna ut engagemang" link lands here.
+  // Sections above the target (topplista, carousel) load their data after mount
+  // and shift the layout, so a single scroll on mobile can land short — re-scroll
+  // a couple of times as the page settles so it reliably reaches the target.
   useEffect(() => {
-    function openFromHash() {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    function scrollToHash() {
       const hash = window.location.hash.slice(1);
-      const idx = FAQ_SLUGS.indexOf(hash);
-      if (idx === -1) return;
-      setFaqOpen(idx);
-      requestAnimationFrame(() => {
-        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      if (!hash) return;
+      const faqIdx = FAQ_SLUGS.indexOf(hash);
+      if (faqIdx !== -1) setFaqOpen(faqIdx);
+      const go = () => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(go);
+      timers.push(setTimeout(go, 450), setTimeout(go, 1000));
     }
-    const raf = requestAnimationFrame(openFromHash); // initial, lint-safe
-    window.addEventListener("hashchange", openFromHash);
+    const raf = requestAnimationFrame(scrollToHash); // initial, lint-safe
+    window.addEventListener("hashchange", scrollToHash);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("hashchange", openFromHash);
+      timers.forEach(clearTimeout);
+      window.removeEventListener("hashchange", scrollToHash);
     };
   }, []);
   type FormState = { handle: string; email: string; status: "idle" | "loading" | "ok" | "err"; msg: string };
@@ -1107,7 +1113,7 @@ function HomeInner() {
       </section>
 
       {/* ── KALKYLATOR ───────────────────────────────────────────────── */}
-      <section className="gr-calc-section" id="kalkylator">
+      <section className="gr-calc-section" id="kalkylator" style={{ scrollMarginTop: 72 }}>
         <div className="gr-calc-section-inner">
           <h2 className="gr-calc-h2">Hur engagerande är ditt innehåll?</h2>
           <div className="gr-calc-desc">
