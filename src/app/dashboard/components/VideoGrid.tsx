@@ -572,6 +572,32 @@ export default function VideoGrid({
       .map((id) => tagsById.get(id))
       .filter((t): t is Tag => !!t);
     const isSel = selected.has(v.video_url);
+    // In read-only (demo) mode the videos aren't real (video_url is "#"), so a
+    // real link would reload and jump to the top. Render the thumbnail and the
+    // open-video icon as non-navigating elements instead.
+    const thumbInner = (
+      <>
+        {v.thumbnail_url
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={v.thumbnail_url} alt={v.caption ?? ""} className="vg-thumb" />
+          : <div className="vg-thumb vg-thumb--empty" />
+        }
+        {v.caption && (
+          <span className="vg-thumb-caption">
+            <span className="vg-thumb-caption-text">{v.caption}</span>
+          </span>
+        )}
+        {v.is_ad === true && (
+          <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
+        )}
+        {v.is_ad === false && (
+          <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
+        )}
+        {excluded && (
+          <span className="vg-excluded-badge">Exkluderad</span>
+        )}
+      </>
+    );
     return (
       <div
         key={v.id}
@@ -587,27 +613,13 @@ export default function VideoGrid({
             {isSel ? "✓" : ""}
           </button>
         )}
-        <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
-          {v.thumbnail_url
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={v.thumbnail_url} alt={v.caption ?? ""} className="vg-thumb" />
-            : <div className="vg-thumb vg-thumb--empty" />
-          }
-          {v.caption && (
-            <span className="vg-thumb-caption">
-              <span className="vg-thumb-caption-text">{v.caption}</span>
-            </span>
-          )}
-          {v.is_ad === true && (
-            <span className="vg-boost-badge vg-boost-badge--boosted">Boostad</span>
-          )}
-          {v.is_ad === false && (
-            <span className="vg-boost-badge vg-boost-badge--organic">Organisk</span>
-          )}
-          {excluded && (
-            <span className="vg-excluded-badge">Exkluderad</span>
-          )}
-        </a>
+        {readOnly ? (
+          <div className="vg-thumb-wrap">{thumbInner}</div>
+        ) : (
+          <a href={v.video_url} target="_blank" rel="noopener noreferrer" className="vg-thumb-wrap">
+            {thumbInner}
+          </a>
+        )}
         <div className="vg-card-bar">
           <span className="vg-card-er">{er != null ? `${er.toFixed(2)}%` : "—"}</span>
           <button
@@ -643,19 +655,29 @@ export default function VideoGrid({
               <line x1="7" y1="7" x2="7.01" y2="7" />
             </svg>
           </button>
-          <a
-            href={v.video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="vg-card-link"
-            title="Öppna video"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </a>
+          {readOnly ? (
+            <span className="vg-card-link vg-card-link--demo" title="Öppna video — finns i din egen dashboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </span>
+          ) : (
+            <a
+              href={v.video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vg-card-link"
+              title="Öppna video"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          )}
         </div>
         <div className="vg-stats">
           {([
@@ -1573,6 +1595,8 @@ const css = `
   }
 
   .vg-card-link:hover { opacity: 1; }
+  .vg-card-link--demo { cursor: default; opacity: 0.4; }
+  .vg-card-link--demo:hover { opacity: 0.4; }
 
   .vg-card-action {
     background: none;
