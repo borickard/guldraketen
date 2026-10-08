@@ -132,10 +132,11 @@ export default function ForForetag() {
         {/* Trust / closing */}
         <section className="ff-section ff-closing">
           <p className="ff-closing-text">
-            Sociala Raketer byggs och drivs på fritiden av Rickard, digital strateg. Ni pratar
-            direkt med den som bygger verktyget — och är med och formar det.
+            Sociala Raketer är skapat av Rickard Berggren, som har över 13 års erfarenhet av
+            sociala medier och engagerande innehåll. Verktyget byggs och drivs på fritiden — ni
+            pratar direkt med den som bygger det, och är med och formar vad som kommer härnäst.
           </p>
-          <a href="#anmal" className="ff-link ff-link--big">Anmäl intresse →</a>
+          <a href="#anmal" className="ff-btn ff-btn--primary">Anmäl ert intresse</a>
         </section>
       </main>
     </>
