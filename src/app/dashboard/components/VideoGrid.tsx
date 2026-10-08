@@ -821,7 +821,7 @@ export default function VideoGrid({
               </div>
             </div>
             <div className="vg-toolbar-row">
-              <span className="vg-row-label">Sortering och filter</span>
+              <span className="vg-row-label">Sortering</span>
               <div className="vg-sorts">
                 {SORTS.map((s) => (
                   <button
@@ -833,158 +833,83 @@ export default function VideoGrid({
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="vg-toolbar-row">
+              <span className="vg-row-label">Datum</span>
+              <div className="vg-date-wrap" ref={calRef}>
+                <button
+                  className={`vg-date-btn${dateRange?.from ? " vg-date-btn--active" : ""}`}
+                  onClick={() => { setShowCal((v) => !v); setCalPhase(0); }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  {dateBtnLabel}
+                  {dateRange?.from && (
+                    <span
+                      className="vg-date-clear"
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setCalPhase(0); setShowCal(false); }}
+                      aria-label="Rensa datum"
+                    >×</span>
+                  )}
+                </button>
+                {showCal && (
+                  <div className="vg-cal-popup">
+                    <div className="vg-cal-header">
+                      <span className="vg-cal-title">Välj period</span>
+                      <button className="vg-cal-close" onClick={() => setShowCal(false)} aria-label="Stäng">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <DayPicker
+                      mode="range"
+                      locale={sv}
+                      showOutsideDays
+                      selected={selectedForDisplay}
+                      onSelect={(_range, selectedDay) => {
+                        if (calPhase === 0) {
+                          setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
+                          setCalPhase(1);
+                        } else {
+                          const from = filters.dateRange?.from ?? selectedDay;
+                          const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
+                          setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
+                          setCalPhase(0);
+                          setHoverDay(undefined);
+                        }
+                      }}
+                      onDayMouseEnter={(day) => setHoverDay(day)}
+                      onDayMouseLeave={() => setHoverDay(undefined)}
+                      numberOfMonths={1}
+                    />
+                    <div className="vg-cal-footer">
+                      <button className="vg-cal-ok" onClick={() => setShowCal(false)}>OK</button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
-                className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${nActive > 0 ? " vg-pill--active" : ""}`}
+                className={`vg-pill vg-pill--filter${showFilters ? " vg-pill--on" : ""}${(numFilterCount + (tagFilter ? 1 : 0)) > 0 ? " vg-pill--active" : ""}`}
                 onClick={() => setShowFilters((v) => !v)}
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
                   <path d="M4 6h16l-7 9.5V21l-2-1v-4.5L4 6z"/>
                 </svg>
-                {nActive > 0 ? `${nActive} aktiva` : "Filter"}
+                {numFilterCount + (tagFilter ? 1 : 0) > 0 ? `${numFilterCount + (tagFilter ? 1 : 0)} filter` : "Filter"}
               </button>
-              {nActive > 0 && (
-                <button className="vg-filter-clear" onClick={() => setFilters(EMPTY_FILTERS)}>
+              {(nActive > 0 || tagFilter) && (
+                <button className="vg-filter-clear" onClick={() => { setFilters(EMPTY_FILTERS); setTagFilter(null); }}>
                   Rensa
                 </button>
               )}
             </div>
-            {tags.length > 0 && (
-              <div className="vg-toolbar-row">
-                <span className="vg-row-label">Visa tagg</span>
-                <div className="vg-sorts">
-                  <button
-                    className={`vg-pill${tagFilter === null ? " vg-pill--on" : ""}`}
-                    onClick={() => setTagFilter(null)}
-                  >
-                    Alla
-                  </button>
-                  {tags.map((t) => {
-                    const on = tagFilter === t.id;
-                    const bg = t.color ?? "#8A8A8A";
-                    return (
-                      <button
-                        key={t.id}
-                        className={`vg-pill vg-pill--tag${on ? " vg-pill--on" : ""}`}
-                        style={on ? { background: bg, color: chipTextColor(bg) } : undefined}
-                        onClick={() => setTagFilter(on ? null : t.id)}
-                        title={`${t.type}: ${t.name}`}
-                      >
-                        {!on && <span className="vg-pill-dot" style={{ background: bg }} />}
-                        {t.name}
-                      </button>
-                    );
-                  })}
-                  <button
-                    className={`vg-pill${tagFilter === "__untagged__" ? " vg-pill--on" : ""}`}
-                    onClick={() => setTagFilter((c) => (c === "__untagged__" ? null : "__untagged__"))}
-                  >
-                    Otaggat
-                  </button>
-                </div>
-              </div>
-            )}
-            {!readOnly && (
-            <div className="vg-toolbar-row">
-              <span className="vg-row-label">Taggar</span>
-              {tags.length === 0 && (
-                <span className="vg-tag-hint">
-                  Tagga inlägg för att gruppera kampanjer, format och teman — jämför dem sedan under Analys.
-                </span>
-              )}
-              <button
-                className={`vg-pill${selectMode ? " vg-pill--on" : ""}`}
-                onClick={() => {
-                  setSelectMode((v) => {
-                    if (v) setSelected(new Set());
-                    return !v;
-                  });
-                }}
-              >
-                {selectMode ? "Avsluta markering" : "Markera flera"}
-              </button>
-              {selectMode && selected.size > 0 && (
-                <>
-                  <button
-                    className="vg-pill vg-pill--tagbulk"
-                    onClick={() => setPickerTarget([...selected])}
-                  >
-                    Tagga {selected.size} markerade
-                  </button>
-                  <button className="vg-filter-clear" onClick={() => setSelected(new Set())}>
-                    Avmarkera
-                  </button>
-                </>
-              )}
-              <button
-                className="vg-pill"
-                style={{ marginLeft: "auto" }}
-                onClick={() => setShowTagManager(true)}
-              >
-                Hantera taggar
-              </button>
-            </div>
-            )}
           </div>
 
         {showFilters && (
           <div className="vg-filter-panel">
-            {/* Date range */}
-            <div className="vg-filter-row" style={{ position: "relative" }} ref={calRef}>
-              <span className="vg-filter-label">Datum</span>
-              <button
-                className={`vg-date-btn${dateRange?.from ? " vg-date-btn--active" : ""}`}
-                onClick={() => { setShowCal((v) => !v); setCalPhase(0); }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-                {dateBtnLabel}
-                {dateRange?.from && (
-                  <span
-                    className="vg-date-clear"
-                    role="button"
-                    onClick={(e) => { e.stopPropagation(); setFilters((p) => ({ ...p, dateRange: undefined })); setCalPhase(0); setShowCal(false); }}
-                    aria-label="Rensa datum"
-                  >×</span>
-                )}
-              </button>
-              {showCal && (
-                <div className="vg-cal-popup">
-                  <div className="vg-cal-header">
-                    <span className="vg-cal-title">Välj period</span>
-                    <button className="vg-cal-close" onClick={() => setShowCal(false)} aria-label="Stäng">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <DayPicker
-                    mode="range"
-                    locale={sv}
-                    showOutsideDays
-                    selected={selectedForDisplay}
-                    onSelect={(_range, selectedDay) => {
-                      if (calPhase === 0) {
-                        setFilters((p) => ({ ...p, dateRange: { from: selectedDay, to: undefined } }));
-                        setCalPhase(1);
-                      } else {
-                        const from = filters.dateRange?.from ?? selectedDay;
-                        const [start, end] = selectedDay >= from ? [from, selectedDay] : [selectedDay, from];
-                        setFilters((p) => ({ ...p, dateRange: { from: start, to: end } }));
-                        setCalPhase(0);
-                        setHoverDay(undefined);
-                      }
-                    }}
-                    onDayMouseEnter={(day) => setHoverDay(day)}
-                    onDayMouseLeave={() => setHoverDay(undefined)}
-                    numberOfMonths={1}
-                  />
-                  <div className="vg-cal-footer">
-                    <button className="vg-cal-ok" onClick={() => setShowCal(false)}>OK</button>
-                  </div>
-                </div>
-              )}
-            </div>
             {FILTER_ROWS.map((row) => (
               <div key={row.label} className="vg-filter-row">
                 <span className="vg-filter-label">{row.label}</span>
@@ -1014,6 +939,87 @@ export default function VideoGrid({
                 </div>
               </div>
             ))}
+
+            {(tags.length > 0 || !readOnly) && (
+              <div className="vg-filter-tags">
+                {tags.length > 0 && (
+                  <div className="vg-filter-row">
+                    <span className="vg-filter-label">Visa tagg</span>
+                    <div className="vg-sorts">
+                      <button
+                        className={`vg-pill${tagFilter === null ? " vg-pill--on" : ""}`}
+                        onClick={() => setTagFilter(null)}
+                      >
+                        Alla
+                      </button>
+                      {tags.map((t) => {
+                        const on = tagFilter === t.id;
+                        const bg = t.color ?? "#8A8A8A";
+                        return (
+                          <button
+                            key={t.id}
+                            className={`vg-pill vg-pill--tag${on ? " vg-pill--on" : ""}`}
+                            style={on ? { background: bg, color: chipTextColor(bg) } : undefined}
+                            onClick={() => setTagFilter(on ? null : t.id)}
+                            title={`${t.type}: ${t.name}`}
+                          >
+                            {!on && <span className="vg-pill-dot" style={{ background: bg }} />}
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                      <button
+                        className={`vg-pill${tagFilter === "__untagged__" ? " vg-pill--on" : ""}`}
+                        onClick={() => setTagFilter((c) => (c === "__untagged__" ? null : "__untagged__"))}
+                      >
+                        Otaggat
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!readOnly && (
+                  <div className="vg-filter-row">
+                    <span className="vg-filter-label">Taggar</span>
+                    {tags.length === 0 && (
+                      <span className="vg-tag-hint">
+                        Tagga inlägg för att gruppera kampanjer, format och teman — jämför dem sedan under Analys.
+                      </span>
+                    )}
+                    <button
+                      className={`vg-pill${selectMode ? " vg-pill--on" : ""}`}
+                      onClick={() => {
+                        setSelectMode((v) => {
+                          if (v) setSelected(new Set());
+                          return !v;
+                        });
+                      }}
+                    >
+                      {selectMode ? "Avsluta markering" : "Markera flera"}
+                    </button>
+                    {selectMode && selected.size > 0 && (
+                      <>
+                        <button
+                          className="vg-pill vg-pill--tagbulk"
+                          onClick={() => setPickerTarget([...selected])}
+                        >
+                          Tagga {selected.size} markerade
+                        </button>
+                        <button className="vg-filter-clear" onClick={() => setSelected(new Set())}>
+                          Avmarkera
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="vg-pill"
+                      style={{ marginLeft: "auto" }}
+                      onClick={() => setShowTagManager(true)}
+                    >
+                      Hantera taggar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         </div>
@@ -1716,6 +1722,24 @@ const css = `
     align-items: center;
     gap: 0.5rem;
   }
+
+  /* Date picker lives in the toolbar now — its calendar popup anchors here. */
+  .vg-date-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  /* Tag controls grouped at the bottom of the filter panel, on their own rows. */
+  .vg-filter-tags {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-top: 0.7rem;
+    margin-top: 0.1rem;
+    border-top: 1px solid rgba(28,27,25,0.1);
+  }
+  .vg-filter-tags .vg-sorts { gap: 0.4rem; }
 
   .vg-filter-label {
     font-size: 12px;
