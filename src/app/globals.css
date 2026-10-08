@@ -585,7 +585,12 @@ body {
 }
 
 @media (max-width: 640px) {
-  .gr-nav--compact .gr-nav-logo { font-size: 24px; }
+  /* The Jersey10 wordmark is very wide; at its full size it pushed the
+     hamburger off the right edge (so the menu couldn't be opened) until the
+     nav compacted on scroll. Cap it on phones so the hamburger always fits. */
+  .gr-nav { gap: 12px; }
+  .gr-nav-logo { font-size: 22px; }
+  .gr-nav--compact .gr-nav-logo { font-size: 22px; }
 }
 
 .gr-nav-links {
