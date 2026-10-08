@@ -33,7 +33,10 @@ interface HeroData {
 }
 
 function fmt(n: number): string {
-  return Math.round(n).toLocaleString("sv-SE");
+  // sv-SE uses a non-breaking space as the thousands separator, which makes a
+  // long number one unbreakable token that can overflow its chip before the
+  // condensed font loads. Use a normal space so it can wrap at group boundaries.
+  return Math.round(n).toLocaleString("sv-SE").replace(/ /g, " ");
 }
 
 function formatDate(d: string): string {
@@ -513,6 +516,8 @@ const css = `
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
     padding: 14px 18px;
+    min-width: 0;
+    overflow: hidden;
   }
   .hero-bench-header {
     display: flex;
@@ -540,21 +545,27 @@ const css = `
   }
   .hero-bench-total {
     margin: 0;
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-size: 1.85rem;
     font-weight: 700;
     line-height: 1;
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .hero-bench-avg {
     margin: 0;
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1;
     color: rgba(28,27,25,0.55);
     font-variant-numeric: tabular-nums;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .hero-bench-avg-suffix {
     font-family: 'Barlow', sans-serif;
