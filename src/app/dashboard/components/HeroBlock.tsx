@@ -523,6 +523,7 @@ const css = `
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
   .hero-bench-icon {
     width: 28px;
@@ -542,6 +543,9 @@ const css = `
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(28,27,25,0.85);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    hyphens: auto;
   }
   .hero-bench-total {
     margin: 0;
@@ -624,5 +628,11 @@ const css = `
     .hero-bench-avg { font-size: 15px; }
     .hero-benchmarks-wrap .hero-stat-label { font-size: 12px; }
     .hero-benchmarks-wrap .hero-stat-sublabel { font-size: 11px; }
+  }
+
+  /* Narrow phones: two columns squeeze the longest label ("Kommentarer")
+     against the chip edge. Stack to one readable column instead. */
+  @media (max-width: 440px) {
+    .hero-benchmarks { grid-template-columns: 1fr; }
   }
 `;
