@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import DemoDashboard from "./DemoDashboard";
+import DemoBanner from "./DemoBanner";
 
 export const metadata: Metadata = {
   title: "Dashboard-demo — Sociala Raketer",
@@ -11,13 +12,7 @@ export default function DemoPage() {
     <>
       <style>{styles}</style>
       <div className="demo-root">
-        <div className="demo-banner">
-          <span>
-            <strong>Demo</strong> — exempeldata. Sortera och filtrera fritt för att se hur en personlig
-            dashboard fungerar.
-          </span>
-          <a href="/stotta" className="demo-banner-link">Skaffa din egen →</a>
-        </div>
+        <DemoBanner />
         <main className="demo-main">
           <DemoDashboard />
         </main>
@@ -36,6 +31,8 @@ const styles = `
     color: #1C1B19;
   }
   .demo-banner {
+    position: sticky;
+    z-index: 40;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -47,6 +44,9 @@ const styles = `
     padding: 10px 1.5rem;
     text-align: center;
   }
+  /* The persistent demo banner already lives at the top, so the grid's own
+     fixed condensed filter bar would overlap it — hide it on the demo. */
+  .demo-root .vg-compactbar { display: none; }
   .demo-banner strong {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
