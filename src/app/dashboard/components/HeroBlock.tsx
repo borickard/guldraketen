@@ -616,23 +616,18 @@ const css = `
     .hero-stat-big { font-size: 2rem; }
     .hero-name { font-size: 1.6rem; }
 
-    /* Mobile chip sizing — total 18px / snitt 15px per spec */
+    /* Mobile chip sizing — compact two-column grid */
     .hero-benchmarks {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
-    .hero-bench { padding: 10px 12px; gap: 6px; }
-    .hero-bench-icon { width: 24px; height: 24px; }
-    .hero-bench-lbl { font-size: 13px; }
+    .hero-bench { padding: 10px 11px; gap: 5px; }
+    .hero-bench-header { gap: 6px; }
+    .hero-bench-icon { width: 20px; height: 20px; }
+    .hero-bench-lbl { font-size: 11px; letter-spacing: 0.02em; }
     .hero-bench-total { font-size: 18px; }
-    .hero-bench-avg { font-size: 15px; }
+    .hero-bench-avg { font-size: 14px; }
     .hero-benchmarks-wrap .hero-stat-label { font-size: 12px; }
     .hero-benchmarks-wrap .hero-stat-sublabel { font-size: 11px; }
-  }
-
-  /* Narrow phones: two columns squeeze the longest label ("Kommentarer")
-     against the chip edge. Stack to one readable column instead. */
-  @media (max-width: 440px) {
-    .hero-benchmarks { grid-template-columns: 1fr; }
   }
 `;

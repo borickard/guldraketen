@@ -1302,6 +1302,8 @@ const css = `
   }
   @media (max-width: 559px) {
     .vg-section { padding: 0.5rem; }
+    /* Two compact columns of cards on mobile instead of one full-width card */
+    .vg-grid--inside-section { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
   }
 
   /* Section head — the white card at the top of each section */
