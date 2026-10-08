@@ -308,9 +308,14 @@ export default function HeroBlock({
             <Skel w={320} h={13} />
           )}
         </p>
-        <p className="hero-disclaimer">
-          *Viktad engagement rate, där interaktioner multipliceras enligt följande. Likes × 1, kommentarer × 5, delningar × 10, favoriter × 5. Detta för att bättre reflektera engagemang från publiken — alla interaktioner är inte värda lika mycket. En delning väger tyngre än en like.
-        </p>
+        <details className="hero-disclaimer-details">
+          <summary className="hero-disclaimer-summary">Vad är viktad engagement rate?</summary>
+          <p className="hero-disclaimer">
+            Viktad engagement rate multiplicerar interaktioner enligt följande: likes × 1,
+            kommentarer × 5, delningar × 10, favoriter × 5. Det speglar engagemang från publiken
+            bättre — alla interaktioner är inte värda lika mycket. En delning väger tyngre än en like.
+          </p>
+        </details>
       </div>
     </>
   );
@@ -586,11 +591,42 @@ const css = `
     padding-top: 0.85rem;
     border-top: 1px solid rgba(28,27,25,0.08);
   }
+  .hero-disclaimer-details {
+    margin-top: 6px;
+  }
+  .hero-disclaimer-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    list-style: none;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: rgba(28,27,25,0.6);
+    width: fit-content;
+  }
+  .hero-disclaimer-summary::-webkit-details-marker { display: none; }
+  .hero-disclaimer-summary::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid rgba(28,27,25,0.5);
+    border-bottom: 1.5px solid rgba(28,27,25,0.5);
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+    margin-right: 1px;
+  }
+  .hero-disclaimer-details[open] .hero-disclaimer-summary::before {
+    transform: rotate(45deg);
+  }
+  .hero-disclaimer-summary:hover { color: #1C1B19; }
   .hero-disclaimer {
-    margin: 2px 0 0;
+    margin: 8px 0 0;
     font-size: 12px;
-    color: rgba(28,27,25,0.45);
+    color: rgba(28,27,25,0.55);
     line-height: 1.5;
+    max-width: 640px;
   }
   .hero-bench--er {
     background: rgba(232, 17, 106, 0.06);
