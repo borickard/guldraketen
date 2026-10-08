@@ -48,6 +48,8 @@ const INCLUDED: string[] = [
   "Viktad engagement rate + benchmarks",
   "Tagga, gruppera och jämför inlägg",
   "Historik och trender över tid",
+  "Early access-priset följer med så länge ni är kund",
+  "Var med och påverka vad som byggs härnäst",
   "Support direkt från den som bygger verktyget",
 ];
 
@@ -59,7 +61,7 @@ export default function ForForetag() {
         {/* Hero — primary action */}
         <section className="ff-hero">
           <div className="ff-hero-inner">
-            <span className="ff-eyebrow">Personlig dashboard · för företag</span>
+            <span className="ff-eyebrow">För företag · early access</span>
             <h1 className="ff-title">Se exakt vad som får ert TikTok-innehåll att engagera</h1>
             <p className="ff-lead">
               Sociala Raketer rankar Sveriges mest engagerande företagskonton på TikTok. Med en
@@ -106,16 +108,17 @@ export default function ForForetag() {
 
         {/* Pricing */}
         <section className="ff-section">
-          <h2 className="ff-h2">Vad det kostar</h2>
+          <h2 className="ff-h2">Early access</h2>
           <div className="ff-price-card">
-            <span className="ff-eyebrow">Introduktionspris</span>
+            <span className="ff-price-badge">Early access · begränsat antal platser</span>
             <p className="ff-price">
-              Från <strong>99 kr</strong><span className="ff-price-unit"> / mån</span>
+              <strong>99 kr</strong><span className="ff-price-unit"> / mån</span>
             </p>
             <p className="ff-price-sub">ex. moms · eller 990 kr/år — två månader på köpet</p>
             <p className="ff-price-note">
-              Preliminärt pris. Anmäl intresse nu så låser du introduktionserbjudandet och får en
-              plats i första omgången.
+              Dashboarden är i early access och utvecklas aktivt. Är ni med från start får ni det
+              förmånliga priset — det följer med så länge ni är kund, även när priset höjs för nya
+              kunder längre fram. Ni är dessutom med och formar vad som byggs härnäst.
             </p>
             <ul className="ff-included">
               {INCLUDED.map((i) => (
@@ -353,6 +356,19 @@ const styles = `
     padding: 2rem;
     text-align: center;
     box-shadow: 0 10px 30px rgba(28,27,25,0.07);
+  }
+  .ff-price-badge {
+    display: inline-block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: #E8116A;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 1rem;
   }
   .ff-price {
     font-family: 'Barlow Condensed', sans-serif;
