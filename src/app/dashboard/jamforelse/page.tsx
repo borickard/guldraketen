@@ -62,7 +62,6 @@ export default async function JamforelsePage() {
           <nav className="db-nav">
             <a href="/dashboard" className="db-nav-link">Dashboard</a>
             <a href="/dashboard/segment" className="db-nav-link db-nav-link--active">Analys</a>
-            <a href="/hall-of-fame" className="db-nav-link">Hall of Fame</a>
           </nav>
           <LogoutButton />
         </header>
