@@ -86,7 +86,7 @@ export default function Stotta() {
           </p>
           <div className="gr-stotta-dash-actions">
             <a href="/demo" className="gr-stripe-btn">Testa demon</a>
-            <a href="/#beta" className="gr-stotta-dash-secondary">Anmäl intresse</a>
+            <a href="/for-foretag" className="gr-stotta-dash-secondary">Läs mer &amp; anmäl intresse</a>
           </div>
         </section>
 
