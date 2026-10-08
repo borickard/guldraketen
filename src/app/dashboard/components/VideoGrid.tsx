@@ -518,7 +518,7 @@ export default function VideoGrid({
 
   function renderSectionHeader(sec: Section) {
     const s = sec.stats;
-    const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE");
+    const fmtNum = (n: number) => Math.round(n).toLocaleString("sv-SE").replace(/ /g, " ");
     const avg = (sum: number) => s.count > 0 ? sum / s.count : 0;
     const cols: { label: string; icon: React.ReactNode; total: number; avg: number }[] = [
       { label: "Visningar", icon: <Eye size={14} />, total: s.views, avg: avg(s.views) },
@@ -1353,6 +1353,8 @@ const css = `
     background: rgba(28,27,25,0.04);
     border-radius: 10px;
     padding: 11px 16px;
+    min-width: 0;
+    overflow: hidden;
   }
   .vg-section-chip-icon {
     display: inline-flex;
@@ -1370,23 +1372,30 @@ const css = `
     flex-direction: column;
     gap: 3px;
     line-height: 1.1;
+    min-width: 0;
   }
   /* Desktop sizing matches the hero benchmark chips (25% larger than mobile) */
   .vg-section-chip-total {
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-size: 1.85rem;
     font-weight: 700;
     line-height: 1;
     color: #1C1B19;
     font-variant-numeric: tabular-nums;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .vg-section-chip-avg {
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1;
     color: rgba(28,27,25,0.55);
     font-variant-numeric: tabular-nums;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .vg-section-chip-avg-val { font-weight: 600; }
   .vg-section-chip-avg-suffix {
