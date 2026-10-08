@@ -1204,8 +1204,10 @@ body {
 
 @media (max-width: 639px) {
   .gr-hof-week-scroll-wrap { margin-left: 0; }
-  .gr-hof-week-scroll-wrap::before,
-  .gr-hof-week-scroll-wrap::after { display: none; }
+  /* Keep the edge-fade indicators on mobile (they hint there's more to scroll);
+     only the tap arrows are hidden since touch handles scrolling. */
+  .gr-hof-week-scroll-wrap::after,
+  .gr-hof-week-scroll-wrap--scrolled::before { width: 52px; }
   .gr-hof-week-arrow { display: none; }
   .gr-hof-week-row { padding: 0 0 20px 16px; }
 }
@@ -1219,8 +1221,9 @@ body {
   overflow: hidden;
   color: #1C1B19;
   position: relative;
-  /* mobile: ~1.5 cards visible (16px left padding + 10px gap reserved) */
-  width: calc((100vw - 16px - 10px) / 1.5);
+  /* mobile: ~1.85 cards visible (16px left padding + 10px gap reserved) so the
+     next card is almost fully in view, hinting there's more to scroll */
+  width: calc((100vw - 16px - 10px) / 1.85);
 }
 
 /* "Sedan start" multi-row grid: auto-fill columns, no fixed width per card. */
@@ -5032,10 +5035,22 @@ body {
     display: none;
   }
   .gr-rk-grid .gr-vc {
-    width: 70vw;
-    min-width: 70vw;
+    width: 54vw;
+    min-width: 54vw;
     flex-shrink: 0;
-    scroll-snap-align: center;
+    scroll-snap-align: start;
+  }
+  /* Right-edge fade hints that the row scrolls for more cards. */
+  .gr-rk-nav-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 28px;
+    right: 0;
+    width: 52px;
+    background: linear-gradient(to right, rgba(235,231,226,0), #EBE7E2 85%);
+    pointer-events: none;
+    z-index: 2;
   }
 }
 
