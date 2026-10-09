@@ -3842,6 +3842,56 @@ body {
 }
 
 /* ── HERO v2 ── */
+/* ── HERO BLOCK: intro + calculator side by side on desktop ── */
+.gr-hero-block {
+  background: #07253A;
+}
+
+/* Mobile: the calculator stays collapsed until "Testa ditt engagemang" opens it. */
+@media (max-width: 899px) {
+  .gr-hero-block .gr-calc-section { display: none; }
+  .gr-hero-block .gr-calc-section.gr-calc-section--open { display: block; }
+}
+
+@media (min-width: 900px) {
+  .gr-hero-block {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: clamp(28px, 4vw, 64px);
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: clamp(44px, 6vh, 104px) clamp(24px, 4vw, 48px);
+  }
+  .gr-hero-block .gr-hero-v2,
+  .gr-hero-block .gr-calc-section {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+  }
+  .gr-hero-block .gr-hero-v2-inner,
+  .gr-hero-block .gr-calc-section-inner {
+    max-width: none;
+    margin: 0;
+    width: 100%;
+  }
+  /* Calculator becomes a card in the right column */
+  .gr-hero-block .gr-calc-section {
+    background: rgba(237,248,251,0.045);
+    border: 1px solid rgba(237,248,251,0.1);
+    border-radius: 18px;
+    padding: clamp(22px, 2.4vw, 36px);
+  }
+  .gr-hero-block .gr-hero-v2-h1 { font-size: clamp(2.6rem, 4.4vw, 4.6rem); }
+  .gr-hero-block .gr-hero-v2-manifest { margin-bottom: var(--space-4); }
+  .gr-hero-block .gr-hero-v2-ctas { margin-top: var(--space-5); }
+  .gr-hero-block .gr-hero-v2-btn-primary { flex: 0 0 auto; }
+  .gr-hero-block .gr-calc-h2 { font-size: clamp(1.5rem, 2.1vw, 2.2rem); margin-bottom: var(--space-3); }
+  .gr-hero-block .gr-calc-desc { margin-bottom: var(--space-4); font-size: 14px; }
+  /* The mobile toggle isn't needed when the calculator is already shown. */
+  .gr-hero-block .gr-hero-v2-link--calc { display: none; }
+}
+
 .gr-hero-v2 {
   min-height: 50vh;
   display: flex;
@@ -3935,6 +3985,7 @@ body {
   color: #EDF8FB;
   text-decoration: none;
   cursor: pointer;
+  background: none;
   background: none;
   white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
