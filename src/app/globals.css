@@ -1202,7 +1202,9 @@ body {
 .gr-hof-week-row {
   display: flex;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  /* proximity, not mandatory: multiple stacked mandatory snap rows make the
+     browser scroll the page down to align one on load. proximity still snaps. */
+  scroll-snap-type: x proximity;
   gap: 10px;
   padding: 0 48px 20px 0;
   scrollbar-width: none;
@@ -2490,6 +2492,63 @@ body {
   margin-top: 8px;
   padding-left: 2px;
 }
+
+/* Dashboard nudge shown after a calculator result (video or profile) */
+.gr-calc-dash-cta {
+  margin-top: 28px;
+  padding: 18px 20px;
+  background: rgba(237,248,251,0.05);
+  border: 1px solid rgba(237,248,251,0.12);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gr-calc-dash-cta-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  color: #EDF8FB;
+  line-height: 1.1;
+}
+.gr-calc-dash-cta-sub {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(237,248,251,0.65);
+  margin-top: 4px;
+}
+.gr-calc-dash-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.gr-calc-dash-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  background: #FE2C55;
+  color: #EDF8FB;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: opacity 0.12s;
+}
+.gr-calc-dash-cta-btn:hover { opacity: 0.9; }
+.gr-calc-dash-cta-link {
+  color: #C8962A;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gr-calc-dash-cta-link:hover { text-decoration: underline; }
 
 @media (max-width: 600px) {
   .gr-kalky-v2 { padding: 40px 16px 72px; }

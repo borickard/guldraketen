@@ -875,6 +875,23 @@ function HomeInner() {
     row.style.animation = `gr-top-scroll ${CAROUSEL_DURATION}s ${delay}s linear infinite`;
   }
 
+  // Shown after a calculator result (video or profile) to push the dashboard.
+  const dashNudge = (
+    <div className="gr-calc-dash-cta">
+      <div>
+        <p className="gr-calc-dash-cta-title">Vill du följa ditt konto över tid?</p>
+        <p className="gr-calc-dash-cta-sub">
+          Få alla dina inlägg, trender och jämförelser mot din kategori i en personlig dashboard —
+          uppdaterad automatiskt varje vecka.
+        </p>
+      </div>
+      <div className="gr-calc-dash-cta-actions">
+        <a href="/demo" className="gr-calc-dash-cta-btn">Testa dashboard-demon</a>
+        <a href="/for-foretag" className="gr-calc-dash-cta-link">Läs mer →</a>
+      </div>
+    </div>
+  );
+
   return (
     <div className="gr-root">
 
@@ -1027,6 +1044,7 @@ function HomeInner() {
                   </div>
                 </>
               )}
+              {profileAvgEr !== null && dashNudge}
             </div>
           )}
 
@@ -1079,9 +1097,7 @@ function HomeInner() {
                       </div>
                     ))}
                   </div>
-                  <a href="/demo" className="gr-kalky-v2-demo-cta">
-                    Följ ditt konto över tid — testa dashboard-demon →
-                  </a>
+                  {dashNudge}
                 </>
               ) : (
                 <p className="gr-kalky-v2-er-empty">Ingen ER (saknar visningar)</p>
