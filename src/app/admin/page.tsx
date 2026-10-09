@@ -65,7 +65,7 @@ interface CalcTest {
   comments: number | null;
   shares: number | null;
   engagement_rate: number | null;
-  source: "db" | "apify" | null;
+  source: "db" | "apify" | "failed" | "pending" | null;
   tested_at: string;
 }
 
@@ -1087,6 +1087,15 @@ export default function AdminPage() {
                 </span>
               ) : null;
             })()}
+            {(() => {
+              const dayAgo = Date.now() - 24 * 3600 * 1000;
+              const failed24 = calcTests.filter((t) => t.source === "failed" && new Date(t.tested_at).getTime() >= dayAgo).length;
+              return failed24 > 0 ? (
+                <span style={{ marginLeft: 8, display: "inline-block", background: "#fdecec", color: "#c0392b", fontWeight: 700, fontSize: 13, padding: "3px 10px", borderRadius: 999 }}>
+                  ⚠ {failed24} misslyckade hämtningar senaste 24h
+                </span>
+              ) : null;
+            })()}
           </p>
           <div className="calc-sort-row">
             {[
@@ -1161,6 +1170,8 @@ export default function AdminPage() {
                             <span className="src-pill src-pill--db">DB</span>
                           ) : t.source === "apify" ? (
                             <span className="src-pill src-pill--apify" title={`Kostnad ${costSEK(1)}`}>Apify</span>
+                          ) : t.source === "failed" ? (
+                            <span style={{ display: "inline-block", background: "#fdecec", color: "#c0392b", fontWeight: 700, fontSize: 11, padding: "2px 8px", borderRadius: 999 }}>Fel</span>
                           ) : (
                             <span style={{ color: "var(--muted)" }}>—</span>
                           )}

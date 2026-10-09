@@ -577,7 +577,7 @@ function HomeInner() {
     }
   }, [calcMode, calcVideoId, calcHandle, calcProfileHandle]);
 
-  const startCalcFetch = useCallback(async (id: string, handle: string | null) => {
+  const startCalcFetch = useCallback(async (id: string, handle: string | null, attempt = 0) => {
     if (calcPollRef.current) clearInterval(calcPollRef.current);
     setCalcMode("video-loading");
     setCalcVideoId(id);
@@ -630,10 +630,16 @@ function HomeInner() {
           const d = await r.json();
           if (d.status === "ready") { clearInterval(calcPollRef.current!); setCalcStats({ views: d.views, likes: d.likes, comments: d.comments, shares: d.shares, collect_count: d.collect_count ?? null }); setCalcMode("video-ready"); }
           else if (d.status === "not-found") { clearInterval(calcPollRef.current!); setCalcMode("video-not-found"); }
-          else if (d.status === "error") { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Hämtningen misslyckades."); }
+          else if (d.status === "error") {
+            clearInterval(calcPollRef.current!);
+            // Apify run failed — retry once automatically before giving up.
+            if (attempt < 1) { startCalcFetch(id, handle, attempt + 1); }
+            else { setCalcMode("video-error"); setCalcError("Hämtningen misslyckades."); }
+          }
         } catch { clearInterval(calcPollRef.current!); setCalcMode("video-error"); setCalcError("Nätverksfel."); }
       }, 3000);
     } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recursive self-call for the one auto-retry
   }, []);
 
   const resolveAndCalcFetch = useCallback(async (shortUrl: string) => {
@@ -648,7 +654,7 @@ function HomeInner() {
     } catch { setCalcMode("video-error"); setCalcError("Kunde inte kontakta servern."); }
   }, [startCalcFetch]);
 
-  const startProfileFetch = useCallback(async (handle: string) => {
+  const startProfileFetch = useCallback(async (handle: string, attempt = 0) => {
     if (calcPollRef.current) clearInterval(calcPollRef.current);
     setCalcMode("profile-loading");
     setCalcProfileHandle(handle);
@@ -692,8 +698,13 @@ function HomeInner() {
             setCalcMode("profile-ready");
           } else if (d.status === "error") {
             clearInterval(calcPollRef.current!);
-            setCalcMode("profile-error");
-            setCalcProfileError("Hämtningen misslyckades. Kontrollera att kontot är publikt.");
+            // Apify run failed — retry once automatically before giving up.
+            if (attempt < 1) {
+              startProfileFetch(handle, attempt + 1);
+            } else {
+              setCalcMode("profile-error");
+              setCalcProfileError("Hämtningen misslyckades. Kontrollera att kontot är publikt.");
+            }
           }
         } catch { /* keep polling */ }
       }, 5000);
@@ -701,6 +712,7 @@ function HomeInner() {
       setCalcMode("profile-error");
       setCalcProfileError("Kunde inte kontakta servern.");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recursive self-call for the one auto-retry
   }, []);
 
   // Auto-fetch from ?v= or ?p= URL param on mount

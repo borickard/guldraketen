@@ -44,7 +44,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (["FAILED", "TIMED-OUT", "ABORTED"].includes(runStatus)) {
-    // Clean up the pending row so the user can retry without waiting 5 min.
+    // Log the failed run for monitoring (shows up in the admin calc-tester view),
+    // then clean up the pending row so the user can retry without waiting 5 min.
+    await supabaseAdmin.from("calculator_tests").insert({
+      video_url: handle
+        ? `https://www.tiktok.com/@${handle}/video/${videoId}`
+        : `https://www.tiktok.com/video/${videoId}`,
+      video_id: videoId,
+      handle: handle || null,
+      run_id: runId,
+      source: "failed",
+    });
     await supabaseAdmin
       .from("calculator_tests")
       .delete()
