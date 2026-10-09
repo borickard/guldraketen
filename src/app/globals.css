@@ -550,7 +550,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px max(24px, calc(50vw - 320px));
+  padding: 18px clamp(16px, 4vw, 40px);
   border-bottom: 1px solid rgba(237, 248, 251, 0.08);
   background: #07253A;
   gap: 24px;
@@ -558,14 +558,14 @@ body {
 }
 
 .gr-nav--compact {
-  padding: 9px max(24px, calc(50vw - 320px));
+  padding: 9px clamp(16px, 4vw, 40px);
   box-shadow: 0 1px 20px rgba(0,0,0,0.3);
 }
 
 .gr-nav-logo {
   font-family: 'Jersey 10', sans-serif;
   font-weight: 400;
-  font-size: min(84px, 5.5vw);
+  font-size: clamp(22px, 3.4vw, 32px);
   letter-spacing: .05em;
   text-transform: uppercase;
   color: #EDF8FB;
@@ -576,12 +576,15 @@ body {
   cursor: pointer;
 }
 
-@media (max-width: 640px) {
-  .gr-nav-logo { font-size: 40px; }
+.gr-nav--compact .gr-nav-logo {
+  font-size: clamp(20px, 2.8vw, 26px);
 }
 
-.gr-nav--compact .gr-nav-logo {
-  font-size: min(40px, 5.5vw);
+/* Logo + hamburger (and, on desktop, the primary links) sit on the right. */
+.gr-nav-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 28px);
 }
 
 @media (max-width: 640px) {
@@ -595,11 +598,18 @@ body {
 
 .gr-nav-links {
   display: none;
+  align-items: center;
+  gap: clamp(14px, 1.8vw, 26px);
+}
+
+/* Primary links shown inline from tablet up; the rest stay in the hamburger. */
+@media (min-width: 768px) {
+  .gr-nav-links { display: flex; }
 }
 
 .gr-nav-link {
   font-family: 'Barlow', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: .08em;
   text-align: center;
   text-transform: uppercase;
@@ -666,8 +676,6 @@ body {
 .gr-nav-mobile-link--active {
   color: #EDF8FB;
 }
-
-.gr-nav-links { display: none; }
 
 /* ── Nav & wordmark ── */
 .gr-root {
