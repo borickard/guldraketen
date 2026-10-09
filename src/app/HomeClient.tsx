@@ -358,6 +358,9 @@ function HomeInner() {
   const [calcUrl, setCalcUrl] = useState("");
   const [calcUrlError, setCalcUrlError] = useState(false);
   const [calcMode, setCalcMode] = useState<CalcMode>("idle");
+  // Mobile: the calculator is collapsed until "Testa ditt engagemang" is tapped.
+  // On desktop it's always shown side-by-side (CSS), so this flag is mobile-only.
+  const [calcOpen, setCalcOpen] = useState(false);
   const [calcVideoId, setCalcVideoId] = useState<string | null>(null);
   const [calcHandle, setCalcHandle] = useState<string | null>(null);
   const [calcStats, setCalcStats] = useState<{ views: number; likes: number; comments: number; shares: number; collect_count: number | null } | null>(null);
@@ -393,6 +396,8 @@ function HomeInner() {
       if (!hash) return;
       const faqIdx = FAQ_SLUGS.indexOf(hash);
       if (faqIdx !== -1) setFaqOpen(faqIdx);
+      // The calculator is collapsed on mobile — expand it when linked to.
+      if (hash === "kalkylator") setCalcOpen(true);
       const go = () => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
       requestAnimationFrame(go);
       timers.push(setTimeout(go, 450), setTimeout(go, 1000));
@@ -874,6 +879,7 @@ function HomeInner() {
     <div className="gr-root">
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <div className="gr-hero-block">
       <section className="gr-hero-v2" id="hero">
         <div className="gr-hero-v2-inner">
           <h1 className="gr-hero-v2-h1">
@@ -889,231 +895,24 @@ function HomeInner() {
             <a href="#topplistan" className="gr-hero-v2-btn-primary">
               Veckans topplista
             </a>
-            <a href="#kalkylator" className="gr-hero-v2-link">
+            <button
+              type="button"
+              className="gr-hero-v2-link gr-hero-v2-link--calc"
+              onClick={() => {
+                setCalcOpen(true);
+                requestAnimationFrame(() =>
+                  document.getElementById("kalkylator")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                );
+              }}
+            >
               Testa ditt engagemang
-            </a>
+            </button>
           </div>
-        </div>
-      </section>
-
-      {/* ── SCROLL HINT ───────────────────────────────────────────────── */}
-      <div className="gr-scroll-hint" aria-hidden="true">
-        <a href="#topplistan" className="gr-scroll-hint-arrow">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </a>
-      </div>
-
-      {/* ── KARUSELL (strip above topplistan) ───────────────────────── */}
-      <div
-        className="gr-top-carousel"
-        onPointerDown={!loading ? onCarouselPointerDown : undefined}
-        onPointerMove={!loading ? onCarouselPointerMove : undefined}
-        onPointerUp={!loading ? onCarouselPointerUp : undefined}
-        onPointerCancel={!loading ? onCarouselPointerUp : undefined}
-      >
-        {loading ? (
-          <div className="gr-top-carousel-inner gr-top-carousel-inner--skel">
-            {Array.from({ length: 14 }, (_, i) => (
-              <div key={i} className="gr-top-carousel-skel" />
-            ))}
-          </div>
-        ) : carouselVideos.length > 0 ? (
-          <div className="gr-top-carousel-inner" ref={carouselRef}>
-            {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
-              <a
-                key={i}
-                href={v.video_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="gr-top-carousel-card"
-                draggable={false}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
-                <div className="gr-top-carousel-info">
-                  <span className="gr-top-carousel-name">{displayName(v)}</span>
-                  <span className="gr-top-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
-      <section id="topplistan" className="gr-list-section" style={{ scrollMarginTop: 72 }}>
-
-        {/* Header */}
-        {(() => {
-          const weekIdx = selectedWeek ? weeks.indexOf(selectedWeek) : -1;
-          const canBack = weekIdx >= 0 && weekIdx + 1 < weeks.length;
-          const canForward = weekIdx > 0;
-          function goToWeek(w: string) {
-            setSelectedWeek(w);
-            router.replace(`?week=${w}`, { scroll: false });
-          }
-          return (
-            <>
-              <div className="gr-list-section-hdr">
-                <h1 className="gr-page-title">Veckans raketer</h1>
-                {selectedWeek && (
-                  <div className="gr-rk-toolbar">
-                    <div className="gr-rk-week-nav">
-                      <button
-                        className="gr-wk-arrow"
-                        disabled={!canBack}
-                        onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
-                        aria-label="Föregående vecka"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M15 18l-6-6 6-6" />
-                        </svg>
-                      </button>
-                      <span className="gr-rk-week-tag">{fmtWeekShort(selectedWeek)}</span>
-                      <button
-                        className="gr-wk-arrow"
-                        disabled={!canForward}
-                        onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
-                        aria-label="Nästa vecka"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="gr-rk-boost-pills">
-                      {([
-                        { key: "all",     label: "Alla"     },
-                        { key: "organic", label: "Organisk" },
-                        { key: "boosted", label: "Boostad"  },
-                      ] as const).map((b) => (
-                        <button
-                          key={b.key}
-                          className={"gr-rk-boost-pill" + (boost === b.key ? " active" : "")}
-                          onClick={() => setBoost(b.key)}
-                        >
-                          {b.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {selectedWeek && (
-                <>
-                  <div className="gr-rk-nav-wrap">
-                    <div className="gr-rk-grid">
-          {loading
-            ? [0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
-                  <div className="gr-thumb">
-                    <span className="gr-thumb-best gr-rk-skel-badge" />
-                    <span className="gr-thumb-er gr-rk-skel-er" />
-                    <div className="gr-thumb-stats gr-rk-skel-stats">
-                      {[44, 38, 36, 40].map((w, j) => (
-                        <span key={j} className="gr-rk-skel-stat" style={{ width: w }} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="gr-vid-info">
-                    <div className="gr-rk-skel-bar" style={{ width: "60%" }} />
-                  </div>
-                </div>
-              ))
-            : accounts.slice(0, 5).map((acc, i) => (
-                <div key={acc.handle} className="gr-vc gr-rk-vk-card">
-                  <a
-                    href={acc.bestVideo.video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="gr-thumb"
-                  >
-                    {acc.bestVideo.thumbnail_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={acc.bestVideo.thumbnail_url}
-                        alt=""
-                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-                      />
-                    )}
-                    <div className="gr-thumb-stats">
-                      <span><ThumbsUp size={9} />{fmt(acc.bestVideo.likes)}</span>
-                      <span><MessageCircle size={9} />{fmt(acc.bestVideo.comments)}</span>
-                      <span><Share2 size={9} />{fmt(acc.bestVideo.shares)}</span>
-                      {acc.bestVideo.collect_count != null && (
-                        <span><Bookmark size={9} />{fmt(acc.bestVideo.collect_count)}</span>
-                      )}
-                      <span><Eye size={9} />{fmt(acc.bestVideo.views)}</span>
-                    </div>
-                    <span
-                      className="gr-thumb-er gr-rk-vk-er"
-                      style={{ color: i < 3 ? rankColor(i) : "#EDF8FB" }}
-                    >
-                      {acc.bestEngagement.toFixed(2)}%
-                    </span>
-                    <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
-                      #{i + 1}
-                    </span>
-                    {acc.bestVideo.is_ad === true && (
-                      <span className="gr-rk-boost-badge">Boostad</span>
-                    )}
-                  </a>
-                  <button
-                    className={"gr-rk-vk-copy" + (copiedIdx === i ? " copied" : "")}
-                    onClick={() => {
-                      const slugs = ["guld", "silver", "brons"];
-                      const url = `${window.location.origin}/${selectedWeek}/${slugs[i]}`;
-                      navigator.clipboard.writeText(url);
-                      setCopiedIdx(i);
-                      setTimeout(() => setCopiedIdx(null), 2000);
-                    }}
-                    aria-label="Kopiera delningslänk"
-                  >
-                    {copiedIdx === i ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                        <polyline points="16 6 12 2 8 6" />
-                        <line x1="12" y1="2" x2="12" y2="15" />
-                      </svg>
-                    )}
-                  </button>
-                  <div className="gr-vid-info">
-                    <a href={`/konto/${acc.handle}`} className="gr-rk-vk-name">
-                      {acc.displayName}
-                    </a>
-                  </div>
-                </div>
-              ))
-          }
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          );
-        })()}
-
-        {/* ── Hall of Fame CTA ── */}
-        <div className="gr-rk-hof-cta">
-          <p className="gr-rk-hof-tagline">Vill du se mer?</p>
-          <a href="/hall-of-fame" className="gr-rk-hof-btn">
-            Hall of Fame
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}>
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </a>
         </div>
       </section>
 
       {/* ── KALKYLATOR ───────────────────────────────────────────────── */}
-      <section className="gr-calc-section" id="kalkylator" style={{ scrollMarginTop: 72 }}>
+      <section className={"gr-calc-section" + (calcOpen ? " gr-calc-section--open" : "")} id="kalkylator" style={{ scrollMarginTop: 72 }}>
         <div className="gr-calc-section-inner">
           <h2 className="gr-calc-h2">Hur engagerande är ditt innehåll?</h2>
           <div className="gr-calc-desc">
@@ -1355,6 +1154,223 @@ function HomeInner() {
             </div>
           </div>
         )}
+      </section>
+      </div>
+
+      {/* ── SCROLL HINT ───────────────────────────────────────────────── */}
+      <div className="gr-scroll-hint" aria-hidden="true">
+        <a href="#topplistan" className="gr-scroll-hint-arrow">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </a>
+      </div>
+
+      {/* ── KARUSELL (strip above topplistan) ───────────────────────── */}
+      <div
+        className="gr-top-carousel"
+        onPointerDown={!loading ? onCarouselPointerDown : undefined}
+        onPointerMove={!loading ? onCarouselPointerMove : undefined}
+        onPointerUp={!loading ? onCarouselPointerUp : undefined}
+        onPointerCancel={!loading ? onCarouselPointerUp : undefined}
+      >
+        {loading ? (
+          <div className="gr-top-carousel-inner gr-top-carousel-inner--skel">
+            {Array.from({ length: 14 }, (_, i) => (
+              <div key={i} className="gr-top-carousel-skel" />
+            ))}
+          </div>
+        ) : carouselVideos.length > 0 ? (
+          <div className="gr-top-carousel-inner" ref={carouselRef}>
+            {Array.from({ length: 3 }, () => carouselVideos).flat().map((v, i) => (
+              <a
+                key={i}
+                href={v.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gr-top-carousel-card"
+                draggable={false}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={v.thumbnail_url!} alt="" className="gr-top-carousel-thumb" draggable={false} />
+                <div className="gr-top-carousel-info">
+                  <span className="gr-top-carousel-name">{displayName(v)}</span>
+                  <span className="gr-top-carousel-er">{Number(v.engagement_rate).toFixed(2)}%</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
+      <section id="topplistan" className="gr-list-section" style={{ scrollMarginTop: 72 }}>
+
+        {/* Header */}
+        {(() => {
+          const weekIdx = selectedWeek ? weeks.indexOf(selectedWeek) : -1;
+          const canBack = weekIdx >= 0 && weekIdx + 1 < weeks.length;
+          const canForward = weekIdx > 0;
+          function goToWeek(w: string) {
+            setSelectedWeek(w);
+            router.replace(`?week=${w}`, { scroll: false });
+          }
+          return (
+            <>
+              <div className="gr-list-section-hdr">
+                <h1 className="gr-page-title">Veckans raketer</h1>
+                {selectedWeek && (
+                  <div className="gr-rk-toolbar">
+                    <div className="gr-rk-week-nav">
+                      <button
+                        className="gr-wk-arrow"
+                        disabled={!canBack}
+                        onClick={() => canBack && goToWeek(weeks[weekIdx + 1])}
+                        aria-label="Föregående vecka"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                      </button>
+                      <span className="gr-rk-week-tag">{fmtWeekShort(selectedWeek)}</span>
+                      <button
+                        className="gr-wk-arrow"
+                        disabled={!canForward}
+                        onClick={() => canForward && goToWeek(weeks[weekIdx - 1])}
+                        aria-label="Nästa vecka"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="gr-rk-boost-pills">
+                      {([
+                        { key: "all",     label: "Alla"     },
+                        { key: "organic", label: "Organisk" },
+                        { key: "boosted", label: "Boostad"  },
+                      ] as const).map((b) => (
+                        <button
+                          key={b.key}
+                          className={"gr-rk-boost-pill" + (boost === b.key ? " active" : "")}
+                          onClick={() => setBoost(b.key)}
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {selectedWeek && (
+                <>
+                  <div className="gr-rk-nav-wrap">
+                    <div className="gr-rk-grid">
+          {loading
+            ? [0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="gr-vc gr-rk-vk-card gr-rk-vk-card--loading">
+                  <div className="gr-thumb">
+                    <span className="gr-thumb-best gr-rk-skel-badge" />
+                    <span className="gr-thumb-er gr-rk-skel-er" />
+                    <div className="gr-thumb-stats gr-rk-skel-stats">
+                      {[44, 38, 36, 40].map((w, j) => (
+                        <span key={j} className="gr-rk-skel-stat" style={{ width: w }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="gr-vid-info">
+                    <div className="gr-rk-skel-bar" style={{ width: "60%" }} />
+                  </div>
+                </div>
+              ))
+            : accounts.slice(0, 5).map((acc, i) => (
+                <div key={acc.handle} className="gr-vc gr-rk-vk-card">
+                  <a
+                    href={acc.bestVideo.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gr-thumb"
+                  >
+                    {acc.bestVideo.thumbnail_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={acc.bestVideo.thumbnail_url}
+                        alt=""
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+                      />
+                    )}
+                    <div className="gr-thumb-stats">
+                      <span><ThumbsUp size={9} />{fmt(acc.bestVideo.likes)}</span>
+                      <span><MessageCircle size={9} />{fmt(acc.bestVideo.comments)}</span>
+                      <span><Share2 size={9} />{fmt(acc.bestVideo.shares)}</span>
+                      {acc.bestVideo.collect_count != null && (
+                        <span><Bookmark size={9} />{fmt(acc.bestVideo.collect_count)}</span>
+                      )}
+                      <span><Eye size={9} />{fmt(acc.bestVideo.views)}</span>
+                    </div>
+                    <span
+                      className="gr-thumb-er gr-rk-vk-er"
+                      style={{ color: i < 3 ? rankColor(i) : "#EDF8FB" }}
+                    >
+                      {acc.bestEngagement.toFixed(2)}%
+                    </span>
+                    <span className="gr-thumb-best" style={{ background: rankColor(i) }}>
+                      #{i + 1}
+                    </span>
+                    {acc.bestVideo.is_ad === true && (
+                      <span className="gr-rk-boost-badge">Boostad</span>
+                    )}
+                  </a>
+                  <button
+                    className={"gr-rk-vk-copy" + (copiedIdx === i ? " copied" : "")}
+                    onClick={() => {
+                      const slugs = ["guld", "silver", "brons"];
+                      const url = `${window.location.origin}/${selectedWeek}/${slugs[i]}`;
+                      navigator.clipboard.writeText(url);
+                      setCopiedIdx(i);
+                      setTimeout(() => setCopiedIdx(null), 2000);
+                    }}
+                    aria-label="Kopiera delningslänk"
+                  >
+                    {copiedIdx === i ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                    )}
+                  </button>
+                  <div className="gr-vid-info">
+                    <a href={`/konto/${acc.handle}`} className="gr-rk-vk-name">
+                      {acc.displayName}
+                    </a>
+                  </div>
+                </div>
+              ))
+          }
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
+
+        {/* ── Hall of Fame CTA ── */}
+        <div className="gr-rk-hof-cta">
+          <p className="gr-rk-hof-tagline">Vill du se mer?</p>
+          <a href="/hall-of-fame" className="gr-rk-hof-btn">
+            Hall of Fame
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}>
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+        </div>
       </section>
 
       <TopProfilesStrip profiles={topProfiles} loading={loadingAllTime} />
