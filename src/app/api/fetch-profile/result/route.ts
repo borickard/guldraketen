@@ -53,6 +53,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: "pending" });
   }
   if (["FAILED", "TIMED-OUT", "ABORTED"].includes(runStatus)) {
+    // Log the failed profile run for monitoring (admin calc-tester view).
+    await supabaseAdmin.from("calculator_tests").insert({
+      video_url: handle ? `https://www.tiktok.com/@${handle}` : null,
+      handle: handle || null,
+      run_id: runId,
+      source: "failed",
+    });
     return NextResponse.json({ status: "error" });
   }
   if (runStatus !== "SUCCEEDED") {
