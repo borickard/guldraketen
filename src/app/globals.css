@@ -3638,12 +3638,15 @@ body {
 
 .gr-top-profiles-er {
   font-family: var(--gr-syne);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--gr-dark);
   line-height: 1;
   margin-top: 3px;
   text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
 }
 
 .gr-top-profiles-skel-avatar {
@@ -3676,12 +3679,21 @@ body {
 @media (min-width: 768px) {
   .gr-top-profiles-avatar,
   .gr-top-profiles-skel-avatar {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
   }
   .gr-top-profiles-er {
-    font-size: 22px;
+    font-size: 17px;
   }
+}
+
+/* Show fewer profiles where the columns would be too narrow for the ER to fit,
+   so the percentages never overflow and overlap each other. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .gr-top-profiles-item:nth-child(n+9) { display: none; }
+}
+@media (min-width: 1100px) and (max-width: 1365px) {
+  .gr-top-profiles-item:nth-child(n+13) { display: none; }
 }
 
 @media (max-width: 767px) {
@@ -3842,55 +3854,14 @@ body {
 }
 
 /* ── HERO v2 ── */
-/* ── HERO BLOCK: intro + calculator side by side on desktop ── */
+/* ── HERO BLOCK: intro + a calculator that expands on button click (all sizes) ── */
 .gr-hero-block {
   background: #07253A;
 }
 
-/* Mobile: the calculator stays collapsed until "Testa ditt engagemang" opens it. */
-@media (max-width: 899px) {
-  .gr-hero-block .gr-calc-section { display: none; }
-  .gr-hero-block .gr-calc-section.gr-calc-section--open { display: block; }
-}
-
-@media (min-width: 900px) {
-  .gr-hero-block {
-    display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
-    gap: clamp(28px, 4vw, 64px);
-    align-items: start;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: clamp(44px, 6vh, 104px) clamp(24px, 4vw, 48px);
-  }
-  .gr-hero-block .gr-hero-v2,
-  .gr-hero-block .gr-calc-section {
-    min-height: 0;
-    padding: 0;
-    background: transparent;
-  }
-  .gr-hero-block .gr-hero-v2-inner,
-  .gr-hero-block .gr-calc-section-inner {
-    max-width: none;
-    margin: 0;
-    width: 100%;
-  }
-  /* Calculator becomes a card in the right column */
-  .gr-hero-block .gr-calc-section {
-    background: rgba(237,248,251,0.045);
-    border: 1px solid rgba(237,248,251,0.1);
-    border-radius: 18px;
-    padding: clamp(22px, 2.4vw, 36px);
-  }
-  .gr-hero-block .gr-hero-v2-h1 { font-size: clamp(2.6rem, 4.4vw, 4.6rem); }
-  .gr-hero-block .gr-hero-v2-manifest { margin-bottom: var(--space-4); }
-  .gr-hero-block .gr-hero-v2-ctas { margin-top: var(--space-5); }
-  .gr-hero-block .gr-hero-v2-btn-primary { flex: 0 0 auto; }
-  .gr-hero-block .gr-calc-h2 { font-size: clamp(1.5rem, 2.1vw, 2.2rem); margin-bottom: var(--space-3); }
-  .gr-hero-block .gr-calc-desc { margin-bottom: var(--space-4); font-size: 14px; }
-  /* The mobile toggle isn't needed when the calculator is already shown. */
-  .gr-hero-block .gr-hero-v2-link--calc { display: none; }
-}
+/* The calculator stays collapsed until "Testa ditt engagemang" opens it. */
+.gr-hero-block .gr-calc-section { display: none; }
+.gr-hero-block .gr-calc-section.gr-calc-section--open { display: block; }
 
 .gr-hero-v2 {
   min-height: 50vh;
