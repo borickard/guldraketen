@@ -943,7 +943,7 @@ function HomeInner() {
       </div>
 
       {/* ── TOPPLISTA ──────────────────────────────────────────────────── */}
-      <section id="topplistan" className="gr-list-section">
+      <section id="topplistan" className="gr-list-section" style={{ scrollMarginTop: 72 }}>
 
         {/* Header */}
         {(() => {
@@ -1374,7 +1374,7 @@ function HomeInner() {
 
 
       {/* ── FAQ / OM SOCIALA RAKETER ─────────────────────────────────── */}
-      <section className="gr-faq-section" id="om-engagemang">
+      <section className="gr-faq-section" id="om-engagemang" style={{ scrollMarginTop: 72 }}>
         <div className="gr-faq-inner">
           <h2 className="gr-faq-h2">Om Sociala Raketer</h2>
           <div className="gr-faq-list">
