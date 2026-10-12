@@ -868,6 +868,8 @@ export default function VideoGrid({
                       mode="range"
                       locale={sv}
                       showOutsideDays
+                      today={new Date()}
+                      disabled={{ after: new Date() }}
                       selected={selectedForDisplay}
                       onSelect={(_range, selectedDay) => {
                         if (calPhase === 0) {
@@ -885,6 +887,16 @@ export default function VideoGrid({
                       onDayMouseLeave={() => setHoverDay(undefined)}
                       numberOfMonths={1}
                     />
+                    <div className="vg-cal-legend">
+                      <span className="vg-cal-legend-item">
+                        <span className="vg-cal-legend-dot vg-cal-legend-dot--today" />
+                        Idag
+                      </span>
+                      <span className="vg-cal-legend-item">
+                        <span className="vg-cal-legend-dot vg-cal-legend-dot--future" />
+                        Framtida datum har inte hänt än
+                      </span>
+                    </div>
                     <div className="vg-cal-footer">
                       <button className="vg-cal-ok" onClick={() => setShowCal(false)}>OK</button>
                     </div>
@@ -1967,14 +1979,60 @@ const css = `
     opacity: 1;
   }
 
-  /* Today marker */
-  .vg-cal-popup .rdp-day_button.rdp-today {
+  /* Today marker — in v9 the "rdp-today" class sits on the day CELL, not the
+     button, so target it via the cell. Gold text + gold ring makes "today"
+     unmistakable. */
+  .vg-cal-popup .rdp-day.rdp-today .rdp-day_button {
     font-weight: 700;
     color: #C8962A;
+    box-shadow: inset 0 0 0 1.5px rgba(200,150,42,0.65);
   }
-  .vg-cal-popup .rdp-day.rdp-range_start .rdp-day_button.rdp-today,
-  .vg-cal-popup .rdp-day.rdp-range_end .rdp-day_button.rdp-today {
+  /* When today is also the selected range start/end, keep the dark pill + white text */
+  .vg-cal-popup .rdp-day.rdp-today.rdp-range_start .rdp-day_button,
+  .vg-cal-popup .rdp-day.rdp-today.rdp-range_end .rdp-day_button {
     color: #fff;
+    box-shadow: none;
+  }
+
+  /* Future days — haven't happened yet: dimmed, muted, not selectable */
+  .vg-cal-popup .rdp-day.rdp-disabled {
+    opacity: 0.32;
+  }
+  .vg-cal-popup .rdp-day.rdp-disabled .rdp-day_button {
+    cursor: not-allowed;
+    color: rgba(28,27,25,0.55);
+    background: transparent;
+  }
+  .vg-cal-popup .rdp-day.rdp-disabled .rdp-day_button:hover {
+    background: transparent;
+  }
+
+  /* Calendar legend */
+  .vg-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 14px;
+    padding: 10px 4px 2px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    color: rgba(28,27,25,0.62);
+  }
+  .vg-cal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .vg-cal-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .vg-cal-legend-dot--today {
+    box-shadow: inset 0 0 0 1.5px rgba(200,150,42,0.8);
+  }
+  .vg-cal-legend-dot--future {
+    background: rgba(28,27,25,0.14);
   }
 
   /* Month caption */
